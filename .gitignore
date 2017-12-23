@@ -1,0 +1,20 @@
+# Windows thumbnails
+Thumbs.db
+
+# Visual Studio
+*.vcxproj*
+*.sln
+project/.vs/
+
+# CMake
+project/*.dir
+project/CMakeFiles/
+project/CMakeCache.txt
+project/cmake_install.cmake
+project/x86
+project/x64
+project/CMakeLocalDependenciesPaths.txt
+
+# Generated
+bin/
+*/logs/*
