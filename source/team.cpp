@@ -144,12 +144,18 @@ bool Team::ReadInput(const std::string& input, std::string& returnMessage)
 	else if(input.find("connect") != std::string::npos)
 	{
 		if (!Tubes::GetHostFlag())
+		{
 			Tubes::RequestConnection(input.substr(input.find(' ') + 1), DefaultPort);
+			returnMessage = "Connection requested";
+		}
 		else
 			returnMessage = "Connecting to remote clients is not allowed while hosting";
 	}
 	else
+	{
+		returnMessage = "Unknown or malformed command";
 		return false;
+	}
 
 	return true;
 }
