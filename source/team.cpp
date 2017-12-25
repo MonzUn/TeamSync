@@ -25,6 +25,7 @@ bool Team::Initialize()
 
 	MEngineInput::SetFocusRequired(false);
 
+	imageJobLock = std::unique_lock<std::mutex>(imageJobLockMutex);
 	ImageJobThread = std::thread(&Team::ProcessImageJobs, this);
 
 	return true;
@@ -52,6 +53,7 @@ void Team::Update()
 	{
 		ImageJob* screenshotJob = new ImageJob(ImageJobType::TakeScreenshot, localPlayerID);
 		ImageJobQueue.Produce(screenshotJob);
+		imageJobLockCondition.notify_one();
 	}
 
 	// Handle delayed screenshot
@@ -59,6 +61,7 @@ void Team::Update()
 	{
 		ImageJob* screenshotJob = new ImageJob(ImageJobType::TakeScreenshot, localPlayerID);
 		ImageJobQueue.Produce(screenshotJob);
+		imageJobLockCondition.notify_one();
 
 		AwaitingDelayedScreenshot = false;
 	}
@@ -119,7 +122,6 @@ void Team::Update()
 
 				players[playerID] = Player(playerID, ImagePositions[playerID][0], ImagePositions[playerID][1]);
 				MEngineEntityManager::RegisterNewEntity(static_cast<MEngineObject*>(&players[playerID]));
-
 			} break;
 
 			case TeamSyncMessages::PLAYER_UPDATE:
@@ -139,6 +141,7 @@ void Team::Update()
 				memcpy(pixelsCopy, playerUpdateMessage->Pixels, playerUpdateMessage->ImageByteSize); // Message will get destroyed; make a copy of the pixel data for the asynchronous job
 				ImageJob* imageFromDataJob = new ImageJob(ImageJobType::CreateImageFromData, playerUpdateMessage->PlayerID, playerUpdateMessage->Width, playerUpdateMessage->Height, pixelsCopy);
 				ImageJobQueue.Produce(imageFromDataJob);
+				imageJobLockCondition.notify_one();
 			} break;
 		
 			default:
@@ -153,6 +156,7 @@ void Team::Update()
 void Team::Shutdown()
 {
 	RunImageJobThread = false;
+	imageJobLockCondition.notify_one();
 	MutilityThreading::JoinThread(ImageJobThread);
 
 	ImageJob* imageJob = nullptr;
@@ -237,6 +241,7 @@ void Team::ProcessImageJobs()
 	ImageJob* job = nullptr;
 	while (RunImageJobThread)
 	{
+		imageJobLockCondition.wait(imageJobLock);
 		if (ImageJobQueue.Consume(job))
 		{
 			switch (job->JobType)
@@ -258,6 +263,7 @@ void Team::ProcessImageJobs()
 			}
 		}
 	}
+	imageJobLock.unlock();
 }
 
 PlayerID Team::FindFreePlayerSlot() const

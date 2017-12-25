@@ -2,6 +2,7 @@
 #include "player.h"
 #include "MUtilityLocklessQueue.h"
 #include <thread>
+#include <condition_variable>
 
 #define MAX_PLAYERS 4
 
@@ -30,10 +31,13 @@ private:
 	bool AwaitingDelayedScreenshot = false;
 	std::chrono::time_point<std::chrono::steady_clock> ScreenshotTime;
 
-	std::thread ImageJobThread;
-	std::atomic<bool> RunImageJobThread = true;
-	MUtility::LocklessQueue<ImageJob*> ImageJobQueue;
-	MUtility::LocklessQueue<ImageJob*> ImageJobResultQueue;
+	std::thread							ImageJobThread;
+	std::atomic<bool>					RunImageJobThread = true;
+	std::unique_lock<std::mutex>		imageJobLock;
+	std::mutex							imageJobLockMutex;
+	std::condition_variable				imageJobLockCondition;
+	MUtility::LocklessQueue<ImageJob*>	ImageJobQueue;
+	MUtility::LocklessQueue<ImageJob*>	ImageJobResultQueue;
 };
 
 enum class ImageJobType
