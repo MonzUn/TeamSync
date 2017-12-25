@@ -26,7 +26,7 @@ bool Team::Initialize()
 	MEngineInput::SetFocusRequired(false);
 
 	imageJobLock = std::unique_lock<std::mutex>(imageJobLockMutex);
-	ImageJobThread = std::thread(&Team::ProcessImageJobs, this);
+	imageJobThread = std::thread(&Team::ProcessImageJobs, this);
 
 	return true;
 }
@@ -36,39 +36,39 @@ void Team::Update()
 	// Handle input
 	if (KeyDown(MKey_CONTROL) && KeyReleased(MKey_TAB)) // Reset screenshot cycling
 	{
-		DelayedScreenshotCycle = false;
+		delayedScreenshotCycle = false;
 	}
 
-	if (KeyReleased(MKey_TAB) && localPlayerID != UNASSIGNED_PLAYER_ID && !AwaitingDelayedScreenshot) // Take delayed screenshot
+	if (KeyReleased(MKey_TAB) && localPlayerID != UNASSIGNED_PLAYER_ID && !awaitingDelayedScreenshot) // Take delayed screenshot
 	{
-		if (!DelayedScreenshotCycle)
+		if (!delayedScreenshotCycle)
 		{
-			ScreenshotTime = std::chrono::high_resolution_clock::now() + std::chrono::milliseconds(DELAYED_SCREENSHOT_WAIT_TIME_MILLISECONDS);
-			AwaitingDelayedScreenshot = true;
+			screenshotTime = std::chrono::high_resolution_clock::now() + std::chrono::milliseconds(DELAYED_SCREENSHOT_WAIT_TIME_MILLISECONDS);
+			awaitingDelayedScreenshot = true;
 		}
-		DelayedScreenshotCycle = !DelayedScreenshotCycle;
+		delayedScreenshotCycle = !delayedScreenshotCycle;
 	}
 
 	if (KeyReleased(MKey_GRAVE) && localPlayerID != UNASSIGNED_PLAYER_ID) // Take direct screenshot
 	{
 		ImageJob* screenshotJob = new ImageJob(ImageJobType::TakeScreenshot, localPlayerID);
-		ImageJobQueue.Produce(screenshotJob);
+		imageJobQueue.Produce(screenshotJob);
 		imageJobLockCondition.notify_one();
 	}
 
 	// Handle delayed screenshot
-	if (AwaitingDelayedScreenshot && std::chrono::high_resolution_clock::now() >= ScreenshotTime)
+	if (awaitingDelayedScreenshot && std::chrono::high_resolution_clock::now() >= screenshotTime)
 	{
 		ImageJob* screenshotJob = new ImageJob(ImageJobType::TakeScreenshot, localPlayerID);
-		ImageJobQueue.Produce(screenshotJob);
+		imageJobQueue.Produce(screenshotJob);
 		imageJobLockCondition.notify_one();
 
-		AwaitingDelayedScreenshot = false;
+		awaitingDelayedScreenshot = false;
 	}
 
 	// Handle results from image job thread
 	ImageJob* finishedJob = nullptr;
-	while (ImageJobResultQueue.Consume(finishedJob))
+	while (imageJobResultQueue.Consume(finishedJob))
 	{
 		switch (finishedJob->JobType)
 		{
@@ -140,7 +140,7 @@ void Team::Update()
 				void* pixelsCopy = malloc(playerUpdateMessage->ImageByteSize);
 				memcpy(pixelsCopy, playerUpdateMessage->Pixels, playerUpdateMessage->ImageByteSize); // Message will get destroyed; make a copy of the pixel data for the asynchronous job
 				ImageJob* imageFromDataJob = new ImageJob(ImageJobType::CreateImageFromData, playerUpdateMessage->PlayerID, playerUpdateMessage->Width, playerUpdateMessage->Height, pixelsCopy);
-				ImageJobQueue.Produce(imageFromDataJob);
+				imageJobQueue.Produce(imageFromDataJob);
 				imageJobLockCondition.notify_one();
 			} break;
 		
@@ -155,19 +155,19 @@ void Team::Update()
 
 void Team::Shutdown()
 {
-	RunImageJobThread = false;
+	runImageJobThread = false;
 	imageJobLockCondition.notify_one();
-	MutilityThreading::JoinThread(ImageJobThread);
+	MutilityThreading::JoinThread(imageJobThread);
 
 	ImageJob* imageJob = nullptr;
-	while (ImageJobQueue.Consume(imageJob))
+	while (imageJobQueue.Consume(imageJob))
 	{
 		if (imageJob->Pixels != nullptr)
 			free(imageJob->Pixels);
 	}
 
-	ImageJobQueue.Clear();
-	ImageJobResultQueue.Clear();
+	imageJobQueue.Clear();
+	imageJobResultQueue.Clear();
 }
 
 bool Team::ReadInput(const std::string& input, std::string& returnMessage)
@@ -239,23 +239,23 @@ void Team::ConnectionCallback(int32_t connectionID)
 void Team::ProcessImageJobs()
 {
 	ImageJob* job = nullptr;
-	while (RunImageJobThread)
+	while (runImageJobThread)
 	{
 		imageJobLockCondition.wait(imageJobLock);
-		if (ImageJobQueue.Consume(job))
+		if (imageJobQueue.Consume(job))
 		{
 			switch (job->JobType)
 			{
 				case ImageJobType::TakeScreenshot:
 				{
 					job->ResultTextureID = MEngineGraphics::CaptureScreenToTexture(true);
-					ImageJobResultQueue.Produce(job);
+					imageJobResultQueue.Produce(job);
 				} break;
 
 				case ImageJobType::CreateImageFromData:
 				{
 					job->ResultTextureID = MEngineGraphics::CreateTextureFromTextureData(MEngineGraphics::MEngineTextureData(job->ImageWidth, job->ImageHeight, job->Pixels), true);
-					ImageJobResultQueue.Produce(job);
+					imageJobResultQueue.Produce(job);
 				} break;
 
 				default:

@@ -27,17 +27,17 @@ private:
 	Player players[MAX_PLAYERS];
 	PlayerID localPlayerID = UNASSIGNED_PLAYER_ID;
 
-	bool DelayedScreenshotCycle = false;
-	bool AwaitingDelayedScreenshot = false;
-	std::chrono::time_point<std::chrono::steady_clock> ScreenshotTime;
+	bool delayedScreenshotCycle = false;
+	bool awaitingDelayedScreenshot = false;
+	std::chrono::time_point<std::chrono::steady_clock> screenshotTime;
 
-	std::thread							ImageJobThread;
-	std::atomic<bool>					RunImageJobThread = true;
+	std::atomic<bool>					runImageJobThread = true;
+	std::thread							imageJobThread;
 	std::unique_lock<std::mutex>		imageJobLock;
 	std::mutex							imageJobLockMutex;
 	std::condition_variable				imageJobLockCondition;
-	MUtility::LocklessQueue<ImageJob*>	ImageJobQueue;
-	MUtility::LocklessQueue<ImageJob*>	ImageJobResultQueue;
+	MUtility::LocklessQueue<ImageJob*>	imageJobQueue;
+	MUtility::LocklessQueue<ImageJob*>	imageJobResultQueue;
 };
 
 enum class ImageJobType
