@@ -1,9 +1,9 @@
 #include "replicator.h"
 #include "teamSyncMessages.h"
-#include <mengineLog.h>
 #include <messaging/MessagingTypes.h>
-#include <MUtilitySerialization.h>
 #include <MUtilityDataSizes.h>
+#include <MUtilityLog.h>
+#include <MUtilitySerialization.h>
 #include <cassert>
 
 using namespace MUtilitySerialization;
