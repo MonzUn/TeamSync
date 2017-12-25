@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
 
 void HandleTextInputOutput()
 {
-	std::cout << "Available commands:\nhost - Hosts a new session\nconnect <HostIPv4> - Requests a connection to a host on the inputted IP\n";
+	std::cout << "Available commands:\nhost - Hosts a new session\nconnect <HostIPv4> - Requests a connection to a host on the input IP\n";
 	std::cout << "\nControls:\nGrave - Synchronizes a screenshot\nTab - Synchronizes a screenshot every other time it is pressed\nCTRL + Tab - Resets tab screenshot cycle and synchronizes a screenshot\n\n";
 
 	std::string input, returnMessage;
