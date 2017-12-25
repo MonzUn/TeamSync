@@ -177,8 +177,6 @@ bool Team::ReadInput(const std::string& input, std::string& returnMessage)
 			localPlayerID = 0;
 			players[localPlayerID] = Player(localPlayerID, ImagePositions[localPlayerID][0], ImagePositions[localPlayerID][1]);
 			MEngineEntityManager::RegisterNewEntity(static_cast<MEngineObject*>(&players[0]));
-
-			returnMessage = "Hosting successful";
 		}
 		else
 			returnMessage = "Hosting failed; already hosting";
@@ -188,7 +186,6 @@ bool Team::ReadInput(const std::string& input, std::string& returnMessage)
 		if (!Tubes::GetHostFlag())
 		{
 			Tubes::RequestConnection(input.substr(input.find(' ') + 1), DefaultPort);
-			returnMessage = "Connection requested";
 		}
 		else
 			returnMessage = "Connecting to remote clients is not allowed while hosting";
