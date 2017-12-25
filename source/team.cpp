@@ -131,12 +131,6 @@ void Team::Update()
 				if (Tubes::GetHostFlag())
 					Tubes::SendToAll(receivedMessages[i], messageSenders[i]);
 
-				if (players[playerUpdateMessage->PlayerID].GetPlayerID() == UNASSIGNED_PLAYER_ID) // TODODB: Does this ever trigger?
-				{
-					players[playerUpdateMessage->PlayerID] = Player(playerUpdateMessage->PlayerID, ImagePositions[playerUpdateMessage->PlayerID][0], ImagePositions[playerUpdateMessage->PlayerID][1]);
-					MEngineEntityManager::RegisterNewEntity(static_cast<MEngineObject*>(&players[playerUpdateMessage->PlayerID]));
-				}
-
 				void* pixelsCopy = malloc(playerUpdateMessage->ImageByteSize);
 				memcpy(pixelsCopy, playerUpdateMessage->Pixels, playerUpdateMessage->ImageByteSize); // Message will get destroyed; make a copy of the pixel data for the asynchronous job
 				ImageJob* imageFromDataJob = new ImageJob(ImageJobType::CreateImageFromData, playerUpdateMessage->PlayerID, playerUpdateMessage->Width, playerUpdateMessage->Height, pixelsCopy);
@@ -224,13 +218,22 @@ void Team::ConnectionCallback(int32_t connectionID)
 		idMessage.AssignToReceiver = false;
 		Tubes::SendToAll(&idMessage, connectionID);
 
+		// Make the new client aware of the relayed clients and update the new clients view of the relayed clients 
 		for (int i = 0; i < MAX_PLAYERS; ++i)
 		{
 			PlayerID playerID = players[i].GetPlayerID();
-			if (playerID != UNASSIGNED_PLAYER_ID && playerID != newPlayerID && players[playerID].TextureID != INVALID_MENGINE_TEXTURE_ID)
+			if (playerID != UNASSIGNED_PLAYER_ID && playerID != newPlayerID )
 			{
-				PlayerUpdateMessage message = PlayerUpdateMessage(playerID, MEngineGraphics::GetTextureData(players[playerID].TextureID));
-				Tubes::SendToConnection(&message, connectionID);
+				PlayerIDMessage idMessage = PlayerIDMessage(playerID, false);
+				Tubes::SendToConnection(&idMessage, connectionID);
+				idMessage.Destroy();
+
+				if (players[playerID].TextureID != INVALID_MENGINE_TEXTURE_ID)
+				{
+					PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, MEngineGraphics::GetTextureData(players[playerID].TextureID));
+					Tubes::SendToConnection(&updateMessage, connectionID);
+					updateMessage.Destroy();
+				}
 			}
 		}
 	}
