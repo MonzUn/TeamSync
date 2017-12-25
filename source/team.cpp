@@ -25,7 +25,6 @@ bool Team::Initialize()
 
 	MEngineInput::SetFocusRequired(false);
 
-	imageJobLock = std::unique_lock<std::mutex>(imageJobLockMutex);
 	imageJobThread = std::thread(&Team::ProcessImageJobs, this);
 
 	return true;
@@ -238,6 +237,8 @@ void Team::ConnectionCallback(int32_t connectionID)
 
 void Team::ProcessImageJobs()
 {
+	imageJobLock = std::unique_lock<std::mutex>(imageJobLockMutex);
+
 	ImageJob* job = nullptr;
 	while (runImageJobThread)
 	{
