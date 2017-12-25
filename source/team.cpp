@@ -5,14 +5,18 @@
 #include <mengineInput.h>
 #include <Tubes.h>
 #include <TubesTypes.h>
+#include <MUtilityThreading.h>
 #include <chrono>
 
 using namespace MEngineInput;
+using MEngineGraphics::MEngineTextureID;
 
-#define INVENTORY_SCREENSHOT_WAIT_TIME_MILLISECONDS 100
+#define DELAYED_SCREENSHOT_WAIT_TIME_MILLISECONDS 200
 
 const int32_t ImagePositions[MAX_PLAYERS][2] = { {0,0}, {950, 0}, {0,500}, { 950,500} };
 const uint16_t DefaultPort = 19200;
+
+// ---------- PUBLIC ----------
 
 bool Team::Initialize()
 {
@@ -21,50 +25,79 @@ bool Team::Initialize()
 
 	MEngineInput::SetFocusRequired(false);
 
+	ImageJobThread = std::thread(&Team::ProcessImageJobs, this);
+
 	return true;
 }
 
 void Team::Update()
 {
+	// Handle input
 	if (KeyDown(MKey_CONTROL) && KeyReleased(MKey_TAB)) // Reset screenshot cycling
 	{
-		inventoryIsOpen = false;
+		DelayedScreenshotCycle = false;
 	}
 
-	if (KeyReleased(MKey_TAB) && localPlayerID != UNASSIGNED_PLAYER_ID) // Take screenshot
+	if (KeyReleased(MKey_TAB) && localPlayerID != UNASSIGNED_PLAYER_ID && !AwaitingDelayedScreenshot) // Take delayed screenshot
 	{
-		if (!inventoryIsOpen)
+		if (!DelayedScreenshotCycle)
 		{
-			auto startTime = std::chrono::high_resolution_clock::now();
-			std::chrono::milliseconds elapsedTime;
-			do
-			{
-				elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime);
-			} while (elapsedTime < std::chrono::milliseconds(INVENTORY_SCREENSHOT_WAIT_TIME_MILLISECONDS));
-
-			if (inventories[localPlayerID].TextureID != INVALID_MENGINE_TEXTURE_ID)
-				MEngineGraphics::UnloadTexture(inventories[localPlayerID].TextureID);
-
-			inventories[localPlayerID].TextureID = MEngineGraphics::CaptureScreenToTexture(true);
-			PlayerUpdateMessage message = PlayerUpdateMessage(localPlayerID, MEngineGraphics::GetTextureData(inventories[localPlayerID].TextureID));
-			Tubes::SendToAll(&message);
-			message.Destroy();
+			ScreenshotTime = std::chrono::high_resolution_clock::now() + std::chrono::milliseconds(DELAYED_SCREENSHOT_WAIT_TIME_MILLISECONDS);
+			AwaitingDelayedScreenshot = true;
 		}
-		
-		inventoryIsOpen = !inventoryIsOpen;
+		DelayedScreenshotCycle = !DelayedScreenshotCycle;
 	}
 
-	if (KeyReleased(MKey_GRAVE) && localPlayerID != UNASSIGNED_PLAYER_ID)
+	if (KeyReleased(MKey_GRAVE) && localPlayerID != UNASSIGNED_PLAYER_ID) // Take direct screenshot
 	{
-		if (inventories[localPlayerID].TextureID != INVALID_MENGINE_TEXTURE_ID)
-			MEngineGraphics::UnloadTexture(inventories[localPlayerID].TextureID);
-	
-		inventories[localPlayerID].TextureID = MEngineGraphics::CaptureScreenToTexture(true);
-		PlayerUpdateMessage message = PlayerUpdateMessage(localPlayerID, MEngineGraphics::GetTextureData(inventories[localPlayerID].TextureID));
-		Tubes::SendToAll(&message);
-		message.Destroy();
+		ImageJob* screenshotJob = new ImageJob(ImageJobType::TakeScreenshot, localPlayerID);
+		ImageJobQueue.Produce(screenshotJob);
 	}
 
+	// Handle delayed screenshot
+	if (AwaitingDelayedScreenshot && std::chrono::high_resolution_clock::now() >= ScreenshotTime)
+	{
+		ImageJob* screenshotJob = new ImageJob(ImageJobType::TakeScreenshot, localPlayerID);
+		ImageJobQueue.Produce(screenshotJob);
+
+		AwaitingDelayedScreenshot = false;
+	}
+
+	// Handle results from image job thread
+	ImageJob* finishedJob = nullptr;
+	while (ImageJobResultQueue.Consume(finishedJob))
+	{
+		switch (finishedJob->JobType)
+		{
+			case ImageJobType::TakeScreenshot:
+			{
+				PlayerID imageOwnerID = finishedJob->ImageOwnerPlayerID;
+				if (players[imageOwnerID].TextureID != INVALID_MENGINE_TEXTURE_ID)
+					MEngineGraphics::UnloadTexture(players[imageOwnerID].TextureID);
+
+				players[imageOwnerID].TextureID = finishedJob->ResultTextureID;
+
+				PlayerUpdateMessage message = PlayerUpdateMessage(imageOwnerID, MEngineGraphics::GetTextureData(finishedJob->ResultTextureID));
+				Tubes::SendToAll(&message);
+				message.Destroy();
+			} break;
+
+			case ImageJobType::CreateImageFromData:
+			{
+				PlayerID imageOwnerID = finishedJob->ImageOwnerPlayerID;
+				if (players[imageOwnerID].TextureID != INVALID_MENGINE_TEXTURE_ID)
+					MEngineGraphics::UnloadTexture(players[imageOwnerID].TextureID);
+
+				players[imageOwnerID].TextureID = finishedJob->ResultTextureID;
+				free(finishedJob->Pixels);
+			} break;
+
+		default:
+			break;
+		}
+
+		delete finishedJob;
+	}
 
 	// Handle incoming network messages
 	std::vector<Message*> receivedMessages;
@@ -77,15 +110,15 @@ void Team::Update()
 			case TeamSyncMessages::PLAYER_ID:
 			{
 				const PlayerIDMessage* playerIDMessage = static_cast<const PlayerIDMessage*>(receivedMessages[i]);
-				int32_t playerID = playerIDMessage->PlayerID;
+				PlayerID playerID = playerIDMessage->PlayerID;
 
 				if (playerIDMessage->AssignToReceiver)
 				{	
 					localPlayerID = playerID;
 				}
 
-				inventories[playerID] = Player(playerID, ImagePositions[playerID][0], ImagePositions[playerID][1]);
-				MEngineEntityManager::RegisterNewEntity(static_cast<MEngineObject*>(&inventories[playerID]));
+				players[playerID] = Player(playerID, ImagePositions[playerID][0], ImagePositions[playerID][1]);
+				MEngineEntityManager::RegisterNewEntity(static_cast<MEngineObject*>(&players[playerID]));
 
 			} break;
 
@@ -96,16 +129,16 @@ void Team::Update()
 				if (Tubes::GetHostFlag())
 					Tubes::SendToAll(receivedMessages[i], messageSenders[i]);
 
-				if (inventories[playerUpdateMessage->PlayerID].GetPlayerID() == UNASSIGNED_PLAYER_ID)
+				if (players[playerUpdateMessage->PlayerID].GetPlayerID() == UNASSIGNED_PLAYER_ID) // TODODB: Does this ever trigger?
 				{
-					inventories[playerUpdateMessage->PlayerID] = Player(playerUpdateMessage->PlayerID, ImagePositions[playerUpdateMessage->PlayerID][0], ImagePositions[playerUpdateMessage->PlayerID][1]);
-					MEngineEntityManager::RegisterNewEntity(static_cast<MEngineObject*>(&inventories[playerUpdateMessage->PlayerID]));
+					players[playerUpdateMessage->PlayerID] = Player(playerUpdateMessage->PlayerID, ImagePositions[playerUpdateMessage->PlayerID][0], ImagePositions[playerUpdateMessage->PlayerID][1]);
+					MEngineEntityManager::RegisterNewEntity(static_cast<MEngineObject*>(&players[playerUpdateMessage->PlayerID]));
 				}
 
-				if (inventories[playerUpdateMessage->PlayerID].TextureID != INVALID_MENGINE_TEXTURE_ID)
-					MEngineGraphics::UnloadTexture(inventories[playerUpdateMessage->PlayerID].TextureID);
-
-				inventories[playerUpdateMessage->PlayerID].TextureID = MEngineGraphics::CreateTextureFromTextureData(MEngineGraphics::MEngineTextureData(playerUpdateMessage->Width, playerUpdateMessage->Height, playerUpdateMessage->Pixels), true);
+				void* pixelsCopy = malloc(playerUpdateMessage->ImageByteSize);
+				memcpy(pixelsCopy, playerUpdateMessage->Pixels, playerUpdateMessage->ImageByteSize); // Message will get destroyed; make a copy of the pixel data for the asynchronous job
+				ImageJob* imageFromDataJob = new ImageJob(ImageJobType::CreateImageFromData, playerUpdateMessage->PlayerID, playerUpdateMessage->Width, playerUpdateMessage->Height, pixelsCopy);
+				ImageJobQueue.Produce(imageFromDataJob);
 			} break;
 		
 			default:
@@ -119,7 +152,18 @@ void Team::Update()
 
 void Team::Shutdown()
 {
+	RunImageJobThread = false;
+	MutilityThreading::JoinThread(ImageJobThread);
 
+	ImageJob* imageJob = nullptr;
+	while (ImageJobQueue.Consume(imageJob))
+	{
+		if (imageJob->Pixels != nullptr)
+			free(imageJob->Pixels);
+	}
+
+	ImageJobQueue.Clear();
+	ImageJobResultQueue.Clear();
 }
 
 bool Team::ReadInput(const std::string& input, std::string& returnMessage)
@@ -133,8 +177,8 @@ bool Team::ReadInput(const std::string& input, std::string& returnMessage)
 			Tubes::RegisterConnectionCallback(ConnectionCallbackFunction(std::bind(&Team::ConnectionCallback, this, std::placeholders::_1)));
 
 			localPlayerID = 0;
-			inventories[localPlayerID] = Player(localPlayerID, ImagePositions[localPlayerID][0], ImagePositions[localPlayerID][1]);
-			MEngineEntityManager::RegisterNewEntity(static_cast<MEngineObject*>(&inventories[0]));
+			players[localPlayerID] = Player(localPlayerID, ImagePositions[localPlayerID][0], ImagePositions[localPlayerID][1]);
+			MEngineEntityManager::RegisterNewEntity(static_cast<MEngineObject*>(&players[0]));
 
 			returnMessage = "Hosting successful";
 		}
@@ -160,13 +204,15 @@ bool Team::ReadInput(const std::string& input, std::string& returnMessage)
 	return true;
 }
 
+// ---------- PRIVATE ----------
+
 void Team::ConnectionCallback(int32_t connectionID)
 {
-	int32_t newPlayerID = FindFreePlayerSlot();
+	PlayerID newPlayerID = FindFreePlayerSlot();
 	if (newPlayerID >= 0)
 	{
-		inventories[newPlayerID] = Player(newPlayerID, ImagePositions[newPlayerID][0], ImagePositions[newPlayerID][1]);
-		MEngineEntityManager::RegisterNewEntity(static_cast<MEngineObject*>(&inventories[newPlayerID]));
+		players[newPlayerID] = Player(newPlayerID, ImagePositions[newPlayerID][0], ImagePositions[newPlayerID][1]);
+		MEngineEntityManager::RegisterNewEntity(static_cast<MEngineObject*>(&players[newPlayerID]));
 
 		// Send the new player ID to all clients
 		PlayerIDMessage idMessage = PlayerIDMessage(newPlayerID, true);
@@ -176,21 +222,49 @@ void Team::ConnectionCallback(int32_t connectionID)
 
 		for (int i = 0; i < MAX_PLAYERS; ++i)
 		{
-			int32_t playerID = inventories[i].GetPlayerID();
-			if (playerID != UNASSIGNED_PLAYER_ID && playerID != newPlayerID && inventories[playerID].TextureID != INVALID_MENGINE_TEXTURE_ID)
+			PlayerID playerID = players[i].GetPlayerID();
+			if (playerID != UNASSIGNED_PLAYER_ID && playerID != newPlayerID && players[playerID].TextureID != INVALID_MENGINE_TEXTURE_ID)
 			{
-				PlayerUpdateMessage message = PlayerUpdateMessage(playerID, MEngineGraphics::GetTextureData(inventories[playerID].TextureID));
+				PlayerUpdateMessage message = PlayerUpdateMessage(playerID, MEngineGraphics::GetTextureData(players[playerID].TextureID));
 				Tubes::SendToConnection(&message, connectionID);
 			}
 		}
 	}
 }
 
-int32_t Team::FindFreePlayerSlot() const
+void Team::ProcessImageJobs()
+{
+	ImageJob* job = nullptr;
+	while (RunImageJobThread)
+	{
+		if (ImageJobQueue.Consume(job))
+		{
+			switch (job->JobType)
+			{
+				case ImageJobType::TakeScreenshot:
+				{
+					job->ResultTextureID = MEngineGraphics::CaptureScreenToTexture(true);
+					ImageJobResultQueue.Produce(job);
+				} break;
+
+				case ImageJobType::CreateImageFromData:
+				{
+					job->ResultTextureID = MEngineGraphics::CreateTextureFromTextureData(MEngineGraphics::MEngineTextureData(job->ImageWidth, job->ImageHeight, job->Pixels), true);
+					ImageJobResultQueue.Produce(job);
+				} break;
+
+				default:
+					break;
+			}
+		}
+	}
+}
+
+PlayerID Team::FindFreePlayerSlot() const
 {
 	for (int i = 0; i < MAX_PLAYERS; ++i)
 	{
-		if (inventories[i].GetPlayerID() == UNASSIGNED_PLAYER_ID)
+		if (players[i].GetPlayerID() == UNASSIGNED_PLAYER_ID)
 			return i;
 	}
 

@@ -24,14 +24,14 @@ struct PlayerUpdateMessage : TeamSyncMessage
 {
 	PlayerUpdateMessage(int32_t playerID, int32_t width, int32_t height, void* pixels) : TeamSyncMessage(TeamSyncMessages::PLAYER_UPDATE), PlayerID(playerID), Width(width), Height(height), Pixels(pixels)
 	{
-		ImageByteSize = Height * Width * 4; // * 4 bytes per pixel due to RGBA format
+		ImageByteSize = Width * Height * MENGINE_BYTES_PER_PIXEL; // * 4 bytes per pixel due to RGBA format
 	}
 
 	PlayerUpdateMessage(int32_t playerID, const MEngineGraphics::MEngineTextureData& textureData) : TeamSyncMessage(TeamSyncMessages::PLAYER_UPDATE), PlayerID(playerID)
 	{
-		Height = textureData.Height;
 		Width = textureData.Width;
-		ImageByteSize = Height * Width * 4; // * 4 bytes per pixel due to RGBA format
+		Height = textureData.Height;
+		ImageByteSize = Width * Height * MENGINE_BYTES_PER_PIXEL; // * 4 bytes per pixel due to RGBA format
 		Pixels = malloc(ImageByteSize);
 		memcpy(Pixels, textureData.Pixels, ImageByteSize);
 	}
