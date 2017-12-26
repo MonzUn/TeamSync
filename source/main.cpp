@@ -25,10 +25,10 @@ int main(int argc, char* argv[])
 	//_CrtSetBreakAlloc(2514);
 #endif
 
-	if (!team.Initialize())
+	if (!Tubes::Initialize())
 		return 1;
 
-	if (!Tubes::Initialize())
+	if (!team.Initialize())
 		return 1;
 
 	Replicator replicator;

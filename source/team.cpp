@@ -25,6 +25,9 @@ bool Team::Initialize()
 
 	MEngineInput::SetFocusRequired(false);
 
+	connectionCallbackHandle = Tubes::RegisterConnectionCallback(Tubes::ConnectionCallbackFunction(std::bind(&Team::ConnectionCallback, this, std::placeholders::_1)));
+	disconnectionCallbackHandle = Tubes::RegisterDisconnectionCallback(Tubes::DisconnectionCallbackFunction(std::bind(&Team::DisconnectionCallback, this, std::placeholders::_1)));
+
 	imageJobThread = std::thread(&Team::ProcessImageJobs, this);
 
 	return true;
@@ -186,8 +189,6 @@ bool Team::ReadInput(const std::string& input, std::string& returnMessage)
 		{
 			Tubes::SetHostFlag(true);
 			Tubes::StartListener(DefaultPort);
-			connectionCallbackHandle = Tubes::RegisterConnectionCallback(Tubes::ConnectionCallbackFunction(std::bind(&Team::ConnectionCallback, this, std::placeholders::_1)));
-			disconnectionCallbackHandle = Tubes::RegisterDisconnectionCallback(Tubes::DisconnectionCallbackFunction(std::bind(&Team::DisconnectionCallback, this, std::placeholders::_1)));
 
 			localPlayerID = 0;
 			players[localPlayerID] = new Player(localPlayerID, PlayerConnectionType::Local, INVALID_CONNECTION_ID, ImagePositions[localPlayerID][0], ImagePositions[localPlayerID][1]);
