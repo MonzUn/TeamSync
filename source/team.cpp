@@ -316,7 +316,6 @@ void Team::ProcessImageJobs()
 	ImageJob* job = nullptr;
 	while (runImageJobThread)
 	{
-		imageJobLockCondition.wait(imageJobLock);
 		if (imageJobQueue.Consume(job))
 		{
 			switch (job->JobType)
@@ -337,6 +336,8 @@ void Team::ProcessImageJobs()
 					break;
 			}
 		}
+		else
+			imageJobLockCondition.wait(imageJobLock);
 	}
 	imageJobLock.unlock();
 }
