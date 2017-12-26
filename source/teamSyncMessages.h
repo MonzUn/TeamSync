@@ -8,6 +8,7 @@ namespace TeamSyncMessages
 	{
 		PLAYER_ID,
 		PLAYER_UPDATE,
+		PLAYER_DISCONNECT,
 	};
 }
 
@@ -46,4 +47,11 @@ struct PlayerUpdateMessage : TeamSyncMessage
 	int32_t Height;
 	int32_t ImageByteSize;
 	void*	Pixels;
+};
+
+struct PlayerDisconnectMessage : TeamSyncMessage
+{
+	PlayerDisconnectMessage(int32_t playerID) : TeamSyncMessage(TeamSyncMessages::PLAYER_DISCONNECT), PlayerID(playerID) {}
+
+	int32_t PlayerID;
 };

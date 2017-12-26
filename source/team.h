@@ -21,10 +21,14 @@ public:
 
 private:
 	PlayerID FindFreePlayerSlot() const;
-	void ConnectionCallback(int32_t connectionID);
+	void RemovePlayer(Player* player);
+
+	void ConnectionCallback(Tubes::ConnectionID connectionID);
+	void DisconnectionCallback(Tubes::ConnectionID connectionID);
+
 	void ProcessImageJobs();
 
-	Player players[MAX_PLAYERS];
+	Player* players[MAX_PLAYERS] = {nullptr};
 	PlayerID localPlayerID = UNASSIGNED_PLAYER_ID;
 
 	bool delayedScreenshotCycle = false;
@@ -38,6 +42,9 @@ private:
 	std::condition_variable				imageJobLockCondition;
 	MUtility::LocklessQueue<ImageJob*>	imageJobQueue;
 	MUtility::LocklessQueue<ImageJob*>	imageJobResultQueue;
+
+	Tubes::ConnectionCallbackHandle connectionCallbackHandle;
+	Tubes::DisconnectionCallbackHandle disconnectionCallbackHandle;
 };
 
 enum class ImageJobType

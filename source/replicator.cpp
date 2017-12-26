@@ -39,12 +39,12 @@ Byte* Replicator::SerializeMessage(const Message* message, MessageSize* outMessa
 	// Perform serialization specific to each message type (Use same order as in the type enums here)
 	switch (message->Type)
 	{
-	case PLAYER_ID:
-	{
-		const PlayerIDMessage* playerIDMessage = static_cast<const PlayerIDMessage*>(message);
-		WriteInt32(playerIDMessage->PlayerID);
-		WriteBool(playerIDMessage->AssignToReceiver);
-	} break;
+		case PLAYER_ID:
+		{
+			const PlayerIDMessage* playerIDMessage = static_cast<const PlayerIDMessage*>(message);
+			WriteInt32(playerIDMessage->PlayerID);
+			WriteBool(playerIDMessage->AssignToReceiver);
+		} break;
 
 		case PLAYER_UPDATE:
 		{
@@ -55,6 +55,12 @@ Byte* Replicator::SerializeMessage(const Message* message, MessageSize* outMessa
 			WriteInt32(playerUpdateMessage->ImageByteSize);
 			CopyAndIncrementDestination(m_WritingWalker, playerUpdateMessage->Pixels, playerUpdateMessage->ImageByteSize);
 		}	break;
+
+		case PLAYER_DISCONNECT:
+		{
+			const PlayerDisconnectMessage* playerDisconnectMessage = static_cast<const PlayerDisconnectMessage*>(message);
+			WriteInt32(playerDisconnectMessage->PlayerID);
+		} break;
 
 		default:
 		{
@@ -121,6 +127,14 @@ Message* Replicator::DeserializeMessage(const Byte* const buffer)
 			deserializedMessage = new PlayerUpdateMessage(playerID, width, height, pixels);
 		} break;
 
+		case PLAYER_DISCONNECT:
+		{
+			int32_t playerID;
+			ReadInt32(playerID);
+
+			deserializedMessage = new PlayerDisconnectMessage(playerID);
+		} break;
+
 		default:
 		{
 			MLOG_WARNING("Failed to find deserialization logic for message of type " << deserializedMessage->Type, LOGGING_CATEGORY_REPLICATOR);
@@ -169,6 +183,11 @@ int32_t Replicator::CalculateMessageSize(const Message& message) const
 			messageSize += INT_32_SIZE;
 			messageSize += playerUpdateMessage->ImageByteSize;
 		}	break;
+
+		case PLAYER_DISCONNECT:
+		{
+			messageSize += INT_32_SIZE;
+		} break;
 
 		default:
 		{

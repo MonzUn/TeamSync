@@ -30,6 +30,28 @@ bool Team::Initialize()
 	return true;
 }
 
+void Team::Shutdown()
+{
+	if (connectionCallbackHandle != Tubes::ConnectionCallbackHandle::invalid())
+		Tubes::UnregisterConnectionCallback(connectionCallbackHandle);
+	if(disconnectionCallbackHandle != Tubes::DisconnectionCallbackHandle::invalid())
+		Tubes::UnregisterDisconnectionCallback(disconnectionCallbackHandle);
+
+	runImageJobThread = false;
+	imageJobLockCondition.notify_one();
+	MutilityThreading::JoinThread(imageJobThread);
+
+	ImageJob* imageJob = nullptr;
+	while (imageJobQueue.Consume(imageJob))
+	{
+		if (imageJob->Pixels != nullptr)
+			free(imageJob->Pixels);
+	}
+
+	imageJobQueue.Clear();
+	imageJobResultQueue.Clear();
+}
+
 void Team::Update()
 {
 	// Handle input
@@ -74,10 +96,10 @@ void Team::Update()
 			case ImageJobType::TakeScreenshot:
 			{
 				PlayerID imageOwnerID = finishedJob->ImageOwnerPlayerID;
-				if (players[imageOwnerID].TextureID != INVALID_MENGINE_TEXTURE_ID)
-					MEngineGraphics::UnloadTexture(players[imageOwnerID].TextureID);
+				if (players[imageOwnerID]->TextureID != INVALID_MENGINE_TEXTURE_ID)
+					MEngineGraphics::UnloadTexture(players[imageOwnerID]->TextureID);
 
-				players[imageOwnerID].TextureID = finishedJob->ResultTextureID;
+				players[imageOwnerID]->TextureID = finishedJob->ResultTextureID;
 
 				PlayerUpdateMessage message = PlayerUpdateMessage(imageOwnerID, MEngineGraphics::GetTextureData(finishedJob->ResultTextureID));
 				Tubes::SendToAll(&message);
@@ -87,10 +109,10 @@ void Team::Update()
 			case ImageJobType::CreateImageFromData:
 			{
 				PlayerID imageOwnerID = finishedJob->ImageOwnerPlayerID;
-				if (players[imageOwnerID].TextureID != INVALID_MENGINE_TEXTURE_ID)
-					MEngineGraphics::UnloadTexture(players[imageOwnerID].TextureID);
+				if (players[imageOwnerID]->TextureID != INVALID_MENGINE_TEXTURE_ID)
+					MEngineGraphics::UnloadTexture(players[imageOwnerID]->TextureID);
 
-				players[imageOwnerID].TextureID = finishedJob->ResultTextureID;
+				players[imageOwnerID]->TextureID = finishedJob->ResultTextureID;
 				free(finishedJob->Pixels);
 			} break;
 
@@ -103,7 +125,7 @@ void Team::Update()
 
 	// Handle incoming network messages
 	std::vector<Message*> receivedMessages;
-	std::vector<ConnectionID> messageSenders;
+	std::vector<Tubes::ConnectionID> messageSenders;
 	Tubes::Receive(receivedMessages, &messageSenders);
 	for (int i = 0; i < receivedMessages.size(); ++i)
 	{
@@ -119,8 +141,8 @@ void Team::Update()
 					localPlayerID = playerID;
 				}
 
-				players[playerID] = Player(playerID, ImagePositions[playerID][0], ImagePositions[playerID][1]);
-				MEngineEntityManager::RegisterNewEntity(static_cast<MEngineObject*>(&players[playerID]));
+				players[playerID] = new Player(playerID, PlayerConnectionType::Relayed, INVALID_CONNECTION_ID, ImagePositions[playerID][0], ImagePositions[playerID][1]);
+				MEngineEntityManager::RegisterNewEntity(static_cast<MEngineObject*>(players[playerID]));
 			} break;
 
 			case TeamSyncMessages::PLAYER_UPDATE:
@@ -136,6 +158,16 @@ void Team::Update()
 				imageJobQueue.Produce(imageFromDataJob);
 				imageJobLockCondition.notify_one();
 			} break;
+
+			case TeamSyncMessages::PLAYER_DISCONNECT:
+			{
+				const PlayerDisconnectMessage* playerDisconnectMessage = static_cast<const PlayerDisconnectMessage*>(receivedMessages[i]);
+				for (int i = 0; i < MAX_PLAYERS; ++i)
+				{
+					if (players[i] != nullptr && players[i]->GetPlayerID() == playerDisconnectMessage->PlayerID)
+						RemovePlayer(players[i]);
+				}
+			} break;
 		
 			default:
 				break;
@@ -146,23 +178,6 @@ void Team::Update()
 	}
 }
 
-void Team::Shutdown()
-{
-	runImageJobThread = false;
-	imageJobLockCondition.notify_one();
-	MutilityThreading::JoinThread(imageJobThread);
-
-	ImageJob* imageJob = nullptr;
-	while (imageJobQueue.Consume(imageJob))
-	{
-		if (imageJob->Pixels != nullptr)
-			free(imageJob->Pixels);
-	}
-
-	imageJobQueue.Clear();
-	imageJobResultQueue.Clear();
-}
-
 bool Team::ReadInput(const std::string& input, std::string& returnMessage)
 {
 	if (input == "host")
@@ -171,11 +186,12 @@ bool Team::ReadInput(const std::string& input, std::string& returnMessage)
 		{
 			Tubes::SetHostFlag(true);
 			Tubes::StartListener(DefaultPort);
-			Tubes::RegisterConnectionCallback(ConnectionCallbackFunction(std::bind(&Team::ConnectionCallback, this, std::placeholders::_1)));
+			connectionCallbackHandle = Tubes::RegisterConnectionCallback(Tubes::ConnectionCallbackFunction(std::bind(&Team::ConnectionCallback, this, std::placeholders::_1)));
+			disconnectionCallbackHandle = Tubes::RegisterDisconnectionCallback(Tubes::DisconnectionCallbackFunction(std::bind(&Team::DisconnectionCallback, this, std::placeholders::_1)));
 
 			localPlayerID = 0;
-			players[localPlayerID] = Player(localPlayerID, ImagePositions[localPlayerID][0], ImagePositions[localPlayerID][1]);
-			MEngineEntityManager::RegisterNewEntity(static_cast<MEngineObject*>(&players[0]));
+			players[localPlayerID] = new Player(localPlayerID, PlayerConnectionType::Local, INVALID_CONNECTION_ID, ImagePositions[localPlayerID][0], ImagePositions[localPlayerID][1]);
+			MEngineEntityManager::RegisterNewEntity(static_cast<MEngineObject*>(players[0]));
 		}
 		else
 			returnMessage = "Hosting failed; already hosting";
@@ -200,13 +216,35 @@ bool Team::ReadInput(const std::string& input, std::string& returnMessage)
 
 // ---------- PRIVATE ----------
 
-void Team::ConnectionCallback(int32_t connectionID)
+PlayerID Team::FindFreePlayerSlot() const
+{
+	for (int i = 0; i < MAX_PLAYERS; ++i)
+	{
+		if (players[i] == nullptr)
+			return i;
+	}
+
+	return UNASSIGNED_PLAYER_ID;
+}
+
+void Team::RemovePlayer(Player* player)
+{
+	PlayerID playerID = player->GetPlayerID();
+	if(player->TextureID != INVALID_MENGINE_TEXTURE_ID)
+		MEngineGraphics::UnloadTexture(player->TextureID);
+
+	MEngineEntityManager::DestroyEntity(player->EntityID);
+
+	players[playerID] = nullptr;
+}
+
+void Team::ConnectionCallback(Tubes::ConnectionID connectionID)
 {
 	PlayerID newPlayerID = FindFreePlayerSlot();
 	if (newPlayerID >= 0)
 	{
-		players[newPlayerID] = Player(newPlayerID, ImagePositions[newPlayerID][0], ImagePositions[newPlayerID][1]);
-		MEngineEntityManager::RegisterNewEntity(static_cast<MEngineObject*>(&players[newPlayerID]));
+		players[newPlayerID] = new Player(newPlayerID, PlayerConnectionType::Direct, connectionID, ImagePositions[newPlayerID][0], ImagePositions[newPlayerID][1]);
+		MEngineEntityManager::RegisterNewEntity(static_cast<MEngineObject*>(players[newPlayerID]));
 
 		// Send the new player ID to all clients
 		PlayerIDMessage idMessage = PlayerIDMessage(newPlayerID, true);
@@ -217,22 +255,47 @@ void Team::ConnectionCallback(int32_t connectionID)
 		// Make the new client aware of the relayed clients and update the new clients view of the relayed clients 
 		for (int i = 0; i < MAX_PLAYERS; ++i)
 		{
-			PlayerID playerID = players[i].GetPlayerID();
-			if (playerID != UNASSIGNED_PLAYER_ID && playerID != newPlayerID )
+			if (players[i] != nullptr)
 			{
-				PlayerIDMessage idMessage = PlayerIDMessage(playerID, false);
-				Tubes::SendToConnection(&idMessage, connectionID);
-				idMessage.Destroy();
-
-				if (players[playerID].TextureID != INVALID_MENGINE_TEXTURE_ID)
+				PlayerID playerID = players[i]->GetPlayerID();
+				if (playerID != newPlayerID)
 				{
-					PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, MEngineGraphics::GetTextureData(players[playerID].TextureID));
-					Tubes::SendToConnection(&updateMessage, connectionID);
-					updateMessage.Destroy();
+					PlayerIDMessage idMessage = PlayerIDMessage(playerID, false);
+					Tubes::SendToConnection(&idMessage, connectionID);
+					idMessage.Destroy();
+
+					if (players[playerID]->TextureID != INVALID_MENGINE_TEXTURE_ID)
+					{
+						PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, MEngineGraphics::GetTextureData(players[playerID]->TextureID));
+						Tubes::SendToConnection(&updateMessage, connectionID);
+						updateMessage.Destroy();
+					}
 				}
 			}
 		}
 	}
+}
+
+void Team::DisconnectionCallback(Tubes::ConnectionID connectionID)
+{
+	Player* disconnectingPlayer = nullptr;
+	for (int i = 0; i < MAX_PLAYERS; ++i)
+	{
+		if (players[i] != nullptr && players[i]->GetPlayerConnectionID() == connectionID)
+		{
+			disconnectingPlayer = players[i];
+			break;
+		}
+	}
+
+	if (Tubes::GetHostFlag())
+	{
+		PlayerDisconnectMessage disconnectMessage = PlayerDisconnectMessage(disconnectingPlayer->GetPlayerID());
+		Tubes::SendToAll(&disconnectMessage);
+		disconnectMessage.Destroy();
+	}
+
+	RemovePlayer(disconnectingPlayer);
 }
 
 void Team::ProcessImageJobs()
@@ -265,15 +328,4 @@ void Team::ProcessImageJobs()
 		}
 	}
 	imageJobLock.unlock();
-}
-
-PlayerID Team::FindFreePlayerSlot() const
-{
-	for (int i = 0; i < MAX_PLAYERS; ++i)
-	{
-		if (players[i].GetPlayerID() == UNASSIGNED_PLAYER_ID)
-			return i;
-	}
-
-	return UNASSIGNED_PLAYER_ID;
 }
