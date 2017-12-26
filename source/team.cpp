@@ -237,6 +237,8 @@ void Team::RemovePlayer(Player* player)
 	MEngineEntityManager::DestroyEntity(player->EntityID);
 
 	players[playerID] = nullptr;
+	if (playerID == localPlayerID)
+		localPlayerID = UNASSIGNED_PLAYER_ID;
 }
 
 void Team::ConnectionCallback(Tubes::ConnectionID connectionID)
@@ -294,9 +296,17 @@ void Team::DisconnectionCallback(Tubes::ConnectionID connectionID)
 		PlayerDisconnectMessage disconnectMessage = PlayerDisconnectMessage(disconnectingPlayer->GetPlayerID());
 		Tubes::SendToAll(&disconnectMessage);
 		disconnectMessage.Destroy();
-	}
 
-	RemovePlayer(disconnectingPlayer);
+		RemovePlayer(disconnectingPlayer);
+	}
+	else
+	{
+		for (int i = 0; i < MAX_PLAYERS; ++i)
+		{
+			if (players[i] != nullptr)
+				RemovePlayer(players[i]);
+		}
+	}
 }
 
 void Team::ProcessImageJobs()
