@@ -42,7 +42,7 @@ void Team::Shutdown()
 
 	runImageJobThread = false;
 	imageJobLockCondition.notify_one();
-	MutilityThreading::JoinThread(imageJobThread);
+	MUtilityThreading::JoinThread(imageJobThread);
 
 	ImageJob* imageJob = nullptr;
 	while (imageJobQueue.Consume(imageJob))
