@@ -3,6 +3,7 @@
 #include <mengine.h>
 #include <MUtilityPlatformDefinitions.h>
 #include <Tubes.h>
+#include <algorithm>
 #include <iostream>
 #include <string>
 #include <thread>
@@ -66,6 +67,7 @@ void HandleTextInputOutput()
 	while (!quit)
 	{
 		getline(std::cin, input);
+		std::transform(input.begin(), input.end(), input.begin(), ::tolower);
 		if (input == "quit")
 			quit = true;
 		else
