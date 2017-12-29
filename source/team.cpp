@@ -277,6 +277,8 @@ void Team::ConnectionCallback(Tubes::ConnectionID connectionID)
 			}
 		}
 	}
+	else
+		Tubes::Disconnect(connectionID);
 }
 
 void Team::DisconnectionCallback(Tubes::ConnectionID connectionID)
