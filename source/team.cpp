@@ -163,7 +163,7 @@ void Team::Update()
 			} break;
 
 			case TeamSyncMessages::PLAYER_DISCONNECT:
-			{
+			{	
 				const PlayerDisconnectMessage* playerDisconnectMessage = static_cast<const PlayerDisconnectMessage*>(receivedMessages[i]);
 				for (int i = 0; i < MAX_PLAYERS; ++i)
 				{
@@ -290,21 +290,23 @@ void Team::DisconnectionCallback(Tubes::ConnectionID connectionID)
 			break;
 		}
 	}
-
-	if (Tubes::GetHostFlag())
+	if (disconnectingPlayer != nullptr)
 	{
-		PlayerDisconnectMessage disconnectMessage = PlayerDisconnectMessage(disconnectingPlayer->GetPlayerID());
-		Tubes::SendToAll(&disconnectMessage);
-		disconnectMessage.Destroy();
-
-		RemovePlayer(disconnectingPlayer);
-	}
-	else
-	{
-		for (int i = 0; i < MAX_PLAYERS; ++i)
+		if (Tubes::GetHostFlag())
 		{
-			if (players[i] != nullptr)
-				RemovePlayer(players[i]);
+			PlayerDisconnectMessage disconnectMessage = PlayerDisconnectMessage(disconnectingPlayer->GetPlayerID());
+			Tubes::SendToAll(&disconnectMessage);
+			disconnectMessage.Destroy();
+
+			RemovePlayer(disconnectingPlayer);
+		}
+		else
+		{
+			for (int i = 0; i < MAX_PLAYERS; ++i)
+			{
+				if (players[i] != nullptr)
+					RemovePlayer(players[i]);
+			}
 		}
 	}
 }
