@@ -114,10 +114,13 @@ void Team::Update()
 			case ImageJobType::CreateImageFromData:
 			{
 				PlayerID imageOwnerID = finishedJob->ImageOwnerPlayerID;
-				if (players[imageOwnerID]->TextureID != INVALID_MENGINE_TEXTURE_ID)
-					MEngineGraphics::UnloadTexture(players[imageOwnerID]->TextureID);
+				if (players[imageOwnerID] != nullptr) // Players may have been disconnected while the job was running
+				{
+					if (players[imageOwnerID]->TextureID != INVALID_MENGINE_TEXTURE_ID)
+						MEngineGraphics::UnloadTexture(players[imageOwnerID]->TextureID);
 
-				players[imageOwnerID]->TextureID = finishedJob->ResultTextureID;
+					players[imageOwnerID]->TextureID = finishedJob->ResultTextureID;
+				}
 				free(finishedJob->Pixels);
 			} break;
 
