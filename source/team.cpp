@@ -6,12 +6,14 @@
 #include <Tubes.h>
 #include <TubesTypes.h>
 #include <MUtilityThreading.h>
+#include <MUtilityLog.h>
 #include <chrono>
 
 using namespace MEngineInput;
 using MEngineGraphics::MEngineTextureID;
 
 #define DELAYED_SCREENSHOT_WAIT_TIME_MILLISECONDS 200
+#define LOG_CATEGORY_TEAM "Team"
 
 const int32_t ImagePositions[MAX_PLAYERS][2] = { {0,0}, {950, 0}, {0,500}, { 950,500} };
 const uint16_t DefaultPort = 19200;
@@ -136,16 +138,35 @@ void Team::Update()
 		{
 			case TeamSyncMessages::PLAYER_ID:
 			{
-				const PlayerIDMessage* playerIDMessage = static_cast<const PlayerIDMessage*>(receivedMessages[i]);
-				PlayerID playerID = playerIDMessage->PlayerID;
+				if (!Tubes::GetHostFlag())
+				{
+					const PlayerIDMessage* playerIDMessage = static_cast<const PlayerIDMessage*>(receivedMessages[i]);
+					PlayerID playerID = playerIDMessage->PlayerID;
+					PlayerConnectionType::PlayerConnectionType connectionType = static_cast<PlayerConnectionType::PlayerConnectionType>(playerIDMessage->PlayerConnectionType);
+					Tubes::ConnectionID connectionID = INVALID_CONNECTION_ID;
 
-				if (playerIDMessage->AssignToReceiver)
-				{	
-					localPlayerID = playerID;
+					if (playerIDMessage->PlayerConnectionType == PlayerConnectionType::Local)
+					{
+						if (localPlayerID == UNASSIGNED_PLAYER_ID)
+							localPlayerID = playerID;
+						else
+							MLOG_WARNING("Received playerID message with ConnectionType::Local but the local player ID is already set", LOG_CATEGORY_TEAM);
+					}
+					else if (playerIDMessage->PlayerConnectionType == PlayerConnectionType::Direct)
+					{
+						connectionID = messageSenders[i];
+					}
+
+					if (players[playerID] == nullptr)
+					{
+						players[playerID] = new Player(playerID, connectionType, connectionID, ImagePositions[playerID][0], ImagePositions[playerID][1]);
+						MEngineEntityManager::RegisterNewEntity(static_cast<MEngineObject*>(players[playerID]));
+					}
+					else
+						MLOG_WARNING("Received playerID message for playerID " << playerID + " but there is already a player assigned to that ID", LOG_CATEGORY_TEAM);
 				}
-
-				players[playerID] = new Player(playerID, PlayerConnectionType::Relayed, INVALID_CONNECTION_ID, ImagePositions[playerID][0], ImagePositions[playerID][1]);
-				MEngineEntityManager::RegisterNewEntity(static_cast<MEngineObject*>(players[playerID]));
+				else
+					MLOG_WARNING("Received playerID message as host", LOG_CATEGORY_TEAM);
 			} break;
 
 			case TeamSyncMessages::PLAYER_UPDATE:
@@ -164,12 +185,17 @@ void Team::Update()
 
 			case TeamSyncMessages::PLAYER_DISCONNECT:
 			{	
-				const PlayerDisconnectMessage* playerDisconnectMessage = static_cast<const PlayerDisconnectMessage*>(receivedMessages[i]);
-				for (int i = 0; i < MAX_PLAYERS; ++i)
+				if (!Tubes::GetHostFlag())
 				{
-					if (players[i] != nullptr && players[i]->GetPlayerID() == playerDisconnectMessage->PlayerID)
-						RemovePlayer(players[i]);
+					const PlayerDisconnectMessage* playerDisconnectMessage = static_cast<const PlayerDisconnectMessage*>(receivedMessages[i]);
+					for (int i = 0; i < MAX_PLAYERS; ++i)
+					{
+						if (players[i] != nullptr && players[i]->GetPlayerID() == playerDisconnectMessage->PlayerID)
+							RemovePlayer(players[i]);
+					}
 				}
+				else
+					MLOG_WARNING("Received disconnection message as host", LOG_CATEGORY_TEAM);
 			} break;
 		
 			default:
@@ -243,42 +269,47 @@ void Team::RemovePlayer(Player* player)
 
 void Team::ConnectionCallback(Tubes::ConnectionID connectionID)
 {
-	PlayerID newPlayerID = FindFreePlayerSlot();
-	if (newPlayerID >= 0)
+	if (Tubes::GetHostFlag())
 	{
-		players[newPlayerID] = new Player(newPlayerID, PlayerConnectionType::Direct, connectionID, ImagePositions[newPlayerID][0], ImagePositions[newPlayerID][1]);
-		MEngineEntityManager::RegisterNewEntity(static_cast<MEngineObject*>(players[newPlayerID]));
-
-		// Send the new player ID to all clients
-		PlayerIDMessage idMessage = PlayerIDMessage(newPlayerID, true);
-		Tubes::SendToConnection(&idMessage, connectionID);
-		idMessage.AssignToReceiver = false;
-		Tubes::SendToAll(&idMessage, connectionID);
-
-		// Make the new client aware of the relayed clients and update the new clients view of the relayed clients 
-		for (int i = 0; i < MAX_PLAYERS; ++i)
+		PlayerID newPlayerID = FindFreePlayerSlot();
+		if (newPlayerID >= 0)
 		{
-			if (players[i] != nullptr)
-			{
-				PlayerID playerID = players[i]->GetPlayerID();
-				if (playerID != newPlayerID)
-				{
-					PlayerIDMessage idMessage = PlayerIDMessage(playerID, false);
-					Tubes::SendToConnection(&idMessage, connectionID);
-					idMessage.Destroy();
+			players[newPlayerID] = new Player(newPlayerID, PlayerConnectionType::Direct, connectionID, ImagePositions[newPlayerID][0], ImagePositions[newPlayerID][1]);
+			MEngineEntityManager::RegisterNewEntity(static_cast<MEngineObject*>(players[newPlayerID]));
 
-					if (players[playerID]->TextureID != INVALID_MENGINE_TEXTURE_ID)
+			// Send the new player ID to all clients
+			PlayerIDMessage idMessage = PlayerIDMessage(newPlayerID, PlayerConnectionType::Local);
+			Tubes::SendToConnection(&idMessage, connectionID); // Tell the new client its ID
+
+			idMessage.PlayerConnectionType = PlayerConnectionType::Relayed;
+			Tubes::SendToAll(&idMessage, connectionID); // Tell all other clients about the new client
+
+			// Make the new client aware of the relayed clients and update the new clients view of the relayed clients 
+			for (int i = 0; i < MAX_PLAYERS; ++i)
+			{
+				if (players[i] != nullptr)
+				{
+					PlayerID playerID = players[i]->GetPlayerID();
+					if (playerID != newPlayerID)
 					{
-						PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, MEngineGraphics::GetTextureData(players[playerID]->TextureID));
-						Tubes::SendToConnection(&updateMessage, connectionID);
-						updateMessage.Destroy();
+						PlayerConnectionType::PlayerConnectionType connectionType = (playerID == localPlayerID ? PlayerConnectionType::Direct : PlayerConnectionType::Relayed);
+						PlayerIDMessage idMessage = PlayerIDMessage(playerID, connectionType);
+						Tubes::SendToConnection(&idMessage, connectionID);
+						idMessage.Destroy();
+
+						if (players[playerID]->TextureID != INVALID_MENGINE_TEXTURE_ID)
+						{
+							PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, MEngineGraphics::GetTextureData(players[playerID]->TextureID));
+							Tubes::SendToConnection(&updateMessage, connectionID);
+							updateMessage.Destroy();
+						}
 					}
 				}
 			}
 		}
+		else
+			Tubes::Disconnect(connectionID);
 	}
-	else
-		Tubes::Disconnect(connectionID);
 }
 
 void Team::DisconnectionCallback(Tubes::ConnectionID connectionID)

@@ -14,11 +14,11 @@ namespace TeamSyncMessages
 
 struct PlayerIDMessage : TeamSyncMessage
 {
-	PlayerIDMessage(int32_t playerID, bool assignToReceiver) : TeamSyncMessage(TeamSyncMessages::PLAYER_ID), PlayerID(playerID), AssignToReceiver(assignToReceiver)
+	PlayerIDMessage(int32_t playerID, int32_t playerConnectionType) : TeamSyncMessage(TeamSyncMessages::PLAYER_ID), PlayerID(playerID), PlayerConnectionType(playerConnectionType)
 	{}
 
 	int32_t PlayerID;
-	bool	AssignToReceiver;
+	int32_t PlayerConnectionType;
 };
 
 struct PlayerUpdateMessage : TeamSyncMessage

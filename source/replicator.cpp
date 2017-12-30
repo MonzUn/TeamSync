@@ -43,7 +43,7 @@ Byte* Replicator::SerializeMessage(const Message* message, MessageSize* outMessa
 		{
 			const PlayerIDMessage* playerIDMessage = static_cast<const PlayerIDMessage*>(message);
 			WriteInt32(playerIDMessage->PlayerID);
-			WriteBool(playerIDMessage->AssignToReceiver);
+			WriteUint32(playerIDMessage->PlayerConnectionType);
 		} break;
 
 		case PLAYER_UPDATE:
@@ -106,12 +106,11 @@ Message* Replicator::DeserializeMessage(const Byte* const buffer)
 	{
 		case PLAYER_ID:
 		{
-			int32_t playerID;
-			bool assignToReceiver;
+			int32_t playerID, playerConnectionType;
 			ReadInt32(playerID);
-			ReadBool(assignToReceiver);
+			ReadInt32(playerConnectionType);
 
-			deserializedMessage = new PlayerIDMessage(playerID, assignToReceiver);
+			deserializedMessage = new PlayerIDMessage(playerID, playerConnectionType);
 		} break;
 
 		case PLAYER_UPDATE:
@@ -171,7 +170,7 @@ int32_t Replicator::CalculateMessageSize(const Message& message) const
 		case PLAYER_ID:
 		{
 			messageSize += INT_32_SIZE;
-			messageSize += BOOL_SIZE;
+			messageSize += INT_32_SIZE;
 		} break;
 
 		case PLAYER_UPDATE:
