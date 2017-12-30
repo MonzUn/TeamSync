@@ -12,8 +12,8 @@
 using namespace MEngineInput;
 using MEngineGraphics::MEngineTextureID;
 
-#define DELAYED_SCREENSHOT_WAIT_TIME_MILLISECONDS 200
 #define LOG_CATEGORY_TEAM "Team"
+#define DELAYED_SCREENSHOT_WAIT_TIME_MILLISECONDS 120
 
 const int32_t ImagePositions[MAX_PLAYERS][2] = { {0,0}, {950, 0}, {0,500}, { 950,500} };
 const uint16_t DefaultPort = 19200;
@@ -65,14 +65,22 @@ void Team::Update()
 		delayedScreenshotCycle = false;
 	}
 
-	if (KeyReleased(MKey_TAB) && localPlayerID != UNASSIGNED_PLAYER_ID && !awaitingDelayedScreenshot) // Take delayed screenshot
+	if (KeyReleased(MKey_TAB) && localPlayerID != UNASSIGNED_PLAYER_ID) // Take delayed screenshot
 	{
-		if (!delayedScreenshotCycle)
+		if (!awaitingDelayedScreenshot)
 		{
-			screenshotTime = std::chrono::high_resolution_clock::now() + std::chrono::milliseconds(DELAYED_SCREENSHOT_WAIT_TIME_MILLISECONDS);
-			awaitingDelayedScreenshot = true;
+			if (!delayedScreenshotCycle)
+			{
+				screenshotTime = std::chrono::high_resolution_clock::now() + std::chrono::milliseconds(DELAYED_SCREENSHOT_WAIT_TIME_MILLISECONDS);
+				awaitingDelayedScreenshot = true;
+			}
+			delayedScreenshotCycle = !delayedScreenshotCycle;
 		}
-		delayedScreenshotCycle = !delayedScreenshotCycle;
+		else // Abort delayed screenshot
+		{
+			awaitingDelayedScreenshot	= false;
+			delayedScreenshotCycle		= false;
+		}
 	}
 
 	if (KeyReleased(MKey_GRAVE) && localPlayerID != UNASSIGNED_PLAYER_ID) // Take direct screenshot
@@ -100,15 +108,20 @@ void Team::Update()
 		{
 			case ImageJobType::TakeScreenshot:
 			{
-				PlayerID imageOwnerID = finishedJob->ImageOwnerPlayerID;
-				if (players[imageOwnerID]->TextureID != INVALID_MENGINE_TEXTURE_ID)
-					MEngineGraphics::UnloadTexture(players[imageOwnerID]->TextureID);
+				if (delayedScreenshotCycle) // Only apply the screenshot if the cycle was not inversed again while the screenshot was being taken
+				{
+					PlayerID imageOwnerID = finishedJob->ImageOwnerPlayerID;
+					if (players[imageOwnerID]->TextureID != INVALID_MENGINE_TEXTURE_ID)
+						MEngineGraphics::UnloadTexture(players[imageOwnerID]->TextureID);
 
-				players[imageOwnerID]->TextureID = finishedJob->ResultTextureID;
+					players[imageOwnerID]->TextureID = finishedJob->ResultTextureID;
 
-				PlayerUpdateMessage message = PlayerUpdateMessage(imageOwnerID, MEngineGraphics::GetTextureData(finishedJob->ResultTextureID));
-				Tubes::SendToAll(&message);
-				message.Destroy();
+					PlayerUpdateMessage message = PlayerUpdateMessage(imageOwnerID, MEngineGraphics::GetTextureData(finishedJob->ResultTextureID));
+					Tubes::SendToAll(&message);
+					message.Destroy();
+				}
+				else
+					MEngineGraphics::UnloadTexture(finishedJob->ResultTextureID);
 			} break;
 
 			case ImageJobType::CreateImageFromData:
