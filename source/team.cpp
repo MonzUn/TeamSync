@@ -93,7 +93,7 @@ void Team::Update()
 	// Handle delayed screenshot
 	if (awaitingDelayedScreenshot && std::chrono::high_resolution_clock::now() >= screenshotTime)
 	{
-		ImageJob* screenshotJob = new ImageJob(ImageJobType::TakeScreenshot, localPlayerID);
+		ImageJob* screenshotJob = new ImageJob(ImageJobType::TakeCycledScreenshot, localPlayerID);
 		imageJobQueue.Produce(screenshotJob);
 		imageJobLockCondition.notify_one();
 
@@ -107,6 +107,19 @@ void Team::Update()
 		switch (finishedJob->JobType)
 		{
 			case ImageJobType::TakeScreenshot:
+			{
+				PlayerID imageOwnerID = finishedJob->ImageOwnerPlayerID;
+				if (players[imageOwnerID]->TextureID != INVALID_MENGINE_TEXTURE_ID)
+					MEngineGraphics::UnloadTexture(players[imageOwnerID]->TextureID);
+
+				players[imageOwnerID]->TextureID = finishedJob->ResultTextureID;
+
+				PlayerUpdateMessage message = PlayerUpdateMessage(imageOwnerID, MEngineGraphics::GetTextureData(finishedJob->ResultTextureID));
+				Tubes::SendToAll(&message);
+				message.Destroy();
+			} break;
+
+			case ImageJobType::TakeCycledScreenshot:
 			{
 				if (delayedScreenshotCycle) // Only apply the screenshot if the cycle was not inversed again while the screenshot was being taken
 				{
