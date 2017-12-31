@@ -18,7 +18,7 @@ namespace Tubes
 	void RequestConnection( const std::string& address, uint16_t port ); // TODODB: Can we use tubes specific typdefes in this interface (Want to use Port here)
 	void StartListener( uint16_t port );
 	void StopAllListeners();
-	void Disconnect(ConnectionID connectionID);
+	void Disconnect( ConnectionID connectionID );
 	void DisconnectAll();
 
 	void RegisterReplicator( MessageReplicator* replicator );
