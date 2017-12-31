@@ -7,6 +7,7 @@
 #include <TubesTypes.h>
 #include <MUtilityThreading.h>
 #include <MUtilityLog.h>
+#include <MUtilitySystem.h>
 #include <chrono>
 
 using namespace MEngineInput;
@@ -22,7 +23,11 @@ const uint16_t DefaultPort = 19200;
 
 bool Team::Initialize()
 {
-	if (!MEngine::Initialize("TeamSync", 1900, 1000))
+	std::string applicationName = "TeamSync";
+#ifdef _DEBUG
+	applicationName += " (PID=" + std::to_string(MUtility::GetPid()) + ")";
+#endif
+	if (!MEngine::Initialize(applicationName.c_str(), 1900, 1000))
 		return false;
 
 	MEngineInput::SetFocusRequired(false);
