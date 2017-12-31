@@ -9,6 +9,7 @@
 #include <MUtilityLog.h>
 #include <MUtilitySystem.h>
 #include <chrono>
+#include <iostream>
 
 using namespace MEngineInput;
 using MEngineGraphics::MEngineTextureID;
@@ -62,9 +63,17 @@ void Team::Shutdown()
 	imageJobResultQueue.Clear();
 }
 
+void Team::EnqueueCommand(const std::string& command)
+{
+	commandQueue.Produce(command);
+}
+
 void Team::Update()
 {
-	// Handle input
+	// Handle CLI input
+	HandleCommands();
+
+	// Handle application input
 	if (KeyDown(MKey_CONTROL) && KeyReleased(MKey_TAB)) // Reset screenshot cycling
 	{
 		delayedScreenshotCycle = false;
@@ -241,42 +250,6 @@ void Team::Update()
 	}
 }
 
-bool Team::ReadInput(const std::string& input, std::string& returnMessage)
-{
-	if (input == "host")
-	{
-		if (!Tubes::GetHostFlag())
-		{
-			Tubes::SetHostFlag(true);
-			Tubes::StartListener(DefaultPort);
-
-			localPlayerID = 0;
-			players[localPlayerID] = new Player(localPlayerID, PlayerConnectionType::Local, INVALID_CONNECTION_ID, ImagePositions[localPlayerID][0], ImagePositions[localPlayerID][1]);
-			MEngineEntityManager::RegisterNewEntity(static_cast<MEngineObject*>(players[0]));
-		}
-		else
-			returnMessage = "Hosting failed; already hosting";
-	}
-	else if(input.find("connect") != std::string::npos)
-	{
-		if (!Tubes::GetHostFlag())
-		{
-			std::string ipv4String = input.substr(input.find(' ') + 1);
-			if (Tubes::IsValidIPv4Address(ipv4String.c_str()))
-				Tubes::RequestConnection(ipv4String, DefaultPort);
-		}
-		else
-			returnMessage = "Connecting to remote clients is not allowed while hosting";
-	}
-	else
-	{
-		returnMessage = "Unknown or malformed command";
-		return false;
-	}
-
-	return true;
-}
-
 // ---------- PRIVATE ----------
 
 PlayerID Team::FindFreePlayerSlot() const
@@ -376,6 +349,9 @@ void Team::DisconnectionCallback(Tubes::ConnectionID connectionID)
 				if (players[i] != nullptr)
 					RemovePlayer(players[i]);
 			}
+
+			delayedScreenshotCycle		= false;
+			awaitingDelayedScreenshot	= false;
 		}
 	}
 }
@@ -412,4 +388,79 @@ void Team::ProcessImageJobs()
 			imageJobLockCondition.wait(imageJobLock);
 	}
 	imageJobLock.unlock();
+}
+
+void Team::HandleCommands()
+{
+	std::string command;
+	while (commandQueue.Consume(command))
+	{
+		std::string response = "";
+		if (command == "host")
+		{
+			if (!Tubes::GetHostFlag())
+			{
+				Tubes::SetHostFlag(true);
+				Tubes::StartListener(DefaultPort);
+
+				localPlayerID = 0;
+				players[localPlayerID] = new Player(localPlayerID, PlayerConnectionType::Local, INVALID_CONNECTION_ID, ImagePositions[localPlayerID][0], ImagePositions[localPlayerID][1]);
+				MEngineEntityManager::RegisterNewEntity(static_cast<MEngineObject*>(players[0]));
+			}
+			else
+				response = "Hosting failed; already hosting";
+		}
+		else if (command == "disconnect")
+		{
+			if (Tubes::GetHostFlag())
+			{
+				Tubes::SetHostFlag(false);
+				Tubes::StopAllListeners();
+				Tubes::DisconnectAll();
+
+				localPlayerID = UNASSIGNED_PLAYER_ID;
+				for (int i = 0; i < MAX_PLAYERS; ++i)
+				{
+					if (players[i] != nullptr)
+						RemovePlayer(players[i]);
+				}
+
+				response = "Hosted session has been closed";
+			}
+			else
+			{
+				Tubes::DisconnectAll();
+
+				localPlayerID = UNASSIGNED_PLAYER_ID;
+				for (int i = 0; i < MAX_PLAYERS; ++i)
+				{
+					if (players[i] != nullptr)
+						RemovePlayer(players[i]);
+				}
+
+				response = "All connected clients have been disconnected";
+			}
+
+			delayedScreenshotCycle		= false;
+			awaitingDelayedScreenshot	= false;
+		}
+		else if (command.find("connect") != std::string::npos && command.find("disconnect") == std::string::npos)
+		{
+			if (!Tubes::GetHostFlag())
+			{
+				std::string ipv4String = command.substr(command.find(' ') + 1);
+				if (Tubes::IsValidIPv4Address(ipv4String.c_str()))
+					Tubes::RequestConnection(ipv4String, DefaultPort);
+			}
+			else
+				response = "Connecting to remote clients is not allowed while hosting";
+		}
+		else
+			response = "Unknown or malformed command";
+
+		if (response != "")
+			std::cout << "- " << response << '\n';
+
+		std::cout << '\n';
+	}
 }

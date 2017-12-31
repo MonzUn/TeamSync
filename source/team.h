@@ -17,7 +17,7 @@ public:
 	void Update();
 	void Shutdown();
 
-	bool ReadInput(const std::string& input, std::string& returnMessage);
+	void EnqueueCommand(const std::string& command);
 
 private:
 	PlayerID FindFreePlayerSlot() const;
@@ -27,6 +27,7 @@ private:
 	void DisconnectionCallback(Tubes::ConnectionID connectionID);
 
 	void ProcessImageJobs();
+	void HandleCommands();
 
 	Player* players[MAX_PLAYERS] = {nullptr};
 	PlayerID localPlayerID = UNASSIGNED_PLAYER_ID;
@@ -42,6 +43,8 @@ private:
 	std::condition_variable				imageJobLockCondition;
 	MUtility::LocklessQueue<ImageJob*>	imageJobQueue;
 	MUtility::LocklessQueue<ImageJob*>	imageJobResultQueue;
+
+	MUtility::LocklessQueue<std::string> commandQueue;
 
 	Tubes::ConnectionCallbackHandle connectionCallbackHandle;
 	Tubes::DisconnectionCallbackHandle disconnectionCallbackHandle;
