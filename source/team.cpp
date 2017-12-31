@@ -14,7 +14,7 @@ using namespace MEngineInput;
 using MEngineGraphics::MEngineTextureID;
 
 #define LOG_CATEGORY_TEAM "Team"
-#define DELAYED_SCREENSHOT_WAIT_TIME_MILLISECONDS 120
+#define DELAYED_SCREENSHOT_WAIT_TIME_MILLISECONDS 150
 
 const int32_t ImagePositions[MAX_PLAYERS][2] = { {0,0}, {950, 0}, {0,500}, { 950,500} };
 const uint16_t DefaultPort = 19200;
