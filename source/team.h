@@ -50,6 +50,7 @@ private:
 enum class ImageJobType
 {
 	TakeScreenshot,
+	TakeCycledScreenshot,
 	CreateImageFromData,
 
 	None

@@ -385,6 +385,7 @@ void Team::ProcessImageJobs()
 			switch (job->JobType)
 			{
 				case ImageJobType::TakeScreenshot:
+				case ImageJobType::TakeCycledScreenshot:
 				{
 					job->ResultTextureID = MEngineGraphics::CaptureScreenToTexture(true);
 					imageJobResultQueue.Produce(job);
