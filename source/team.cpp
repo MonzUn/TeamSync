@@ -256,7 +256,9 @@ bool Team::ReadInput(const std::string& input, std::string& returnMessage)
 	{
 		if (!Tubes::GetHostFlag())
 		{
-			Tubes::RequestConnection(input.substr(input.find(' ') + 1), DefaultPort);
+			std::string ipv4String = input.substr(input.find(' ') + 1);
+			if (Tubes::IsValidIPv4Address(ipv4String.c_str()))
+				Tubes::RequestConnection(ipv4String, DefaultPort);
 		}
 		else
 			returnMessage = "Connecting to remote clients is not allowed while hosting";

@@ -28,6 +28,8 @@ namespace Tubes
 	DisconnectionCallbackHandle RegisterDisconnectionCallback( DisconnectionCallbackFunction callbackFunction );
 	bool UnregisterDisconnectionCallback( DisconnectionCallbackHandle handle );
 
+	bool IsValidIPv4Address( const char* ipv4String );
+
 	bool GetHostFlag();
 	void SetHostFlag( bool isHost );
 };
