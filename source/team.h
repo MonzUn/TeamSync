@@ -55,6 +55,7 @@ enum class ImageJobType
 	TakeScreenshot,
 	TakeCycledScreenshot,
 	CreateImageFromData,
+	SplitImage,
 
 	None
 };
@@ -62,13 +63,25 @@ enum class ImageJobType
 struct ImageJob
 {
 	ImageJob() : JobType(ImageJobType::None) {};
-	ImageJob(ImageJobType jobType, PlayerID imageOwnerID, int32_t imageWidth = -1, int32_t imageHeight = -1, void* pixels = nullptr) : JobType(jobType), ImageOwnerPlayerID(imageOwnerID), ImageWidth(imageWidth), ImageHeight(imageHeight), Pixels(pixels) {}
+	ImageJob(ImageJobType jobType, PlayerID imageOwnerID) :
+		JobType(jobType), ImageOwnerPlayerID(imageOwnerID) {}
+	ImageJob(ImageJobType jobType, PlayerID imageOwnerID, PlayerImage imageSlot, int32_t imageWidth, int32_t imageHeight, void* pixels) :
+		JobType(jobType), ImageOwnerPlayerID(imageOwnerID), ImageSlot(imageSlot), ImageWidth(imageWidth), ImageHeight(imageHeight), Pixels(pixels) {}
+	ImageJob(ImageJobType jobType, PlayerID imageOwnerID, PlayerImage imageSlot, int32_t imageWidth, int32_t imageHeight, int32_t upperLeftCutPosX, int32_t upperLeftCutPosY, int32_t lowerRightCutPosX, int32_t lowerRightCutPosY, void* pixels) :
+		JobType(jobType), ImageOwnerPlayerID(imageOwnerID), ImageSlot(imageSlot), ImageWidth(imageWidth), ImageHeight(imageHeight), UpperLeftCutPosX(upperLeftCutPosX), UpperLeftCutPosY(upperLeftCutPosY), LowerRightCutPosX(lowerRightCutPosX), LowerRightCutPosY(lowerRightCutPosY), Pixels(pixels) {}
 
-	ImageJobType	JobType;
-	PlayerID		ImageOwnerPlayerID;
-	int32_t			ImageWidth;
-	int32_t			ImageHeight;
-	void*			Pixels;
+	ImageJobType	JobType				= ImageJobType::None;
+	PlayerID		ImageOwnerPlayerID	= UNASSIGNED_PLAYER_ID;
+	int32_t			ImageWidth			= -1;
+	int32_t			ImageHeight			= -1;
+
+	PlayerImage		ImageSlot			= PlayerImage::None;
+	int32_t			UpperLeftCutPosX	= -1; // TODODB: Restructure job handling so that the cut positions does not have to be sent with the job
+	int32_t			UpperLeftCutPosY	= -1;
+	int32_t			LowerRightCutPosX	= -1;
+	int32_t			LowerRightCutPosY	= -1;
+
+	void*			Pixels				= nullptr;
 
 	MEngineGraphics::MEngineTextureID ResultTextureID;
 };
