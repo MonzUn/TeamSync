@@ -73,6 +73,10 @@ void Team::Update()
 	// Handle CLI input
 	HandleCommands();
 
+#ifdef _DEBUG
+	RunDebugCode();
+#endif
+
 	// Handle application input
 	if (KeyDown(MKey_CONTROL) && KeyReleased(MKey_TAB)) // Reset screenshot cycling
 	{
@@ -510,3 +514,18 @@ void Team::HandleCommands()
 		std::cout << '\n';
 	}
 }
+
+#ifdef _DEBUG
+void Team::RunDebugCode()
+{
+	bool ContinuousScreenshots = false;
+
+	// Continuously request new cycled screenshots 
+	if (ContinuousScreenshots && !awaitingDelayedScreenshot && localPlayerID != UNASSIGNED_PLAYER_ID)
+	{
+		screenshotTime = std::chrono::high_resolution_clock::now() + std::chrono::milliseconds(1000);
+		awaitingDelayedScreenshot = true;
+		delayedScreenshotCycle = true;
+	}
+}
+#endif

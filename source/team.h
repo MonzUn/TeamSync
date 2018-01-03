@@ -29,6 +29,10 @@ private:
 	void ProcessImageJobs();
 	void HandleCommands();
 
+#ifdef _DEBUG
+	void RunDebugCode();
+#endif
+
 	Player* players[MAX_PLAYERS] = {nullptr};
 	PlayerID localPlayerID = UNASSIGNED_PLAYER_ID;
 
