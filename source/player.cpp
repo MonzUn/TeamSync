@@ -1,16 +1,5 @@
 #include "player.h"
-
-const int32_t ImagePosAndDimensions[PlayerImage::Count][4] =
-{
-	{ 0,0,300, Player::DEFAULT_HEIGHT },					// Inventory,
-	{ 300, 0, 175, 55 },									// Name,
-	{ 380, 65, 85, 80 },									// Head,
-	{ 382, 245, 85, 80 },									// Backpack,
-	{ 380, 155, 85, 80 },									// Body,
-	{ 360, 65, 10, 265 },									// BackpackStat,
-	{ 475,0,475, Player::DEFAULT_HEIGHT },					// Weapon,
-	{ 0,0,Player::DEFAULT_WIDTH, Player::DEFAULT_HEIGHT }	// Fullscreen
-};
+#include "uiLayout.h"
 
 Player::Player(PlayerID playerID, PlayerConnectionType::PlayerConnectionType connectionType, Tubes::ConnectionID connectionID, int32_t posX, int32_t posY) :
 	PositionX(posX), PositionY(posY), Width(DEFAULT_WIDTH), Height(DEFAULT_HEIGHT), playerID(playerID), connectionType(connectionType), connectionID(connectionID)

@@ -1,6 +1,7 @@
 #include "team.h"
 #include "player.h"
 #include "teamSyncMessages.h"
+#include "uiLayout.h"
 #include <mengine.h>
 #include <mengineInput.h>
 #include <Tubes.h>
@@ -17,7 +18,6 @@ using MEngineGraphics::MEngineTextureID;
 #define LOG_CATEGORY_TEAM "Team"
 #define DELAYED_SCREENSHOT_WAIT_TIME_MILLISECONDS 150
 
-const int32_t ImagePositions[MAX_PLAYERS][2] = { {10,10}, {965, 10}, {10,505}, { 965,505} };
 const uint16_t DefaultPort = 19200;
 
 // ---------- PUBLIC ----------
@@ -135,28 +135,6 @@ void Team::Update()
 
 			case ImageJobType::TakeCycledScreenshot:
 			{
-				const int32_t CutPositions1440P[PlayerImage::Count - 1][4] // 2560 * 1440
-				{
-					{487, 185, 786, 1255},		// Inventory
-					{1075, 42, 1494, 91 },		// Name
-					{878, 232, 958, 311 },		// Head
-					{878, 584, 958, 663 },		// Backpack
-					{878, 494, 958, 574 },		// Body
-					{840, 495, 850, 751 },		// BackpackStat
-					{1748, 185, 2383, 1280 },	// Weapon
-				};
-
-				const int32_t CutPositions1080P[PlayerImage::Count - 1][4] // 1920 * 1080
-				{
-					{ 365, 152, 589, 956 },		// Inventory
-					{ 842, 44, 1090, 81 },		// Name
-					{ 659, 187, 718, 246 },		// Head
-					{ 659, 451, 718, 510 },		// Backpack
-					{ 659, 384, 718, 443 },		// Body
-					{ 630, 384, 637, 575 },		// BackpackStat
-					{ 1311, 151, 1788, 973 },	// Weapon
-				};
-
 				if (delayedScreenshotCycle) // Discard the screenshot if the cycle was inversed again while the screenshot was being taken
 				{
 					const MEngineGraphics::MEngineTextureData& textureData = MEngineGraphics::GetTextureData(finishedJob->ResultTextureID);
