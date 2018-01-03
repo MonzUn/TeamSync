@@ -28,7 +28,7 @@ bool Team::Initialize()
 #ifdef _DEBUG
 	applicationName += " (PID=" + std::to_string(MUtility::GetPid()) + ")";
 #endif
-	if (!MEngine::Initialize(applicationName.c_str(), 1920, 1000))
+	if (!MEngine::Initialize(applicationName.c_str(), ApplicationWindowWidth, ApplicationWindowHeight))
 		return false;
 
 	MEngineInput::SetFocusRequired(false);

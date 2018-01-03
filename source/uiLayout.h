@@ -3,6 +3,9 @@
 #include "team.h"
 #include <stdint.h>
 
+const int32_t ApplicationWindowWidth	= 1920;
+const int32_t ApplicationWindowHeight	= 1000;
+
 const int32_t ImagePositions[MAX_PLAYERS][2]
 {
 	{ 10,10 },		// Upper left
