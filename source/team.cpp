@@ -80,24 +80,26 @@ void Team::Update()
 	// Handle application input
 	if (KeyDown(MKey_CONTROL) && KeyReleased(MKey_TAB)) // Reset screenshot cycling
 	{
-		delayedScreenshotCycle = false;
+		if (delayedScreenshotcounter % 2 != 0)
+			++delayedScreenshotcounter;
 	}
 
 	if (KeyReleased(MKey_TAB) && !KeyDown(MKey_ALT) && !KeyDown(MKey_SHIFT) && localPlayerID != UNASSIGNED_PLAYER_ID) // Take delayed screenshot
 	{
 		if (!awaitingDelayedScreenshot)
 		{
-			if (!delayedScreenshotCycle)
+			if (delayedScreenshotcounter % 2 == 0)
 			{
 				screenshotTime = std::chrono::high_resolution_clock::now() + std::chrono::milliseconds(DELAYED_SCREENSHOT_WAIT_TIME_MILLISECONDS);
 				awaitingDelayedScreenshot = true;
 			}
-			delayedScreenshotCycle = !delayedScreenshotCycle;
+			++delayedScreenshotcounter;
 		}
 		else // Abort delayed screenshot
 		{
-			awaitingDelayedScreenshot	= false;
-			delayedScreenshotCycle		= false;
+			awaitingDelayedScreenshot = false;
+			if (delayedScreenshotcounter % 2 != 0)
+				++delayedScreenshotcounter;
 		}
 	}
 
@@ -111,7 +113,7 @@ void Team::Update()
 	// Handle delayed screenshot
 	if (awaitingDelayedScreenshot && std::chrono::high_resolution_clock::now() >= screenshotTime)
 	{
-		ImageJob* screenshotJob = new ImageJob(ImageJobType::TakeCycledScreenshot, localPlayerID);
+		ImageJob* screenshotJob = new ImageJob(ImageJobType::TakeCycledScreenshot, localPlayerID, delayedScreenshotcounter);
 		imageJobQueue.Produce(screenshotJob);
 		imageJobLockCondition.notify_one();
 
@@ -135,7 +137,7 @@ void Team::Update()
 
 			case ImageJobType::TakeCycledScreenshot:
 			{
-				if (delayedScreenshotCycle) // Discard the screenshot if the cycle was inversed again while the screenshot was being taken
+				if (delayedScreenshotcounter == finishedJob->DelayedScreenShotCounter) // Discard the screenshot if the cycle was inversed again while the screenshot was being taken
 				{
 					const MEngineGraphics::MEngineTextureData& textureData = MEngineGraphics::GetTextureData(finishedJob->ResultTextureID);
 					for (int i = 0; i < PlayerImage::Count - 1; ++i)
@@ -373,7 +375,7 @@ void Team::DisconnectionCallback(Tubes::ConnectionID connectionID)
 					RemovePlayer(players[i]);
 			}
 
-			delayedScreenshotCycle		= false;
+			delayedScreenshotcounter	= 0;
 			awaitingDelayedScreenshot	= false;
 		}
 	}
@@ -469,7 +471,7 @@ void Team::HandleCommands()
 				response = "All connected clients have been disconnected";
 			}
 
-			delayedScreenshotCycle		= false;
+			delayedScreenshotcounter	= 0;
 			awaitingDelayedScreenshot	= false;
 		}
 		else if (command.find("connect") != std::string::npos && command.find("disconnect") == std::string::npos)
@@ -503,7 +505,6 @@ void Team::RunDebugCode()
 	{
 		screenshotTime = std::chrono::high_resolution_clock::now() + std::chrono::milliseconds(1000);
 		awaitingDelayedScreenshot = true;
-		delayedScreenshotCycle = true;
 	}
 }
 #endif

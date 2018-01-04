@@ -36,8 +36,8 @@ private:
 	Player* players[MAX_PLAYERS] = {nullptr};
 	PlayerID localPlayerID = UNASSIGNED_PLAYER_ID;
 
-	bool delayedScreenshotCycle = false;
-	bool awaitingDelayedScreenshot = false;
+	uint64_t delayedScreenshotcounter	= 0;
+	bool awaitingDelayedScreenshot		= false;
 	std::chrono::time_point<std::chrono::steady_clock> screenshotTime;
 
 	std::atomic<bool>					runImageJobThread = true;
@@ -67,8 +67,8 @@ enum class ImageJobType
 struct ImageJob
 {
 	ImageJob() : JobType(ImageJobType::None) {};
-	ImageJob(ImageJobType jobType, PlayerID imageOwnerID) :
-		JobType(jobType), ImageOwnerPlayerID(imageOwnerID) {}
+	ImageJob(ImageJobType jobType, PlayerID imageOwnerID, int64_t delayedScreenshotCounter = -1) :
+		JobType(jobType), ImageOwnerPlayerID(imageOwnerID), DelayedScreenShotCounter(delayedScreenshotCounter) {}
 	ImageJob(ImageJobType jobType, PlayerID imageOwnerID, PlayerImage imageSlot, int32_t imageWidth, int32_t imageHeight, void* pixels) :
 		JobType(jobType), ImageOwnerPlayerID(imageOwnerID), ImageSlot(imageSlot), ImageWidth(imageWidth), ImageHeight(imageHeight), Pixels(pixels) {}
 	ImageJob(ImageJobType jobType, PlayerID imageOwnerID, PlayerImage imageSlot, int32_t imageWidth, int32_t imageHeight, int32_t upperLeftCutPosX, int32_t upperLeftCutPosY, int32_t lowerRightCutPosX, int32_t lowerRightCutPosY, void* pixels) :
@@ -84,6 +84,8 @@ struct ImageJob
 	int32_t			UpperLeftCutPosY	= -1;
 	int32_t			LowerRightCutPosX	= -1;
 	int32_t			LowerRightCutPosY	= -1;
+
+	int64_t			DelayedScreenShotCounter = -1;
 
 	void*			Pixels				= nullptr;
 
