@@ -84,7 +84,7 @@ void Team::Update()
 			++delayedScreenshotcounter;
 	}
 
-	if (KeyReleased(MKey_TAB) && !KeyDown(MKey_ALT) && !KeyDown(MKey_SHIFT) && localPlayerID != UNASSIGNED_PLAYER_ID) // Take delayed screenshot
+	if (KeyReleased(MKey_TAB) && !KeyDown(MKey_ALT) && localPlayerID != UNASSIGNED_PLAYER_ID) // Take delayed screenshot
 	{
 		if (!awaitingDelayedScreenshot)
 		{
