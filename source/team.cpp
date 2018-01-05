@@ -78,13 +78,14 @@ void Team::Update()
 #endif
 
 	// Handle application input
-	if (KeyDown(MKey_CONTROL) && KeyReleased(MKey_TAB)) // Reset screenshot cycling
+	//if (KeyDown(MKey_CONTROL) && KeyReleased(MKey_TAB)) // Reset screenshot cycling
+	if (KeyReleased(MKEY_ANGLED_BRACKET))
 	{
 		if (delayedScreenshotcounter % 2 != 0)
 			++delayedScreenshotcounter;
 	}
 
-	if (KeyReleased(MKey_TAB) && !KeyDown(MKey_ALT) && localPlayerID != UNASSIGNED_PLAYER_ID) // Take delayed screenshot
+	if (KeyReleased(MKEY_TAB) && !KeyDown(MKEY_LEFT_ALT) && !KeyDown(MKEY_RIGHT_ALT) && localPlayerID != UNASSIGNED_PLAYER_ID) // Take delayed screenshot
 	{
 		if (!awaitingDelayedScreenshot)
 		{
@@ -103,7 +104,7 @@ void Team::Update()
 		}
 	}
 
-	if (KeyReleased(MKey_GRAVE) && localPlayerID != UNASSIGNED_PLAYER_ID && !awaitingDelayedScreenshot) // Take direct screenshot
+	if (KeyReleased(MKEY_GRAVE) && localPlayerID != UNASSIGNED_PLAYER_ID && !awaitingDelayedScreenshot) // Take direct screenshot
 	{
 		ImageJob* screenshotJob = new ImageJob(ImageJobType::TakeScreenshot, localPlayerID);
 		imageJobQueue.Produce(screenshotJob);
