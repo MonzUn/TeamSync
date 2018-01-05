@@ -70,7 +70,6 @@ void Team::EnqueueCommand(const std::string& command)
 
 void Team::Update()
 {
-	// Handle CLI input
 	HandleCommands();
 #ifdef _DEBUG
 	RunDebugCode();
