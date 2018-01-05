@@ -28,6 +28,9 @@ private:
 
 	void ProcessImageJobs();
 	void HandleCommands();
+	void HandleInput();
+	void HandleImageJobResults();
+	void HandleNetworkCommunication();
 
 #ifdef _DEBUG
 	void RunDebugCode();

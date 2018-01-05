@@ -72,199 +72,12 @@ void Team::Update()
 {
 	// Handle CLI input
 	HandleCommands();
-
 #ifdef _DEBUG
 	RunDebugCode();
 #endif
-
-	// Handle application input
-	//if (KeyDown(MKey_CONTROL) && KeyReleased(MKey_TAB)) // Reset screenshot cycling
-	if (KeyReleased(MKEY_ANGLED_BRACKET))
-	{
-		if (delayedScreenshotcounter % 2 != 0)
-			++delayedScreenshotcounter;
-	}
-
-	if (KeyReleased(MKEY_TAB) && !KeyDown(MKEY_LEFT_ALT) && !KeyDown(MKEY_RIGHT_ALT) && localPlayerID != UNASSIGNED_PLAYER_ID) // Take delayed screenshot
-	{
-		if (!awaitingDelayedScreenshot)
-		{
-			if (delayedScreenshotcounter % 2 == 0)
-			{
-				screenshotTime = std::chrono::high_resolution_clock::now() + std::chrono::milliseconds(DELAYED_SCREENSHOT_WAIT_TIME_MILLISECONDS);
-				awaitingDelayedScreenshot = true;
-			}
-			++delayedScreenshotcounter;
-		}
-		else // Abort delayed screenshot
-		{
-			awaitingDelayedScreenshot = false;
-			if (delayedScreenshotcounter % 2 != 0)
-				++delayedScreenshotcounter;
-		}
-	}
-
-	if (KeyReleased(MKEY_GRAVE) && localPlayerID != UNASSIGNED_PLAYER_ID && !awaitingDelayedScreenshot) // Take direct screenshot
-	{
-		ImageJob* screenshotJob = new ImageJob(ImageJobType::TakeScreenshot, localPlayerID);
-		imageJobQueue.Produce(screenshotJob);
-		imageJobLockCondition.notify_one();
-	}
-
-	// Handle delayed screenshot
-	if (awaitingDelayedScreenshot && std::chrono::high_resolution_clock::now() >= screenshotTime)
-	{
-		ImageJob* screenshotJob = new ImageJob(ImageJobType::TakeCycledScreenshot, localPlayerID, delayedScreenshotcounter);
-		imageJobQueue.Produce(screenshotJob);
-		imageJobLockCondition.notify_one();
-
-		awaitingDelayedScreenshot = false;
-	}
-
-	// Handle results from image job thread
-	ImageJob* finishedJob = nullptr;
-	while (imageJobResultQueue.Consume(finishedJob))
-	{
-		switch (finishedJob->JobType)
-		{
-			case ImageJobType::TakeScreenshot:
-			{
-				players[finishedJob->ImageOwnerPlayerID]->SetImageTextureID(PlayerImage::Fullscreen, finishedJob->ResultTextureID);
-
-				PlayerUpdateMessage message = PlayerUpdateMessage(finishedJob->ImageOwnerPlayerID, PlayerImage::Fullscreen, MEngineGraphics::GetTextureData(finishedJob->ResultTextureID));
-				Tubes::SendToAll(&message);
-				message.Destroy();
-			} break;
-
-			case ImageJobType::TakeCycledScreenshot:
-			{
-				if (delayedScreenshotcounter == finishedJob->DelayedScreenShotCounter) // Discard the screenshot if the cycle was inversed again while the screenshot was being taken
-				{
-					const MEngineGraphics::MEngineTextureData& textureData = MEngineGraphics::GetTextureData(finishedJob->ResultTextureID);
-					for (int i = 0; i < PlayerImage::Count - 1; ++i)
-					{
-						ImageJob* splitJob = nullptr; // TODODB: Can we store a reference to the const arrays so we can avoid duplicating the assignment for this variable?
-						void* pixelsCopy = malloc(textureData.Width * textureData.Height * MENGINE_BYTES_PER_PIXEL);
-						memcpy(pixelsCopy, textureData.Pixels, textureData.Width * textureData.Height * MENGINE_BYTES_PER_PIXEL); // Job will get destroyed; make a copy of the pixel data for the asynchronous job
-						if (textureData.Width == 2560 && textureData.Height == 1440)
-							splitJob = new ImageJob(ImageJobType::SplitImage, finishedJob->ImageOwnerPlayerID, static_cast<PlayerImage>(i), textureData.Width, textureData.Height, CutPositions1440P[i][0], CutPositions1440P[i][1], CutPositions1440P[i][2], CutPositions1440P[i][3], pixelsCopy);
-						else if (textureData.Width == 1920 && textureData.Height == 1080)
-							splitJob = new ImageJob(ImageJobType::SplitImage, finishedJob->ImageOwnerPlayerID, static_cast<PlayerImage>(i), textureData.Width, textureData.Height, CutPositions1080P[i][0], CutPositions1080P[i][1], CutPositions1080P[i][2], CutPositions1080P[i][3], pixelsCopy);
-						else
-						{
-							MLOG_WARNING("Attempted to split image of unsupported size (" << textureData.Width + ", " << textureData.Height + ')', LOG_CATEGORY_TEAM);
-							free(pixelsCopy);
-						}
-
-						imageJobQueue.Produce(splitJob);
-					}
-					MEngineGraphics::UnloadTexture(finishedJob->ResultTextureID);
-					imageJobLockCondition.notify_one();				
-				}
-				else
-					MEngineGraphics::UnloadTexture(finishedJob->ResultTextureID);
-			} break;
-
-			case ImageJobType::CreateImageFromData:
-			{
-				if (players[finishedJob->ImageOwnerPlayerID] != nullptr) // Players may have been disconnected while the job was running
-				{
-					players[finishedJob->ImageOwnerPlayerID]->SetImageTextureID(finishedJob->ImageSlot, finishedJob->ResultTextureID);
-				}
-				free(finishedJob->Pixels);
-			} break;
-
-			case ImageJobType::SplitImage:
-			{
-				players[finishedJob->ImageOwnerPlayerID]->SetImageTextureID(finishedJob->ImageSlot, finishedJob->ResultTextureID);
-				free(finishedJob->Pixels);
-
-				PlayerUpdateMessage message = PlayerUpdateMessage(finishedJob->ImageOwnerPlayerID, finishedJob->ImageSlot, MEngineGraphics::GetTextureData(finishedJob->ResultTextureID));
-				Tubes::SendToAll(&message);
-				message.Destroy();
-			} break;
-
-		default:
-			break;
-		}
-
-		delete finishedJob;
-	}
-
-	// Handle incoming network messages
-	std::vector<Message*> receivedMessages;
-	std::vector<Tubes::ConnectionID> messageSenders;
-	Tubes::Receive(receivedMessages, &messageSenders);
-	for (int i = 0; i < receivedMessages.size(); ++i)
-	{
-		switch (receivedMessages[i]->Type)
-		{
-			case TeamSyncMessages::PLAYER_ID:
-			{
-				if (!Tubes::GetHostFlag())
-				{
-					const PlayerIDMessage* playerIDMessage = static_cast<const PlayerIDMessage*>(receivedMessages[i]);
-					PlayerID playerID = playerIDMessage->PlayerID;
-					PlayerConnectionType::PlayerConnectionType connectionType = static_cast<PlayerConnectionType::PlayerConnectionType>(playerIDMessage->PlayerConnectionType);
-					Tubes::ConnectionID connectionID = INVALID_CONNECTION_ID;
-
-					if (playerIDMessage->PlayerConnectionType == PlayerConnectionType::Local)
-					{
-						if (localPlayerID == UNASSIGNED_PLAYER_ID)
-							localPlayerID = playerID;
-						else
-							MLOG_WARNING("Received playerID message with ConnectionType::Local but the local player ID is already set", LOG_CATEGORY_TEAM);
-					}
-					else if (playerIDMessage->PlayerConnectionType == PlayerConnectionType::Direct)
-					{
-						connectionID = messageSenders[i];
-					}
-
-					if (players[playerID] == nullptr)
-						players[playerID] = new Player(playerID, connectionType, connectionID, ImagePositions[playerID][0], ImagePositions[playerID][1]);
-					else
-						MLOG_WARNING("Received playerID message for playerID " << playerID + " but there is already a player assigned to that ID", LOG_CATEGORY_TEAM);
-				}
-				else
-					MLOG_WARNING("Received playerID message as host", LOG_CATEGORY_TEAM);
-			} break;
-
-			case TeamSyncMessages::PLAYER_UPDATE:
-			{
-				const PlayerUpdateMessage* playerUpdateMessage = static_cast<const PlayerUpdateMessage*>(receivedMessages[i]);
-
-				if (Tubes::GetHostFlag())
-					Tubes::SendToAll(receivedMessages[i], messageSenders[i]);
-
-				void* pixelsCopy = malloc(playerUpdateMessage->ImageByteSize);
-				memcpy(pixelsCopy, playerUpdateMessage->Pixels, playerUpdateMessage->ImageByteSize); // Message will get destroyed; make a copy of the pixel data for the asynchronous job
-				ImageJob* imageFromDataJob = new ImageJob(ImageJobType::CreateImageFromData, playerUpdateMessage->PlayerID, static_cast<PlayerImage>(playerUpdateMessage->ImageSlot), playerUpdateMessage->Width, playerUpdateMessage->Height, pixelsCopy);
-				imageJobQueue.Produce(imageFromDataJob);
-				imageJobLockCondition.notify_one();
-			} break;
-
-			case TeamSyncMessages::PLAYER_DISCONNECT:
-			{	
-				if (!Tubes::GetHostFlag())
-				{
-					const PlayerDisconnectMessage* playerDisconnectMessage = static_cast<const PlayerDisconnectMessage*>(receivedMessages[i]);
-					for (int i = 0; i < MAX_PLAYERS; ++i)
-					{
-						if (players[i] != nullptr && players[i]->GetPlayerID() == playerDisconnectMessage->PlayerID)
-							RemovePlayer(players[i]);
-					}
-				}
-				else
-					MLOG_WARNING("Received disconnection message as host", LOG_CATEGORY_TEAM);
-			} break;
-		
-			default:
-				break;
-		}
-
-		receivedMessages[i]->Destroy();
-		free(receivedMessages[i]);
-	}
+	HandleInput();
+	HandleImageJobResults();
+	HandleNetworkCommunication();
 }
 
 // ---------- PRIVATE ----------
@@ -493,6 +306,200 @@ void Team::HandleCommands()
 			std::cout << "- " << response << '\n';
 
 		std::cout << '\n';
+	}
+}
+
+void Team::HandleInput()
+{
+	if (KeyReleased(MKEY_ANGLED_BRACKET)) // Reset screenshot cycling
+	{
+		if (delayedScreenshotcounter % 2 != 0)
+			++delayedScreenshotcounter;
+	}
+
+	if (KeyReleased(MKEY_TAB) && !KeyDown(MKEY_LEFT_ALT) && !KeyDown(MKEY_RIGHT_ALT) && localPlayerID != UNASSIGNED_PLAYER_ID) // Take delayed screenshot
+	{
+		if (!awaitingDelayedScreenshot)
+		{
+			if (delayedScreenshotcounter % 2 == 0)
+			{
+				screenshotTime = std::chrono::high_resolution_clock::now() + std::chrono::milliseconds(DELAYED_SCREENSHOT_WAIT_TIME_MILLISECONDS);
+				awaitingDelayedScreenshot = true;
+			}
+			++delayedScreenshotcounter;
+		}
+		else // Abort delayed screenshot
+		{
+			awaitingDelayedScreenshot = false;
+			if (delayedScreenshotcounter % 2 != 0)
+				++delayedScreenshotcounter;
+		}
+	}
+
+	if (KeyReleased(MKEY_GRAVE) && localPlayerID != UNASSIGNED_PLAYER_ID && !awaitingDelayedScreenshot) // Take direct screenshot
+	{
+		ImageJob* screenshotJob = new ImageJob(ImageJobType::TakeScreenshot, localPlayerID);
+		imageJobQueue.Produce(screenshotJob);
+		imageJobLockCondition.notify_one();
+	}
+
+	// Handle delayed screenshot
+	if (awaitingDelayedScreenshot && std::chrono::high_resolution_clock::now() >= screenshotTime)
+	{
+		ImageJob* screenshotJob = new ImageJob(ImageJobType::TakeCycledScreenshot, localPlayerID, delayedScreenshotcounter);
+		imageJobQueue.Produce(screenshotJob);
+		imageJobLockCondition.notify_one();
+
+		awaitingDelayedScreenshot = false;
+	}
+}
+
+void Team::HandleImageJobResults()
+{
+	ImageJob* finishedJob = nullptr;
+	while (imageJobResultQueue.Consume(finishedJob))
+	{
+		switch (finishedJob->JobType)
+		{
+		case ImageJobType::TakeScreenshot:
+		{
+			players[finishedJob->ImageOwnerPlayerID]->SetImageTextureID(PlayerImage::Fullscreen, finishedJob->ResultTextureID);
+
+			PlayerUpdateMessage message = PlayerUpdateMessage(finishedJob->ImageOwnerPlayerID, PlayerImage::Fullscreen, MEngineGraphics::GetTextureData(finishedJob->ResultTextureID));
+			Tubes::SendToAll(&message);
+			message.Destroy();
+		} break;
+
+		case ImageJobType::TakeCycledScreenshot:
+		{
+			if (delayedScreenshotcounter == finishedJob->DelayedScreenShotCounter) // Discard the screenshot if the cycle was inversed again while the screenshot was being taken
+			{
+				const MEngineGraphics::MEngineTextureData& textureData = MEngineGraphics::GetTextureData(finishedJob->ResultTextureID);
+				for (int i = 0; i < PlayerImage::Count - 1; ++i)
+				{
+					ImageJob* splitJob = nullptr; // TODODB: Can we store a reference to the const arrays so we can avoid duplicating the assignment for this variable?
+					void* pixelsCopy = malloc(textureData.Width * textureData.Height * MENGINE_BYTES_PER_PIXEL);
+					memcpy(pixelsCopy, textureData.Pixels, textureData.Width * textureData.Height * MENGINE_BYTES_PER_PIXEL); // Job will get destroyed; make a copy of the pixel data for the asynchronous job
+					if (textureData.Width == 2560 && textureData.Height == 1440)
+						splitJob = new ImageJob(ImageJobType::SplitImage, finishedJob->ImageOwnerPlayerID, static_cast<PlayerImage>(i), textureData.Width, textureData.Height, CutPositions1440P[i][0], CutPositions1440P[i][1], CutPositions1440P[i][2], CutPositions1440P[i][3], pixelsCopy);
+					else if (textureData.Width == 1920 && textureData.Height == 1080)
+						splitJob = new ImageJob(ImageJobType::SplitImage, finishedJob->ImageOwnerPlayerID, static_cast<PlayerImage>(i), textureData.Width, textureData.Height, CutPositions1080P[i][0], CutPositions1080P[i][1], CutPositions1080P[i][2], CutPositions1080P[i][3], pixelsCopy);
+					else
+					{
+						MLOG_WARNING("Attempted to split image of unsupported size (" << textureData.Width + ", " << textureData.Height + ')', LOG_CATEGORY_TEAM);
+						free(pixelsCopy);
+					}
+
+					imageJobQueue.Produce(splitJob);
+				}
+				MEngineGraphics::UnloadTexture(finishedJob->ResultTextureID);
+				imageJobLockCondition.notify_one();
+			}
+			else
+				MEngineGraphics::UnloadTexture(finishedJob->ResultTextureID);
+		} break;
+
+		case ImageJobType::CreateImageFromData:
+		{
+			if (players[finishedJob->ImageOwnerPlayerID] != nullptr) // Players may have been disconnected while the job was running
+			{
+				players[finishedJob->ImageOwnerPlayerID]->SetImageTextureID(finishedJob->ImageSlot, finishedJob->ResultTextureID);
+			}
+			free(finishedJob->Pixels);
+		} break;
+
+		case ImageJobType::SplitImage:
+		{
+			players[finishedJob->ImageOwnerPlayerID]->SetImageTextureID(finishedJob->ImageSlot, finishedJob->ResultTextureID);
+			free(finishedJob->Pixels);
+
+			PlayerUpdateMessage message = PlayerUpdateMessage(finishedJob->ImageOwnerPlayerID, finishedJob->ImageSlot, MEngineGraphics::GetTextureData(finishedJob->ResultTextureID));
+			Tubes::SendToAll(&message);
+			message.Destroy();
+		} break;
+
+		default:
+			break;
+		}
+
+		delete finishedJob;
+	}
+}
+
+void Team::HandleNetworkCommunication()
+{
+	std::vector<Message*> receivedMessages;
+	std::vector<Tubes::ConnectionID> messageSenders;
+	Tubes::Receive(receivedMessages, &messageSenders);
+	for (int i = 0; i < receivedMessages.size(); ++i)
+	{
+		switch (receivedMessages[i]->Type)
+		{
+		case TeamSyncMessages::PLAYER_ID:
+		{
+			if (!Tubes::GetHostFlag())
+			{
+				const PlayerIDMessage* playerIDMessage = static_cast<const PlayerIDMessage*>(receivedMessages[i]);
+				PlayerID playerID = playerIDMessage->PlayerID;
+				PlayerConnectionType::PlayerConnectionType connectionType = static_cast<PlayerConnectionType::PlayerConnectionType>(playerIDMessage->PlayerConnectionType);
+				Tubes::ConnectionID connectionID = INVALID_CONNECTION_ID;
+
+				if (playerIDMessage->PlayerConnectionType == PlayerConnectionType::Local)
+				{
+					if (localPlayerID == UNASSIGNED_PLAYER_ID)
+						localPlayerID = playerID;
+					else
+						MLOG_WARNING("Received playerID message with ConnectionType::Local but the local player ID is already set", LOG_CATEGORY_TEAM);
+				}
+				else if (playerIDMessage->PlayerConnectionType == PlayerConnectionType::Direct)
+				{
+					connectionID = messageSenders[i];
+				}
+
+				if (players[playerID] == nullptr)
+					players[playerID] = new Player(playerID, connectionType, connectionID, ImagePositions[playerID][0], ImagePositions[playerID][1]);
+				else
+					MLOG_WARNING("Received playerID message for playerID " << playerID + " but there is already a player assigned to that ID", LOG_CATEGORY_TEAM);
+			}
+			else
+				MLOG_WARNING("Received playerID message as host", LOG_CATEGORY_TEAM);
+		} break;
+
+		case TeamSyncMessages::PLAYER_UPDATE:
+		{
+			const PlayerUpdateMessage* playerUpdateMessage = static_cast<const PlayerUpdateMessage*>(receivedMessages[i]);
+
+			if (Tubes::GetHostFlag())
+				Tubes::SendToAll(receivedMessages[i], messageSenders[i]);
+
+			void* pixelsCopy = malloc(playerUpdateMessage->ImageByteSize);
+			memcpy(pixelsCopy, playerUpdateMessage->Pixels, playerUpdateMessage->ImageByteSize); // Message will get destroyed; make a copy of the pixel data for the asynchronous job
+			ImageJob* imageFromDataJob = new ImageJob(ImageJobType::CreateImageFromData, playerUpdateMessage->PlayerID, static_cast<PlayerImage>(playerUpdateMessage->ImageSlot), playerUpdateMessage->Width, playerUpdateMessage->Height, pixelsCopy);
+			imageJobQueue.Produce(imageFromDataJob);
+			imageJobLockCondition.notify_one();
+		} break;
+
+		case TeamSyncMessages::PLAYER_DISCONNECT:
+		{
+			if (!Tubes::GetHostFlag())
+			{
+				const PlayerDisconnectMessage* playerDisconnectMessage = static_cast<const PlayerDisconnectMessage*>(receivedMessages[i]);
+				for (int i = 0; i < MAX_PLAYERS; ++i)
+				{
+					if (players[i] != nullptr && players[i]->GetPlayerID() == playerDisconnectMessage->PlayerID)
+						RemovePlayer(players[i]);
+				}
+			}
+			else
+				MLOG_WARNING("Received disconnection message as host", LOG_CATEGORY_TEAM);
+		} break;
+
+		default:
+			break;
+		}
+
+		receivedMessages[i]->Destroy();
+		free(receivedMessages[i]);
 	}
 }
 
