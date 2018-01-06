@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
 void HandleTextInputOutput() // TODODB: Create a command handler to avoid spreading input and output all over code and threads
 {
 	std::cout << "*************************************************\n";
-	std::cout << "Available commands:\nHost - Hosts a new session\nConnect <HostIPv4> - Requests a connection to a host on the input IP\nDisconnect - Disconnects from any connected host and closes the session if hosting\nQuit - Closes the application\n";
+	std::cout << "Available commands:\nHost - Hosts a new session\nConnect <HostIPv4> - Requests a connection to a host on the input IP\nDisconnect <PlayerID (1-4)> - Disconnect the player with the supplied id and closes the session if hosting\nQuit - Closes the application\n";
 	std::cout << "\nControls:\nGrave - Synchronizes a screenshot\nTab - Synchronizes a screenshot every other time it is pressed\nCTRL + Tab - Resets tab screenshot cycle and synchronizes a screenshot\n\n";
 	std::cout << "*************************************************\n";
 

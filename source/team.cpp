@@ -8,6 +8,7 @@
 #include <TubesTypes.h>
 #include <MUtilityThreading.h>
 #include <MUtilityLog.h>
+#include <MUtilityString.h>
 #include <MUtilitySystem.h>
 #include <chrono>
 #include <iostream>
@@ -253,47 +254,94 @@ void Team::HandleCommands()
 			else
 				response = "Hosting failed; already hosting";
 		}
-		else if (command == "disconnect")
+		else if (command.find("disconnect") != std::string::npos)
 		{
-			if (Tubes::GetHostFlag())
+			bool disconnectSelf = false;
+			size_t spacePos = command.find(' ');
+			if (spacePos != std::string::npos && command.back() != ' ')
 			{
-				Tubes::SetHostFlag(false);
-				Tubes::StopAllListeners();
-				Tubes::DisconnectAll();
-
-				localPlayerID = UNASSIGNED_PLAYER_ID;
-				for (int i = 0; i < MAX_PLAYERS; ++i)
+				std::string playerIDString = command.substr(spacePos + 1);
+				if (MUtilityString::IsStringNumber(playerIDString))
 				{
-					if (players[i] != nullptr)
-						RemovePlayer(players[i]);
+					int32_t playerID = std::stoi(playerIDString) - 1;
+					if (playerID >= 0 && playerID < MAX_PLAYERS)
+					{
+						if (playerID != localPlayerID)
+						{
+							if (players[playerID] != nullptr)
+							{
+								if (players[playerID]->GetPlayerConnectionType() == PlayerConnectionType::Direct)
+								{
+									Tubes::Disconnect(players[playerID]->GetPlayerConnectionID());
+								}
+								else
+									response = "Only directly connected players may be disconnected";
+							}
+							else
+								response = "There was no player with id " + std::to_string(playerID + 1);
+						}
+						else
+							disconnectSelf = true;
+					}
+					else
+						response = "The supplied playerID was not valid";
 				}
-
-				response = "Hosted session has been closed";
+				else
+					response = "The supplied playerID was not a number";
 			}
 			else
+				disconnectSelf = true;
+			
+			if(disconnectSelf)
 			{
-				Tubes::DisconnectAll();
-
-				localPlayerID = UNASSIGNED_PLAYER_ID;
-				for (int i = 0; i < MAX_PLAYERS; ++i)
+				if (Tubes::GetHostFlag())
 				{
-					if (players[i] != nullptr)
-						RemovePlayer(players[i]);
+					Tubes::SetHostFlag(false);
+					Tubes::StopAllListeners();
+					Tubes::DisconnectAll();
+
+					localPlayerID = UNASSIGNED_PLAYER_ID;
+					for (int i = 0; i < MAX_PLAYERS; ++i)
+					{
+						if (players[i] != nullptr)
+							RemovePlayer(players[i]);
+					}
+
+					response = "Hosted session has been closed";
+				}
+				else
+				{
+					Tubes::DisconnectAll();
+
+					localPlayerID = UNASSIGNED_PLAYER_ID;
+					for (int i = 0; i < MAX_PLAYERS; ++i)
+					{
+						if (players[i] != nullptr)
+							RemovePlayer(players[i]);
+					}
+
+					response = "All connected clients have been disconnected";
 				}
 
-				response = "All connected clients have been disconnected";
+				delayedScreenshotcounter = 0;
+				awaitingDelayedScreenshot = false;
 			}
-
-			delayedScreenshotcounter	= 0;
-			awaitingDelayedScreenshot	= false;
 		}
 		else if (command.find("connect") != std::string::npos && command.find("disconnect") == std::string::npos)
 		{
 			if (!Tubes::GetHostFlag())
 			{
-				std::string ipv4String = command.substr(command.find(' ') + 1);
-				if (Tubes::IsValidIPv4Address(ipv4String.c_str()))
-					Tubes::RequestConnection(ipv4String, DefaultPort);
+				size_t spacePos = command.find(' ');
+				if (spacePos != std::string::npos && command.back() != ' ')
+				{
+					std::string ipv4String = command.substr(spacePos + 1);
+					if (Tubes::IsValidIPv4Address(ipv4String.c_str()))
+						Tubes::RequestConnection(ipv4String, DefaultPort);
+					else
+						response = "The supplied IP address was invalid";
+				}
+				else
+					response = "No IP address supplied";
 			}
 			else
 				response = "Connecting to remote clients is not allowed while hosting";
