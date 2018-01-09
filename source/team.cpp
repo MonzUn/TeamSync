@@ -221,7 +221,13 @@ void Team::ProcessImageJobs()
 
 				case ImageJobType::SplitImage:
 				{
-					job->ResultTextureID = MEngineGraphics::CreateSubTextureFromTextureData(MEngineGraphics::MEngineTextureData(job->ImageWidth, job->ImageHeight, job->Pixels), job->UpperLeftCutPosX, job->UpperLeftCutPosY, job->LowerRightCutPosX, job->LowerRightCutPosY, true);
+					if (job->ImageWidth == 2560 && job->ImageHeight == 1440)
+						job->ResultTextureID = MEngineGraphics::CreateSubTextureFromTextureData(MEngineGraphics::MEngineTextureData(job->ImageWidth, job->ImageHeight, job->Pixels), CutPositions1440P[job->ImageSlot][0], CutPositions1440P[job->ImageSlot][1], CutPositions1440P[job->ImageSlot][2], CutPositions1440P[job->ImageSlot][3], true);
+					else if(job->ImageWidth == 1920 && job->ImageHeight == 1080)
+						job->ResultTextureID = MEngineGraphics::CreateSubTextureFromTextureData(MEngineGraphics::MEngineTextureData(job->ImageWidth, job->ImageHeight, job->Pixels), CutPositions1080P[job->ImageSlot][0], CutPositions1080P[job->ImageSlot][1], CutPositions1080P[job->ImageSlot][2], CutPositions1080P[job->ImageSlot][3], true);
+					else
+						MLOG_WARNING("Attempted to split image of unsupported size (" <<  job->ImageWidth + ", " << job->ImageHeight + ')', LOG_CATEGORY_TEAM);
+					
 					imageJobResultQueue.Produce(job);
 				} break;
 
@@ -424,19 +430,9 @@ void Team::HandleImageJobResults()
 				const MEngineGraphics::MEngineTextureData& textureData = MEngineGraphics::GetTextureData(finishedJob->ResultTextureID);
 				for (int i = 0; i < PlayerImageSlot::Count - 1; ++i)
 				{
-					ImageJob* splitJob = nullptr; // TODODB: Can we store a reference to the const arrays so we can avoid duplicating the assignment for this variable?
 					void* pixelsCopy = malloc(textureData.Width * textureData.Height * MENGINE_BYTES_PER_PIXEL);
 					memcpy(pixelsCopy, textureData.Pixels, textureData.Width * textureData.Height * MENGINE_BYTES_PER_PIXEL); // Job will get destroyed; make a copy of the pixel data for the asynchronous job
-					if (textureData.Width == 2560 && textureData.Height == 1440)
-						splitJob = new ImageJob(ImageJobType::SplitImage, finishedJob->ImageOwnerPlayerID, static_cast<PlayerImageSlot::PlayerImageSlot>(i), textureData.Width, textureData.Height, CutPositions1440P[i][0], CutPositions1440P[i][1], CutPositions1440P[i][2], CutPositions1440P[i][3], pixelsCopy);
-					else if (textureData.Width == 1920 && textureData.Height == 1080)
-						splitJob = new ImageJob(ImageJobType::SplitImage, finishedJob->ImageOwnerPlayerID, static_cast<PlayerImageSlot::PlayerImageSlot>(i), textureData.Width, textureData.Height, CutPositions1080P[i][0], CutPositions1080P[i][1], CutPositions1080P[i][2], CutPositions1080P[i][3], pixelsCopy);
-					else
-					{
-						MLOG_WARNING("Attempted to split image of unsupported size (" << textureData.Width + ", " << textureData.Height + ')', LOG_CATEGORY_TEAM);
-						free(pixelsCopy);
-					}
-
+					ImageJob* splitJob = new ImageJob(ImageJobType::SplitImage, finishedJob->ImageOwnerPlayerID, static_cast<PlayerImageSlot::PlayerImageSlot>(i), textureData.Width, textureData.Height, pixelsCopy);
 					imageJobQueue.Produce(splitJob);
 				}
 				MEngineGraphics::UnloadTexture(finishedJob->ResultTextureID);
@@ -449,20 +445,22 @@ void Team::HandleImageJobResults()
 		case ImageJobType::CreateImageFromData:
 		{
 			if (players[finishedJob->ImageOwnerPlayerID] != nullptr) // Players may have been disconnected while the job was running
-			{
 				players[finishedJob->ImageOwnerPlayerID]->SetImageTextureID(finishedJob->ImageSlot, finishedJob->ResultTextureID);
-			}
+
 			free(finishedJob->Pixels);
 		} break;
 
 		case ImageJobType::SplitImage:
 		{
-			players[finishedJob->ImageOwnerPlayerID]->SetImageTextureID(finishedJob->ImageSlot, finishedJob->ResultTextureID);
-			free(finishedJob->Pixels);
+			if (finishedJob->ResultTextureID != INVALID_MENGINE_TEXTURE_ID)
+			{
+				players[finishedJob->ImageOwnerPlayerID]->SetImageTextureID(finishedJob->ImageSlot, finishedJob->ResultTextureID);
+				free(finishedJob->Pixels);
 
-			PlayerUpdateMessage message = PlayerUpdateMessage(finishedJob->ImageOwnerPlayerID, finishedJob->ImageSlot, MEngineGraphics::GetTextureData(finishedJob->ResultTextureID));
-			Tubes::SendToAll(&message);
-			message.Destroy();
+				PlayerUpdateMessage message = PlayerUpdateMessage(finishedJob->ImageOwnerPlayerID, finishedJob->ImageSlot, MEngineGraphics::GetTextureData(finishedJob->ResultTextureID));
+				Tubes::SendToAll(&message);
+				message.Destroy();
+			}
 		} break;
 
 		default:
@@ -553,7 +551,7 @@ void Team::HandleNetworkCommunication()
 #ifdef _DEBUG
 void Team::RunDebugCode()
 {
-	bool ContinuousScreenshots = true;
+	bool ContinuousScreenshots = false;
 
 	// Continuously request new cycled screenshots 
 	if (ContinuousScreenshots && !awaitingDelayedScreenshot && localPlayerID != UNASSIGNED_PLAYER_ID)
