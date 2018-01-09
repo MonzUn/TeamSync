@@ -24,7 +24,7 @@ void Player::Register()
 	if (registered)
 		return;
 
-	for (int i = 0; i < PlayerImage::Count; ++i)
+	for (int i = 0; i < PlayerImageSlot::Count; ++i)
 	{
 		images[i] = new ImageObject(PositionX + ImagePosAndDimensions[i][0], PositionY + ImagePosAndDimensions[i][1], ImagePosAndDimensions[i][2], ImagePosAndDimensions[i][3]);
 		MEngineEntityManager::RegisterNewEntity(images[i]);
@@ -38,7 +38,7 @@ void Player::Unregister()
 	if (!registered)
 		return;
 
-	for (int i = 0; i < PlayerImage::Count; ++i)
+	for (int i = 0; i < PlayerImageSlot::Count; ++i)
 	{
 		MEngineEntityManager::DestroyEntity(images[i]->EntityID);
 		images[i] = nullptr;
@@ -47,7 +47,7 @@ void Player::Unregister()
 	registered = false;
 }
 
-MEngineGraphics::MEngineTextureID Player::GetImageTextureID(PlayerImage playerImage) const
+MEngineGraphics::MEngineTextureID Player::GetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImage) const
 {
 	if (!registered)
 		return INVALID_MENGINE_TEXTURE_ID;
@@ -55,25 +55,25 @@ MEngineGraphics::MEngineTextureID Player::GetImageTextureID(PlayerImage playerIm
 	return images[playerImage]->TextureID;
 }
 
-void Player::SetImageTextureID(PlayerImage playerImage, MEngineGraphics::MEngineTextureID textureID)
+void Player::SetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImageSlot, MEngineGraphics::MEngineTextureID textureID)
 {
 	if (!registered)
 		return;
 
-	if (playerImage == PlayerImage::Fullscreen)
+	if (playerImageSlot == PlayerImageSlot::Fullscreen)
 	{
 		UnloadTextures();
 	}
-	else if (images[Fullscreen]->TextureID != INVALID_MENGINE_TEXTURE_ID)
+	else if (images[PlayerImageSlot::Fullscreen]->TextureID != INVALID_MENGINE_TEXTURE_ID)
 	{
-		MEngineGraphics::UnloadTexture(images[Fullscreen]->TextureID);
-		images[Fullscreen]->TextureID = INVALID_MENGINE_TEXTURE_ID;
+		MEngineGraphics::UnloadTexture(images[PlayerImageSlot::Fullscreen]->TextureID);
+		images[PlayerImageSlot::Fullscreen]->TextureID = INVALID_MENGINE_TEXTURE_ID;
 	}
 		
 
-	if (images[playerImage]->TextureID != INVALID_MENGINE_TEXTURE_ID)
-		MEngineGraphics::UnloadTexture(images[playerImage]->TextureID);
-	images[playerImage]->TextureID = textureID;
+	if (images[playerImageSlot]->TextureID != INVALID_MENGINE_TEXTURE_ID)
+		MEngineGraphics::UnloadTexture(images[playerImageSlot]->TextureID);
+	images[playerImageSlot]->TextureID = textureID;
 }
 
 void Player::UnloadTextures()
@@ -81,7 +81,7 @@ void Player::UnloadTextures()
 	if (!registered)
 		return;
 
-	for (int i = 0; i < PlayerImage::Count; ++i)
+	for (int i = 0; i < PlayerImageSlot::Count; ++i)
 	{
 		if (images[i]->TextureID != INVALID_MENGINE_TEXTURE_ID)
 		{

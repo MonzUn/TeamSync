@@ -17,20 +17,23 @@ namespace PlayerConnectionType
 	};
 }
 
-enum PlayerImage : int32_t // TODODB: Put this in a namespace so it doesn't leak into the global scope
+namespace PlayerImageSlot
 {
-	Inventory,
-	Name,
-	Head,
-	Backpack,
-	Body,
-	BackpackStat,
-	Weapon,
+	enum PlayerImageSlot : int32_t
+	{
+		Inventory,
+		Name,
+		Head,
+		Backpack,
+		Body,
+		BackpackStat,
+		Weapon,
 
-	Fullscreen, // Should stay at the bottom
-	Count,
-	None
-};
+		Fullscreen, // Should stay at the bottom
+		Count,
+		None
+	};
+}
 
 class ImageObject : public MEngineObject
 {
@@ -52,8 +55,8 @@ public:
 	void Register();
 	void Unregister();
 
-	MEngineGraphics::MEngineTextureID GetImageTextureID(PlayerImage playerImage) const;
-	void SetImageTextureID(PlayerImage playerImage, MEngineGraphics::MEngineTextureID textureID);
+	MEngineGraphics::MEngineTextureID GetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImage) const;
+	void SetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImage, MEngineGraphics::MEngineTextureID textureID);
 
 	PlayerID GetPlayerID() const { return playerID; }
 	Tubes::ConnectionID GetPlayerConnectionID() const { return connectionID; }
@@ -67,7 +70,7 @@ private:
 	int32_t Width		= -1;
 	int32_t Height		= -1;
 
-	Player::ImageObject* images[PlayerImage::Count] = { nullptr };
+	Player::ImageObject* images[PlayerImageSlot::Count] = { nullptr };
 
 	PlayerID									playerID		= UNASSIGNED_PLAYER_ID;
 	Tubes::ConnectionID							connectionID	= INVALID_CONNECTION_ID;

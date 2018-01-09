@@ -14,7 +14,7 @@ const int32_t ImagePositions[MAX_PLAYERS][2]
 	{ 965,505 }		// Lower right
 };
 
-const int32_t ImagePosAndDimensions[PlayerImage::Count][4]
+const int32_t ImagePosAndDimensions[PlayerImageSlot::Count][4]
 {
 	{ 0,0,300, Player::DEFAULT_HEIGHT },					// Inventory,
 	{ 300, 0, 175, 55 },									// Name,
@@ -27,7 +27,7 @@ const int32_t ImagePosAndDimensions[PlayerImage::Count][4]
 };
 
 // TODODB: Change cut positions to use width and height instead of upperLeft and lowerRight coordinates
-const int32_t CutPositions1440P[PlayerImage::Count - 1][4] // 2560 * 1440
+const int32_t CutPositions1440P[PlayerImageSlot::Count - 1][4] // 2560 * 1440
 {
 	{ 487, 185, 786, 1255 },	// Inventory
 	{ 1075, 42, 1494, 91 },		// Name
@@ -38,7 +38,7 @@ const int32_t CutPositions1440P[PlayerImage::Count - 1][4] // 2560 * 1440
 	{ 1748, 185, 2383, 1280 },	// Weapon
 };
 
-const int32_t CutPositions1080P[PlayerImage::Count - 1][4] // 1920 * 1080
+const int32_t CutPositions1080P[PlayerImageSlot::Count - 1][4] // 1920 * 1080
 {
 	{ 365, 140, 589, 942 },		// Inventory
 	{ 842, 30, 1090, 67 },		// Name
