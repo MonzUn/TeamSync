@@ -459,12 +459,12 @@ void Team::HandleImageJobResults()
 			if (finishedJob->ResultTextureID != INVALID_MENGINE_TEXTURE_ID)
 			{
 				players[finishedJob->ImageOwnerPlayerID]->SetImageTextureID(finishedJob->ImageSlot, finishedJob->ResultTextureID);
-				free(finishedJob->Pixels);
 
 				PlayerUpdateMessage message = PlayerUpdateMessage(finishedJob->ImageOwnerPlayerID, finishedJob->ImageSlot, MEngineGraphics::GetTextureData(finishedJob->ResultTextureID));
 				Tubes::SendToAll(&message);
 				message.Destroy();
 			}
+			free(finishedJob->Pixels);
 		} break;
 
 		default:
