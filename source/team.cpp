@@ -227,10 +227,10 @@ void Team::ProcessImageJobs()
 					else if(job->ImageWidth == 1920 && job->ImageHeight == 1080)
 						cutPositionArray = &CutPositions1080P;
 					else
-						MLOG_WARNING("Attempted to split image of unsupported size (" <<  job->ImageWidth + ", " << job->ImageHeight + ')', LOG_CATEGORY_TEAM);
+						MLOG_WARNING("Attempted to split image of unsupported size (" <<  job->ImageWidth << ", " << job->ImageHeight << ')', LOG_CATEGORY_TEAM);
 
 					if(cutPositionArray != nullptr)
-						job->ResultTextureID = MEngineGraphics::CreateSubTextureFromTextureData(MEngineGraphics::MEngineTextureData(job->ImageWidth, job->ImageHeight, job->Pixels), *cutPositionArray[job->ImageSlot][0], *cutPositionArray[job->ImageSlot][1], *cutPositionArray[job->ImageSlot][2], *cutPositionArray[job->ImageSlot][3], true);
+						job->ResultTextureID = MEngineGraphics::CreateSubTextureFromTextureData(MEngineGraphics::MEngineTextureData(job->ImageWidth, job->ImageHeight, job->Pixels), (*cutPositionArray)[job->ImageSlot][0], (*cutPositionArray)[job->ImageSlot][1], (*cutPositionArray)[job->ImageSlot][2], (*cutPositionArray)[job->ImageSlot][3], true);
 
 					imageJobResultQueue.Produce(job);
 				} break;
