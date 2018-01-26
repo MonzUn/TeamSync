@@ -72,6 +72,7 @@ void Team::EnqueueCommand(const std::string& command)
 void Team::Update()
 {
 	HandleCommands();
+	HandleLogging();
 #ifdef _DEBUG
 	RunDebugCode();
 #endif
@@ -364,6 +365,13 @@ void Team::HandleCommands()
 
 		std::cout << '\n';
 	}
+}
+
+void Team::HandleLogging()
+{
+	std::string newMessages;
+	if(MUtilityLog::FetchUnreadMessages(newMessages))
+		std::cout << newMessages;
 }
 
 void Team::HandleInput()

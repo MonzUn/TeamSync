@@ -28,6 +28,7 @@ private:
 
 	void ProcessImageJobs();
 	void HandleCommands();
+	void HandleLogging();
 	void HandleInput();
 	void HandleImageJobResults();
 	void HandleNetworkCommunication();
