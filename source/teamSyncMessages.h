@@ -6,11 +6,28 @@ namespace TeamSyncMessages
 {
 	enum MessageType : MESSAGE_TYPE_ENUM_UNDELYING_TYPE
 	{
+		SIGNAL,
 		PLAYER_ID,
 		PLAYER_UPDATE,
 		PLAYER_DISCONNECT,
 	};
 }
+
+namespace TeamSyncSignals
+{
+	enum Signal : uint32_t
+	{
+		PRIME,
+	};
+}
+
+struct SignalMessage : TeamSyncMessage
+{
+	SignalMessage(TeamSyncSignals::Signal signal) : TeamSyncMessage(TeamSyncMessages::SIGNAL), Signal(signal)
+	{}
+
+	TeamSyncSignals::Signal Signal;
+};
 
 struct PlayerIDMessage : TeamSyncMessage
 {

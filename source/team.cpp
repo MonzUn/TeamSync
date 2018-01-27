@@ -357,6 +357,56 @@ void Team::HandleCommands()
 			else
 				response = "Connecting to remote clients is not allowed while hosting";
 		}
+		else if(command.find("prime") != std::string::npos)
+		{
+			size_t spacePos = command.find(' ');
+			if (spacePos != std::string::npos && command.back() != ' ')
+			{
+				std::string playerIDString = command.substr(spacePos + 1);
+				if (MUtilityString::IsStringNumber(playerIDString))
+				{
+					int32_t playerID = std::stoi(playerIDString) - 1;
+					if (playerID >= 0 && playerID < MAX_PLAYERS)
+					{
+						if (playerID != localPlayerID)
+						{
+							if (players[playerID] != nullptr)
+							{
+								SignalMessage primeSignalMessage = SignalMessage(TeamSyncSignals::PRIME);
+								Tubes::SendToConnection(&primeSignalMessage, players[playerID]->GetPlayerConnectionID());
+								primeSignalMessage.Destroy();
+
+								response = "The cycled screenshot of Player " + std::to_string(playerID) + " has been primed";
+							}
+							else
+								response = "There was no player with id " + std::to_string(playerID + 1);
+						}
+						else
+						{
+							if (delayedScreenshotcounter % 2 != 0) // Prime self
+								++delayedScreenshotcounter;
+
+							response = "The cycled screenshot of the local player has been primed";
+						}
+					}
+					else
+						response = "The supplied playerID was not valid";
+				}
+				else
+					response = "The supplied playerID was not a number";
+			}
+			else
+			{
+				SignalMessage primeSignalMessage = SignalMessage(TeamSyncSignals::PRIME);
+				Tubes::SendToAll(&primeSignalMessage);
+				primeSignalMessage.Destroy();
+
+				if (delayedScreenshotcounter % 2 != 0) // Prime self
+					++delayedScreenshotcounter;
+
+				response = "The cycled screenshot of all players has been primed";
+			}
+		}
 		else
 			response = "Unknown or malformed command";
 
@@ -492,67 +542,83 @@ void Team::HandleNetworkCommunication()
 	{
 		switch (receivedMessages[i]->Type)
 		{
-		case TeamSyncMessages::PLAYER_ID:
-		{
-			if (!Tubes::GetHostFlag())
+			case TeamSyncMessages::SIGNAL:
 			{
-				const PlayerIDMessage* playerIDMessage = static_cast<const PlayerIDMessage*>(receivedMessages[i]);
-				PlayerID playerID = playerIDMessage->PlayerID;
-				PlayerConnectionType::PlayerConnectionType connectionType = static_cast<PlayerConnectionType::PlayerConnectionType>(playerIDMessage->PlayerConnectionType);
-				Tubes::ConnectionID connectionID = INVALID_CONNECTION_ID;
-
-				if (playerIDMessage->PlayerConnectionType == PlayerConnectionType::Local)
+				const SignalMessage* signalMessage = static_cast<const SignalMessage*>(receivedMessages[i]);
+				switch (signalMessage->Signal)
 				{
-					if (localPlayerID == UNASSIGNED_PLAYER_ID)
-						localPlayerID = playerID;
+					case TeamSyncSignals::PRIME:
+					{
+						if (delayedScreenshotcounter % 2 != 0)
+							++delayedScreenshotcounter;
+					} break;
+
+					default:
+						break;
+				}
+			} break;
+
+			case TeamSyncMessages::PLAYER_ID:
+			{
+				if (!Tubes::GetHostFlag())
+				{
+					const PlayerIDMessage* playerIDMessage = static_cast<const PlayerIDMessage*>(receivedMessages[i]);
+					PlayerID playerID = playerIDMessage->PlayerID;
+					PlayerConnectionType::PlayerConnectionType connectionType = static_cast<PlayerConnectionType::PlayerConnectionType>(playerIDMessage->PlayerConnectionType);
+					Tubes::ConnectionID connectionID = INVALID_CONNECTION_ID;
+
+					if (playerIDMessage->PlayerConnectionType == PlayerConnectionType::Local)
+					{
+						if (localPlayerID == UNASSIGNED_PLAYER_ID)
+							localPlayerID = playerID;
+						else
+							MLOG_WARNING("Received playerID message with ConnectionType::Local but the local player ID is already set", LOG_CATEGORY_TEAM);
+					}
+					else if (playerIDMessage->PlayerConnectionType == PlayerConnectionType::Direct)
+					{
+						connectionID = messageSenders[i];
+					}
+
+					if (players[playerID] == nullptr)
+						players[playerID] = new Player(playerID, connectionType, connectionID, UILayout::ImagePositions[playerID][0], UILayout::ImagePositions[playerID][1], UILayout::PLAYER_IMAGE_WIDTH, UILayout::PLAYER_IMAGE_HEIGHT);
 					else
-						MLOG_WARNING("Received playerID message with ConnectionType::Local but the local player ID is already set", LOG_CATEGORY_TEAM);
+						MLOG_WARNING("Received playerID message for playerID " << playerID + " but there is already a player assigned to that ID", LOG_CATEGORY_TEAM);
 				}
-				else if (playerIDMessage->PlayerConnectionType == PlayerConnectionType::Direct)
-				{
-					connectionID = messageSenders[i];
-				}
-
-				if (players[playerID] == nullptr)
-					players[playerID] = new Player(playerID, connectionType, connectionID, ImagePositions[playerID][0], ImagePositions[playerID][1]);
 				else
-					MLOG_WARNING("Received playerID message for playerID " << playerID + " but there is already a player assigned to that ID", LOG_CATEGORY_TEAM);
-			}
-			else
-				MLOG_WARNING("Received playerID message as host", LOG_CATEGORY_TEAM);
-		} break;
+					MLOG_WARNING("Received playerID message as host", LOG_CATEGORY_TEAM);
+			} break;
 
-		case TeamSyncMessages::PLAYER_UPDATE:
-		{
-			const PlayerUpdateMessage* playerUpdateMessage = static_cast<const PlayerUpdateMessage*>(receivedMessages[i]);
-
-			if (Tubes::GetHostFlag())
-				Tubes::SendToAll(receivedMessages[i], messageSenders[i]);
-
-			void* pixelsCopy = malloc(playerUpdateMessage->ImageByteSize);
-			memcpy(pixelsCopy, playerUpdateMessage->Pixels, playerUpdateMessage->ImageByteSize); // Message will get destroyed; make a copy of the pixel data for the asynchronous job
-			ImageJob* imageFromDataJob = new ImageJob(ImageJobType::CreateImageFromData, playerUpdateMessage->PlayerID, static_cast<PlayerImageSlot::PlayerImageSlot>(playerUpdateMessage->ImageSlot), playerUpdateMessage->Width, playerUpdateMessage->Height, pixelsCopy);
-			imageJobQueue.Produce(imageFromDataJob);
-			imageJobLockCondition.notify_one();
-		} break;
-
-		case TeamSyncMessages::PLAYER_DISCONNECT:
-		{
-			if (!Tubes::GetHostFlag())
+			case TeamSyncMessages::PLAYER_UPDATE:
 			{
-				const PlayerDisconnectMessage* playerDisconnectMessage = static_cast<const PlayerDisconnectMessage*>(receivedMessages[i]);
-				for (int i = 0; i < MAX_PLAYERS; ++i)
-				{
-					if (players[i] != nullptr && players[i]->GetPlayerID() == playerDisconnectMessage->PlayerID)
-						RemovePlayer(players[i]);
-				}
-			}
-			else
-				MLOG_WARNING("Received disconnection message as host", LOG_CATEGORY_TEAM);
-		} break;
+				const PlayerUpdateMessage* playerUpdateMessage = static_cast<const PlayerUpdateMessage*>(receivedMessages[i]);
 
-		default:
-			break;
+				if (Tubes::GetHostFlag())
+					Tubes::SendToAll(receivedMessages[i], messageSenders[i]);
+
+				void* pixelsCopy = malloc(playerUpdateMessage->ImageByteSize);
+				memcpy(pixelsCopy, playerUpdateMessage->Pixels, playerUpdateMessage->ImageByteSize); // Message will get destroyed; make a copy of the pixel data for the asynchronous job
+				ImageJob* imageFromDataJob = new ImageJob(ImageJobType::CreateImageFromData, playerUpdateMessage->PlayerID, static_cast<PlayerImageSlot::PlayerImageSlot>(playerUpdateMessage->ImageSlot), playerUpdateMessage->Width, playerUpdateMessage->Height, pixelsCopy);
+				imageJobQueue.Produce(imageFromDataJob);
+				imageJobLockCondition.notify_one();
+			} break;
+
+			case TeamSyncMessages::PLAYER_DISCONNECT:
+			{
+				if (!Tubes::GetHostFlag())
+				{
+					const PlayerDisconnectMessage* playerDisconnectMessage = static_cast<const PlayerDisconnectMessage*>(receivedMessages[i]);
+					for (int i = 0; i < MAX_PLAYERS; ++i)
+					{
+						if (players[i] != nullptr && players[i]->GetPlayerID() == playerDisconnectMessage->PlayerID)
+							RemovePlayer(players[i]);
+					}
+				}
+				else
+					MLOG_WARNING("Received disconnection message as host", LOG_CATEGORY_TEAM);
+			} break;
+
+			default:
+				break;
 		}
 
 		receivedMessages[i]->Destroy();

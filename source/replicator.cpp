@@ -39,6 +39,12 @@ Byte* Replicator::SerializeMessage(const Message* message, MessageSize* outMessa
 	// Perform serialization specific to each message type (Use same order as in the type enums here)
 	switch (message->Type)
 	{
+		case SIGNAL:
+		{
+			const SignalMessage* signalMessage = static_cast<const SignalMessage*>(message);
+			WriteUint32(signalMessage->Signal);
+		} break;
+
 		case PLAYER_ID:
 		{
 			const PlayerIDMessage* playerIDMessage = static_cast<const PlayerIDMessage*>(message);
@@ -105,6 +111,14 @@ Message* Replicator::DeserializeMessage(const Byte* const buffer)
 	CopyAndIncrementSource(&messageType, m_ReadingWalker, sizeof(MESSAGE_TYPE_ENUM_UNDELYING_TYPE));
 	switch (messageType)
 	{
+		case SIGNAL:
+		{
+			uint32_t signal;
+			ReadUint32(signal);
+
+			deserializedMessage = new SignalMessage(static_cast<TeamSyncSignals::Signal>(signal));
+		} break;
+
 		case PLAYER_ID:
 		{
 			int32_t playerID, playerConnectionType;
@@ -169,6 +183,11 @@ int32_t Replicator::CalculateMessageSize(const Message& message) const
 	// Add size specific to message
 	switch (message.Type)
 	{
+		case SIGNAL:
+		{
+			messageSize += INT_32_SIZE;
+		} break;
+
 		case PLAYER_ID:
 		{
 			messageSize += INT_32_SIZE;
