@@ -1,12 +1,6 @@
 #include "player.h"
 #include "uiLayout.h"
 
-Player::Player(PlayerID playerID, PlayerConnectionType::PlayerConnectionType connectionType, Tubes::ConnectionID connectionID, int32_t posX, int32_t posY) :
-	PositionX(posX), PositionY(posY), Width(DEFAULT_WIDTH), Height(DEFAULT_HEIGHT), playerID(playerID), connectionType(connectionType), connectionID(connectionID)
-{
-	Register();
-}
-
 Player::Player(PlayerID playerID, PlayerConnectionType::PlayerConnectionType connectionType, Tubes::ConnectionID connectionID, int32_t posX, int32_t posY, int32_t width, int32_t height) :
 	PositionX(posX), PositionY(posY), Width(width), Height(height), playerID(playerID), connectionType(connectionType), connectionID(connectionID)
 {
@@ -26,7 +20,7 @@ void Player::Register()
 
 	for (int i = 0; i < PlayerImageSlot::Count; ++i)
 	{
-		images[i] = new ImageObject(PositionX + ImagePosAndDimensions[i][0], PositionY + ImagePosAndDimensions[i][1], ImagePosAndDimensions[i][2], ImagePosAndDimensions[i][3]);
+		images[i] = new ImageObject(PositionX + UILayout::ImagePosAndDimensions[i][0], PositionY + UILayout::ImagePosAndDimensions[i][1], UILayout::ImagePosAndDimensions[i][2], UILayout::ImagePosAndDimensions[i][3]);
 		MEngineEntityManager::RegisterNewEntity(images[i]);
 	}
 

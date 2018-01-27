@@ -29,7 +29,7 @@ bool Team::Initialize()
 #ifdef _DEBUG
 	applicationName += " (PID=" + std::to_string(MUtility::GetPid()) + ")";
 #endif
-	if (!MEngine::Initialize(applicationName.c_str(), ApplicationWindowWidth, ApplicationWindowHeight))
+	if (!MEngine::Initialize(applicationName.c_str(), UILayout::ApplicationWindowWidth, UILayout::ApplicationWindowHeight))
 		return false;
 
 	MEngineInput::SetFocusRequired(false);
@@ -110,7 +110,7 @@ void Team::ConnectionCallback(Tubes::ConnectionID connectionID)
 		PlayerID newPlayerID = FindFreePlayerSlot();
 		if (newPlayerID >= 0)
 		{
-			players[newPlayerID] = new Player(newPlayerID, PlayerConnectionType::Direct, connectionID, ImagePositions[newPlayerID][0], ImagePositions[newPlayerID][1]);
+			players[newPlayerID] = new Player(newPlayerID, PlayerConnectionType::Direct, connectionID, UILayout::ImagePositions[newPlayerID][0], UILayout::ImagePositions[newPlayerID][1], UILayout::PLAYER_IMAGE_WIDTH, UILayout::PLAYER_IMAGE_HEIGHT);
 
 			// Send the new player ID to all clients
 			PlayerIDMessage idMessage = PlayerIDMessage(newPlayerID, PlayerConnectionType::Local);
@@ -224,9 +224,9 @@ void Team::ProcessImageJobs()
 				{
 					const int32_t(*cutPositionArray)[PlayerImageSlot::Count - 1][4] = nullptr;
 					if(job->ImageWidth == 2560 && job->ImageHeight == 1440)
-						cutPositionArray = &CutPositions1440P;
+						cutPositionArray = &UILayout::CutPositions1440P;
 					else if(job->ImageWidth == 1920 && job->ImageHeight == 1080)
-						cutPositionArray = &CutPositions1080P;
+						cutPositionArray = &UILayout::CutPositions1080P;
 					else
 						MLOG_WARNING("Attempted to split image of unsupported size (" <<  job->ImageWidth << ", " << job->ImageHeight << ')', LOG_CATEGORY_TEAM);
 
@@ -260,7 +260,7 @@ void Team::HandleCommands()
 				Tubes::StartListener(DefaultPort);
 
 				localPlayerID = 0;
-				players[localPlayerID] = new Player(localPlayerID, PlayerConnectionType::Local, INVALID_CONNECTION_ID, ImagePositions[localPlayerID][0], ImagePositions[localPlayerID][1]);
+				players[localPlayerID] = new Player(localPlayerID, PlayerConnectionType::Local, INVALID_CONNECTION_ID, UILayout::ImagePositions[localPlayerID][0], UILayout::ImagePositions[localPlayerID][1], UILayout::PLAYER_IMAGE_WIDTH, UILayout::PLAYER_IMAGE_HEIGHT);
 			}
 			else
 				response = "Hosting failed; already hosting";

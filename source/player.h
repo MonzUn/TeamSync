@@ -21,7 +21,10 @@ namespace PlayerImageSlot
 {
 	enum PlayerImageSlot : int32_t
 	{
-		Inventory,
+		InventoryImage1,
+		InventoryCount1,
+		InvetoryImage2,
+		InentoryCount2,
 		Name,
 		Head,
 		Backpack,
@@ -44,11 +47,7 @@ public:
 class Player
 {
 public:
-	static const int32_t DEFAULT_WIDTH = 945;
-	static const int32_t DEFAULT_HEIGHT = 485;
-
 	Player() {}
-	Player(PlayerID playerID, PlayerConnectionType::PlayerConnectionType connectionType, Tubes::ConnectionID connectionID, int32_t posX, int32_t posY);
 	Player(PlayerID playerID, PlayerConnectionType::PlayerConnectionType connectionType, Tubes::ConnectionID connectionID, int32_t posX, int32_t posY, int32_t width, int32_t height);
 	~Player();
 
