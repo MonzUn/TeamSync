@@ -7,6 +7,7 @@ namespace TeamSyncMessages
 	enum MessageType : MESSAGE_TYPE_ENUM_UNDELYING_TYPE
 	{
 		SIGNAL,
+		SIGNAL_FLAG,
 		PLAYER_ID,
 		PLAYER_UPDATE,
 		PLAYER_DISCONNECT,
@@ -27,6 +28,16 @@ struct SignalMessage : TeamSyncMessage
 	{}
 
 	TeamSyncSignals::Signal Signal;
+};
+
+struct SignalFlagMessage : TeamSyncMessage
+{
+	SignalFlagMessage(TeamSyncSignals::Signal signal, bool flag, int32_t playerID) : TeamSyncMessage(TeamSyncMessages::SIGNAL_FLAG), Signal(signal), Flag(flag), PlayerID(playerID)
+	{}
+
+	TeamSyncSignals::Signal Signal;
+	bool Flag;
+	int32_t PlayerID;
 };
 
 struct PlayerIDMessage : TeamSyncMessage

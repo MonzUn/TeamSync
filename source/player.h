@@ -57,9 +57,12 @@ public:
 	MEngineGraphics::MEngineTextureID GetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImage) const;
 	void SetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImage, MEngineGraphics::MEngineTextureID textureID);
 
-	PlayerID GetPlayerID() const { return playerID; }
-	Tubes::ConnectionID GetPlayerConnectionID() const { return connectionID; }
-	PlayerConnectionType::PlayerConnectionType GetPlayerConnectionType() const { return connectionType; }
+	PlayerID GetPlayerID() const;
+	Tubes::ConnectionID GetPlayerConnectionID() const;
+	PlayerConnectionType::PlayerConnectionType GetPlayerConnectionType() const;
+
+	bool GetCycledScreenshotPrimed() const;
+	void SetCycledScreenshotPrimed(bool primed);
 
 private:
 	void UnloadTextures();
@@ -70,10 +73,12 @@ private:
 	int32_t Height		= -1;
 
 	Player::ImageObject* images[PlayerImageSlot::Count] = { nullptr };
+	Player::ImageObject* primeImage = nullptr;
 
 	PlayerID									playerID		= UNASSIGNED_PLAYER_ID;
 	Tubes::ConnectionID							connectionID	= INVALID_CONNECTION_ID;
 	PlayerConnectionType::PlayerConnectionType	connectionType	= PlayerConnectionType::Invalid;
 
+	bool cycledScreenshotPrimed = true;
 	bool registered = false;
 };

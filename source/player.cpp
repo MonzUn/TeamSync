@@ -24,6 +24,10 @@ void Player::Register()
 		MEngineEntityManager::RegisterNewEntity(images[i]);
 	}
 
+	primeImage = new ImageObject(PositionX + UILayout::PLAYER_PRIME_INDICATOR_RELATIVE_POS_X, PositionY + UILayout::PLAYER_PRIME_INDICATOR_RELATIVE_POS_Y, UILayout::PLAYER_PRIME_INDICATOR_WIDTH, UILayout::PLAYER_PRIME_INDICATOR_HEIGHT);
+	MEngineEntityManager::RegisterNewEntity(primeImage);
+	primeImage->TextureID = MEngineGraphics::GetTextureFromPath("resources/graphics/RedDot.png");
+
 	registered = true;
 }
 
@@ -38,8 +42,13 @@ void Player::Unregister()
 		images[i] = nullptr;
 	}
 
+	MEngineEntityManager::DestroyEntity(primeImage->EntityID);
+	primeImage = nullptr;
+
 	registered = false;
 }
+
+
 
 MEngineGraphics::MEngineTextureID Player::GetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImage) const
 {
@@ -68,6 +77,32 @@ void Player::SetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImageSlot,
 	if (images[playerImageSlot]->TextureID != INVALID_MENGINE_TEXTURE_ID)
 		MEngineGraphics::UnloadTexture(images[playerImageSlot]->TextureID);
 	images[playerImageSlot]->TextureID = textureID;
+}
+
+PlayerID Player::GetPlayerID() const
+{
+	return playerID;
+}
+
+Tubes::ConnectionID Player::GetPlayerConnectionID() const
+{
+	return connectionID;
+}
+
+PlayerConnectionType::PlayerConnectionType Player::GetPlayerConnectionType() const
+{
+	return connectionType;
+}
+
+bool Player::GetCycledScreenshotPrimed() const
+{
+	return cycledScreenshotPrimed;
+}
+
+void Player::SetCycledScreenshotPrimed(bool primed)
+{
+	cycledScreenshotPrimed = primed;
+	primeImage->RenderIgnore = !primed;
 }
 
 void Player::UnloadTextures()

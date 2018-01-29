@@ -8,7 +8,7 @@ namespace UILayout
 	constexpr int32_t ApplicationWindowWidth					= 1920;
 	constexpr int32_t ApplicationWindowHeight					= 1000;
 
-	// ImagePositions
+	// PlayerPositions
 	constexpr int32_t PLAYER_IMAGE_WIDTH						= 945;
 	constexpr int32_t PLAYER_IMAGE_HEIGHT						= 485;
 	constexpr int32_t PLAYER_IMAGE_EXTERNAL_BORDER_PADDING_X	= 10;
@@ -24,6 +24,11 @@ namespace UILayout
 	constexpr int32_t PLAYER_2_POS_Y							= PLAYER_0_POS_Y + PLAYER_IMAGE_HEIGHT + PLAYER_IMAGE_INTERNAL_BORDER_PADDING_Y;
 	constexpr int32_t PLAYER_3_POS_X							= PLAYER_1_POS_X;
 	constexpr int32_t PLAYER_3_POS_Y							= PLAYER_2_POS_Y;
+
+	constexpr int32_t PLAYER_PRIME_INDICATOR_WIDTH				= 32;
+	constexpr int32_t PLAYER_PRIME_INDICATOR_HEIGHT				= 32;
+	constexpr int32_t PLAYER_PRIME_INDICATOR_RELATIVE_POS_X		= PLAYER_IMAGE_WIDTH - PLAYER_PRIME_INDICATOR_WIDTH;
+	constexpr int32_t PLAYER_PRIME_INDICATOR_RELATIVE_POS_Y		= PLAYER_IMAGE_HEIGHT - PLAYER_PRIME_INDICATOR_HEIGHT;
 
 	// ImagePosAndDimensions
 	constexpr int32_t INVENTORY_HALF_HEIGHT						= 408;
@@ -126,7 +131,7 @@ namespace UILayout
 	constexpr int32_t CUT_1080P_WEAPON_WIDTH					= 477;
 	constexpr int32_t CUT_1080P_WEAPON_HEIGHT					= 820;
 
-	const int32_t ImagePositions[MAX_PLAYERS][2]
+	const int32_t PlayerPositions[MAX_PLAYERS][2]
 	{
 		{ PLAYER_0_POS_X, PLAYER_0_POS_Y },	// Upper left
 		{ PLAYER_1_POS_X, PLAYER_1_POS_Y }, // Upper right

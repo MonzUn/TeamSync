@@ -45,6 +45,14 @@ Byte* Replicator::SerializeMessage(const Message* message, MessageSize* outMessa
 			WriteUint32(signalMessage->Signal);
 		} break;
 
+		case SIGNAL_FLAG:
+		{
+			const SignalFlagMessage* signalFlagMessage = static_cast<const SignalFlagMessage*>(message);
+			WriteUint32(signalFlagMessage->Signal);
+			WriteBool(signalFlagMessage->Flag);
+			WriteInt32(signalFlagMessage->PlayerID);
+		} break;
+
 		case PLAYER_ID:
 		{
 			const PlayerIDMessage* playerIDMessage = static_cast<const PlayerIDMessage*>(message);
@@ -119,6 +127,18 @@ Message* Replicator::DeserializeMessage(const Byte* const buffer)
 			deserializedMessage = new SignalMessage(static_cast<TeamSyncSignals::Signal>(signal));
 		} break;
 
+		case SIGNAL_FLAG:
+		{
+			int32_t playerID;
+			uint32_t signal;
+			bool flag;
+			ReadUint32(signal);
+			ReadBool(flag);
+			ReadInt32(playerID);
+
+			deserializedMessage = new SignalFlagMessage(static_cast<TeamSyncSignals::Signal>(signal), flag, playerID);
+		} break;
+
 		case PLAYER_ID:
 		{
 			int32_t playerID, playerConnectionType;
@@ -185,6 +205,13 @@ int32_t Replicator::CalculateMessageSize(const Message& message) const
 	{
 		case SIGNAL:
 		{
+			messageSize += INT_32_SIZE;
+		} break;
+
+		case SIGNAL_FLAG:
+		{
+			messageSize += INT_32_SIZE;
+			messageSize += BOOL_SIZE;
 			messageSize += INT_32_SIZE;
 		} break;
 

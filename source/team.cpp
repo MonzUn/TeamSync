@@ -110,7 +110,7 @@ void Team::ConnectionCallback(Tubes::ConnectionID connectionID)
 		PlayerID newPlayerID = FindFreePlayerSlot();
 		if (newPlayerID >= 0)
 		{
-			players[newPlayerID] = new Player(newPlayerID, PlayerConnectionType::Direct, connectionID, UILayout::ImagePositions[newPlayerID][0], UILayout::ImagePositions[newPlayerID][1], UILayout::PLAYER_IMAGE_WIDTH, UILayout::PLAYER_IMAGE_HEIGHT);
+			players[newPlayerID] = new Player(newPlayerID, PlayerConnectionType::Direct, connectionID, UILayout::PlayerPositions[newPlayerID][0], UILayout::PlayerPositions[newPlayerID][1], UILayout::PLAYER_IMAGE_WIDTH, UILayout::PLAYER_IMAGE_HEIGHT);
 
 			// Send the new player ID to all clients
 			PlayerIDMessage idMessage = PlayerIDMessage(newPlayerID, PlayerConnectionType::Local);
@@ -118,6 +118,8 @@ void Team::ConnectionCallback(Tubes::ConnectionID connectionID)
 
 			idMessage.PlayerConnectionType = PlayerConnectionType::Relayed;
 			Tubes::SendToAll(&idMessage, connectionID); // Tell all other clients about the new client
+
+			idMessage.Destroy();
 
 			// Make the new client aware of the relayed clients and update the new clients view of the relayed clients 
 			for (int i = 0; i < MAX_PLAYERS; ++i)
@@ -152,6 +154,10 @@ void Team::ConnectionCallback(Tubes::ConnectionID connectionID)
 								}
 							}
 						}
+
+						SignalFlagMessage primeFlagMessage = SignalFlagMessage(TeamSyncSignals::PRIME, players[playerID]->GetCycledScreenshotPrimed(), playerID);
+						Tubes::SendToConnection(&primeFlagMessage, connectionID);
+						primeFlagMessage.Destroy();
 					}
 				}
 			}
@@ -260,7 +266,7 @@ void Team::HandleCommands()
 				Tubes::StartListener(DefaultPort);
 
 				localPlayerID = 0;
-				players[localPlayerID] = new Player(localPlayerID, PlayerConnectionType::Local, INVALID_CONNECTION_ID, UILayout::ImagePositions[localPlayerID][0], UILayout::ImagePositions[localPlayerID][1], UILayout::PLAYER_IMAGE_WIDTH, UILayout::PLAYER_IMAGE_HEIGHT);
+				players[localPlayerID] = new Player(localPlayerID, PlayerConnectionType::Local, INVALID_CONNECTION_ID, UILayout::PlayerPositions[localPlayerID][0], UILayout::PlayerPositions[localPlayerID][1], UILayout::PLAYER_IMAGE_WIDTH, UILayout::PLAYER_IMAGE_HEIGHT);
 			}
 			else
 				response = "Hosting failed; already hosting";
@@ -376,16 +382,14 @@ void Team::HandleCommands()
 								Tubes::SendToConnection(&primeSignalMessage, players[playerID]->GetPlayerConnectionID());
 								primeSignalMessage.Destroy();
 
-								response = "The cycled screenshot of Player " + std::to_string(playerID) + " has been primed";
+								response = "The cycled screenshot of Player " + playerIDString + " has been primed";
 							}
 							else
-								response = "There was no player with id " + std::to_string(playerID + 1);
+								response = "There was no player with id " + playerIDString;
 						}
 						else
 						{
-							if (delayedScreenshotcounter % 2 != 0) // Prime self
-								++delayedScreenshotcounter;
-
+							PrimeCycledScreenshot();
 							response = "The cycled screenshot of the local player has been primed";
 						}
 					}
@@ -401,8 +405,7 @@ void Team::HandleCommands()
 				Tubes::SendToAll(&primeSignalMessage);
 				primeSignalMessage.Destroy();
 
-				if (delayedScreenshotcounter % 2 != 0) // Prime self
-					++delayedScreenshotcounter;
+				PrimeCycledScreenshot();
 
 				response = "The cycled screenshot of all players has been primed";
 			}
@@ -428,8 +431,7 @@ void Team::HandleInput()
 {
 	if (KeyReleased(MKEY_ANGLED_BRACKET)) // Reset screenshot cycling
 	{
-		if (delayedScreenshotcounter % 2 != 0)
-			++delayedScreenshotcounter;
+		PrimeCycledScreenshot();
 	}
 
 	if (KeyReleased(MKEY_TAB) && !KeyDown(MKEY_LEFT_ALT) && !KeyDown(MKEY_RIGHT_ALT) && localPlayerID != UNASSIGNED_PLAYER_ID) // Take delayed screenshot
@@ -442,12 +444,16 @@ void Team::HandleInput()
 				awaitingDelayedScreenshot = true;
 			}
 			++delayedScreenshotcounter;
+
+			players[localPlayerID]->SetCycledScreenshotPrimed(delayedScreenshotcounter % 2 == 0);
+			SignalFlagMessage message = SignalFlagMessage(TeamSyncSignals::PRIME, delayedScreenshotcounter % 2 == 0, localPlayerID);
+			Tubes::SendToAll(&message);
+			message.Destroy();
 		}
 		else // Abort delayed screenshot
 		{
 			awaitingDelayedScreenshot = false;
-			if (delayedScreenshotcounter % 2 != 0)
-				++delayedScreenshotcounter;
+			PrimeCycledScreenshot();
 		}
 	}
 
@@ -549,13 +555,32 @@ void Team::HandleNetworkCommunication()
 				{
 					case TeamSyncSignals::PRIME:
 					{
-						if (delayedScreenshotcounter % 2 != 0)
-							++delayedScreenshotcounter;
+						PrimeCycledScreenshot();
 					} break;
 
 					default:
 						break;
 				}
+			} break;
+
+			case TeamSyncMessages::SIGNAL_FLAG:
+			{
+				const SignalFlagMessage* signalFlagMessage = static_cast<const SignalFlagMessage*>(receivedMessages[i]);
+				switch (signalFlagMessage->Signal)
+				{
+					case TeamSyncSignals::PRIME:
+					{
+						if (players[signalFlagMessage->PlayerID] != nullptr)
+							players[signalFlagMessage->PlayerID]->SetCycledScreenshotPrimed(signalFlagMessage->Flag);
+
+						// Relay
+						if (Tubes::GetHostFlag())
+							Tubes::SendToAll(receivedMessages[i], messageSenders[i]);
+					} break;
+
+					default:
+						break;
+					}
 			} break;
 
 			case TeamSyncMessages::PLAYER_ID:
@@ -580,7 +605,7 @@ void Team::HandleNetworkCommunication()
 					}
 
 					if (players[playerID] == nullptr)
-						players[playerID] = new Player(playerID, connectionType, connectionID, UILayout::ImagePositions[playerID][0], UILayout::ImagePositions[playerID][1], UILayout::PLAYER_IMAGE_WIDTH, UILayout::PLAYER_IMAGE_HEIGHT);
+						players[playerID] = new Player(playerID, connectionType, connectionID, UILayout::PlayerPositions[playerID][0], UILayout::PlayerPositions[playerID][1], UILayout::PLAYER_IMAGE_WIDTH, UILayout::PLAYER_IMAGE_HEIGHT);
 					else
 						MLOG_WARNING("Received playerID message for playerID " << playerID + " but there is already a player assigned to that ID", LOG_CATEGORY_TEAM);
 				}
@@ -592,6 +617,7 @@ void Team::HandleNetworkCommunication()
 			{
 				const PlayerUpdateMessage* playerUpdateMessage = static_cast<const PlayerUpdateMessage*>(receivedMessages[i]);
 
+				// Relay
 				if (Tubes::GetHostFlag())
 					Tubes::SendToAll(receivedMessages[i], messageSenders[i]);
 
@@ -624,6 +650,17 @@ void Team::HandleNetworkCommunication()
 		receivedMessages[i]->Destroy();
 		free(receivedMessages[i]);
 	}
+}
+
+void Team::PrimeCycledScreenshot()
+{
+	if (delayedScreenshotcounter % 2 != 0)
+		++delayedScreenshotcounter;
+
+	players[localPlayerID]->SetCycledScreenshotPrimed(true);
+	SignalFlagMessage message = SignalFlagMessage(TeamSyncSignals::PRIME, true, localPlayerID);
+	Tubes::SendToAll(&message);
+	message.Destroy();
 }
 
 #ifdef _DEBUG

@@ -33,6 +33,8 @@ private:
 	void HandleImageJobResults();
 	void HandleNetworkCommunication();
 
+	void PrimeCycledScreenshot();
+
 #ifdef _DEBUG
 	void RunDebugCode();
 #endif
