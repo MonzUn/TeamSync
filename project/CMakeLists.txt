@@ -69,10 +69,10 @@ find_library(SDL2Library
 	PATHS ${SDL2LibraryDirectoryAbsolute})
 set(SDL2Libraries ${SDL2Library})
 
-find_library(SDL2mainLibrary
-	NAMES SDL2main
+find_library(SDL2imageLibrary
+	NAMES SDL2_image
 	PATHS ${SDL2LibraryDirectoryAbsolute})
-list(APPEND SDL2Libraries ${SDL2mainLibrary})
+list(APPEND SDL2Libraries ${SDL2imageLibrary})
 
 # Find MUtility
 find_path(MUtilityInclude MUtility/MUtilityByte.h PATHS ${IncludeDirectoryAbsolute})
