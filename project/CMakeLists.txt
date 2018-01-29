@@ -15,6 +15,9 @@ get_filename_component(ProjectRootAbsolute ${ProjectRoot} ABSOLUTE)
 set(SharedExternalsPathAbsolute "${ProjectRootAbsolute}/external/windows/shared")
 set(ConfigurationBasedExternalPathAbsolute "${ProjectRootAbsolute}/external/windows/$<CONFIGURATION>")
 
+# Resource path
+set(ResourcePathAbsolute "${ProjectRootAbsolute}/resources")
+
 # Visual Studio settings
 if(MSVC)
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP /D \"_CRT_SECURE_NO_WARNINGS\"")
@@ -141,6 +144,13 @@ add_custom_command(TARGET ${CMAKE_PROJECT_NAME}
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${SharedExternalsPathAbsolute}
         ${OutputDirectoryAbsolute}/$<CONFIGURATION>)
+
+# Add postbuild scripts that moves resources to the directory of the executable
+add_custom_command(TARGET ${CMAKE_PROJECT_NAME}
+	POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${ResourcePathAbsolute}
+        ${OutputDirectoryAbsolute}/$<CONFIGURATION>/resources)
 
 # Get local(non versioned) paths to dependencies
 include("CMakeLocalDependenciesPaths.txt" OPTIONAL)
