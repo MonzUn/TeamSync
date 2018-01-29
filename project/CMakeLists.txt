@@ -65,7 +65,7 @@ set(SDL2Includes ${SDL2Include}/SDL2)
 
 set(SDL2LibraryDirectoryAbsolute "${SharedLibraryDirectoryAbsolute}/SDL2")
 find_library(SDL2Library
-	NAMES SDL2 SDL2main
+	NAMES SDL2 SDL2
 	PATHS ${SDL2LibraryDirectoryAbsolute})
 set(SDL2Libraries ${SDL2Library})
 
