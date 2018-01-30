@@ -9,7 +9,7 @@ namespace UILayout
 	constexpr int32_t ApplicationWindowHeight					= 1000;
 
 	// PlayerPositions
-	constexpr int32_t PLAYER_IMAGE_WIDTH						= 945;
+	constexpr int32_t PLAYER_IMAGE_WIDTH						= 945; // TODODB: Rename to PLAYER_WIDTH to not confuse this with screenshot image sizes
 	constexpr int32_t PLAYER_IMAGE_HEIGHT						= 485;
 	constexpr int32_t PLAYER_IMAGE_EXTERNAL_BORDER_PADDING_X	= 10;
 	constexpr int32_t PLAYER_IMAGE_EXTERNAL_BORDER_PADDING_Y	= 10;
@@ -29,6 +29,11 @@ namespace UILayout
 	constexpr int32_t PLAYER_PRIME_INDICATOR_HEIGHT				= 32;
 	constexpr int32_t PLAYER_PRIME_INDICATOR_RELATIVE_POS_X		= PLAYER_IMAGE_WIDTH - PLAYER_PRIME_INDICATOR_WIDTH;
 	constexpr int32_t PLAYER_PRIME_INDICATOR_RELATIVE_POS_Y		= PLAYER_IMAGE_HEIGHT - PLAYER_PRIME_INDICATOR_HEIGHT;
+
+	constexpr int32_t PLAYER_DEFAULT_IMAGE_WIDTH				= 520;
+	constexpr int32_t PLAYER_DEFAULT_IMAGE_HEIGHT				= 400;
+	constexpr int32_t PLAYER_DEFAULT_IMAGE_RELATIVE_POS_X		= (PLAYER_IMAGE_WIDTH / 2) - (PLAYER_DEFAULT_IMAGE_WIDTH / 2);
+	constexpr int32_t PLAYER_DEFAULT_IMAGE_RELATIVE_POS_Y		= (PLAYER_IMAGE_HEIGHT / 2) - (PLAYER_DEFAULT_IMAGE_HEIGHT / 2);
 
 	// ImagePosAndDimensions
 	constexpr int32_t INVENTORY_HALF_HEIGHT						= 408;

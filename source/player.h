@@ -47,12 +47,11 @@ public:
 class Player
 {
 public:
-	Player() {}
-	Player(PlayerID playerID, PlayerConnectionType::PlayerConnectionType connectionType, Tubes::ConnectionID connectionID, int32_t posX, int32_t posY, int32_t width, int32_t height);
+	Player(int32_t posX, int32_t posY, int32_t width, int32_t height);
 	~Player();
 
-	void Register();
-	void Unregister();
+	void Activate(PlayerID playerID, PlayerConnectionType::PlayerConnectionType connectionType, Tubes::ConnectionID connectionID);
+	void Deactivate();
 
 	MEngineGraphics::MEngineTextureID GetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImage) const;
 	void SetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImage, MEngineGraphics::MEngineTextureID textureID);
@@ -61,11 +60,14 @@ public:
 	Tubes::ConnectionID GetPlayerConnectionID() const;
 	PlayerConnectionType::PlayerConnectionType GetPlayerConnectionType() const;
 
+	bool IsActive() const;
+
 	bool GetCycledScreenshotPrimed() const;
 	void SetCycledScreenshotPrimed(bool primed);
 
 private:
-	void UnloadTextures();
+	void Reset();
+	void UnloadScreenshotTextures();
 
 	int32_t PositionX	= -1;
 	int32_t PositionY	= -1;
@@ -73,12 +75,13 @@ private:
 	int32_t Height		= -1;
 
 	Player::ImageObject* images[PlayerImageSlot::Count] = { nullptr };
-	Player::ImageObject* primeImage = nullptr;
-
-	PlayerID									playerID		= UNASSIGNED_PLAYER_ID;
-	Tubes::ConnectionID							connectionID	= INVALID_CONNECTION_ID;
-	PlayerConnectionType::PlayerConnectionType	connectionType	= PlayerConnectionType::Invalid;
-
-	bool cycledScreenshotPrimed = true;
-	bool registered = false;
+	Player::ImageObject* primeImage		= nullptr;
+	Player::ImageObject* defaultImage	= nullptr;
+	
+	// Default values for these variables are set in the Reset() function
+	PlayerID m_PlayerID;									// TODODB: Switch to hungarian notation for members for the whole project
+	Tubes::ConnectionID m_ConnectionID;
+	PlayerConnectionType::PlayerConnectionType m_ConnectionType;
+	bool isActive;
+	bool cycledScreenshotPrimed;
 };

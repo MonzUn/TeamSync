@@ -39,6 +39,11 @@ bool Team::Initialize()
 
 	imageJobThread = std::thread(&Team::ProcessImageJobs, this);
 
+	for (int i = 0; i < MAX_PLAYERS; ++i)
+	{
+		players[i] = new Player(UILayout::PlayerPositions[i][0], UILayout::PlayerPositions[i][1], UILayout::PLAYER_IMAGE_WIDTH, UILayout::PLAYER_IMAGE_HEIGHT);
+	}
+
 	return true;
 }
 
@@ -62,6 +67,11 @@ void Team::Shutdown()
 
 	imageJobQueue.Clear();
 	imageJobResultQueue.Clear();
+
+	for (int i = 0; i < MAX_PLAYERS; ++i)
+	{
+		delete players[i];
+	}
 }
 
 void Team::EnqueueCommand(const std::string& command)
@@ -87,7 +97,7 @@ PlayerID Team::FindFreePlayerSlot() const
 {
 	for (int i = 0; i < MAX_PLAYERS; ++i)
 	{
-		if (players[i] == nullptr)
+		if (!players[i]->IsActive())
 			return i;
 	}
 
@@ -96,11 +106,9 @@ PlayerID Team::FindFreePlayerSlot() const
 
 void Team::RemovePlayer(Player* player)
 {
-	players[player->GetPlayerID()] = nullptr;
+	players[player->GetPlayerID()]->Deactivate();
 	if (player->GetPlayerID() == localPlayerID)
 		localPlayerID = UNASSIGNED_PLAYER_ID;
-
-	delete player;
 }
 
 void Team::ConnectionCallback(Tubes::ConnectionID connectionID)
@@ -110,7 +118,7 @@ void Team::ConnectionCallback(Tubes::ConnectionID connectionID)
 		PlayerID newPlayerID = FindFreePlayerSlot();
 		if (newPlayerID >= 0)
 		{
-			players[newPlayerID] = new Player(newPlayerID, PlayerConnectionType::Direct, connectionID, UILayout::PlayerPositions[newPlayerID][0], UILayout::PlayerPositions[newPlayerID][1], UILayout::PLAYER_IMAGE_WIDTH, UILayout::PLAYER_IMAGE_HEIGHT);
+			players[newPlayerID]->Activate(newPlayerID, PlayerConnectionType::Direct, connectionID);
 
 			// Send the new player ID to all clients
 			PlayerIDMessage idMessage = PlayerIDMessage(newPlayerID, PlayerConnectionType::Local);
@@ -124,7 +132,7 @@ void Team::ConnectionCallback(Tubes::ConnectionID connectionID)
 			// Make the new client aware of the relayed clients and update the new clients view of the relayed clients 
 			for (int i = 0; i < MAX_PLAYERS; ++i)
 			{
-				if (players[i] != nullptr)
+				if (players[i]->IsActive())
 				{
 					PlayerID playerID = players[i]->GetPlayerID();
 					if (playerID != newPlayerID)
@@ -172,12 +180,13 @@ void Team::DisconnectionCallback(Tubes::ConnectionID connectionID)
 	Player* disconnectingPlayer = nullptr;
 	for (int i = 0; i < MAX_PLAYERS; ++i)
 	{
-		if (players[i] != nullptr && players[i]->GetPlayerConnectionID() == connectionID)
+		if (players[i]->IsActive() && players[i]->GetPlayerConnectionID() == connectionID)
 		{
 			disconnectingPlayer = players[i];
 			break;
 		}
 	}
+
 	if (disconnectingPlayer != nullptr)
 	{
 		if (Tubes::GetHostFlag())
@@ -192,7 +201,7 @@ void Team::DisconnectionCallback(Tubes::ConnectionID connectionID)
 		{
 			for (int i = 0; i < MAX_PLAYERS; ++i)
 			{
-				if (players[i] != nullptr)
+				if (players[i]->IsActive())
 					RemovePlayer(players[i]);
 			}
 
@@ -266,7 +275,7 @@ void Team::HandleCommands()
 				Tubes::StartListener(DefaultPort);
 
 				localPlayerID = 0;
-				players[localPlayerID] = new Player(localPlayerID, PlayerConnectionType::Local, INVALID_CONNECTION_ID, UILayout::PlayerPositions[localPlayerID][0], UILayout::PlayerPositions[localPlayerID][1], UILayout::PLAYER_IMAGE_WIDTH, UILayout::PLAYER_IMAGE_HEIGHT);
+				players[localPlayerID]->Activate(localPlayerID, PlayerConnectionType::Local, INVALID_CONNECTION_ID);
 			}
 			else
 				response = "Hosting failed; already hosting";
@@ -285,7 +294,7 @@ void Team::HandleCommands()
 					{
 						if (playerID != localPlayerID)
 						{
-							if (players[playerID] != nullptr)
+							if (players[playerID]->IsActive())
 							{
 								if (players[playerID]->GetPlayerConnectionType() == PlayerConnectionType::Direct)
 								{
@@ -320,7 +329,7 @@ void Team::HandleCommands()
 					localPlayerID = UNASSIGNED_PLAYER_ID;
 					for (int i = 0; i < MAX_PLAYERS; ++i)
 					{
-						if (players[i] != nullptr)
+						if (players[i]->IsActive())
 							RemovePlayer(players[i]);
 					}
 
@@ -333,7 +342,7 @@ void Team::HandleCommands()
 					localPlayerID = UNASSIGNED_PLAYER_ID;
 					for (int i = 0; i < MAX_PLAYERS; ++i)
 					{
-						if (players[i] != nullptr)
+						if (players[i]->IsActive())
 							RemovePlayer(players[i]);
 					}
 
@@ -376,7 +385,7 @@ void Team::HandleCommands()
 					{
 						if (playerID != localPlayerID)
 						{
-							if (players[playerID] != nullptr)
+							if (players[playerID]->IsActive())
 							{
 								SignalMessage primeSignalMessage = SignalMessage(TeamSyncSignals::PRIME);
 								Tubes::SendToConnection(&primeSignalMessage, players[playerID]->GetPlayerConnectionID());
@@ -512,7 +521,7 @@ void Team::HandleImageJobResults()
 
 		case ImageJobType::CreateImageFromData:
 		{
-			if (players[finishedJob->ImageOwnerPlayerID] != nullptr) // Players may have been disconnected while the job was running
+			if (players[finishedJob->ImageOwnerPlayerID]->IsActive()) // Players may have been disconnected while the job was running
 				players[finishedJob->ImageOwnerPlayerID]->SetImageTextureID(finishedJob->ImageSlot, finishedJob->ResultTextureID);
 
 			free(finishedJob->Pixels);
@@ -570,7 +579,7 @@ void Team::HandleNetworkCommunication()
 				{
 					case TeamSyncSignals::PRIME:
 					{
-						if (players[signalFlagMessage->PlayerID] != nullptr)
+						if (players[signalFlagMessage->PlayerID]->IsActive())
 							players[signalFlagMessage->PlayerID]->SetCycledScreenshotPrimed(signalFlagMessage->Flag);
 
 						// Relay
@@ -604,8 +613,8 @@ void Team::HandleNetworkCommunication()
 						connectionID = messageSenders[i];
 					}
 
-					if (players[playerID] == nullptr)
-						players[playerID] = new Player(playerID, connectionType, connectionID, UILayout::PlayerPositions[playerID][0], UILayout::PlayerPositions[playerID][1], UILayout::PLAYER_IMAGE_WIDTH, UILayout::PLAYER_IMAGE_HEIGHT);
+					if (!players[playerID]->IsActive())
+						players[playerID]->Activate(playerID, connectionType, connectionID);
 					else
 						MLOG_WARNING("Received playerID message for playerID " << playerID + " but there is already a player assigned to that ID", LOG_CATEGORY_TEAM);
 				}
@@ -635,7 +644,7 @@ void Team::HandleNetworkCommunication()
 					const PlayerDisconnectMessage* playerDisconnectMessage = static_cast<const PlayerDisconnectMessage*>(receivedMessages[i]);
 					for (int i = 0; i < MAX_PLAYERS; ++i)
 					{
-						if (players[i] != nullptr && players[i]->GetPlayerID() == playerDisconnectMessage->PlayerID)
+						if (players[i]->IsActive() && players[i]->GetPlayerID() == playerDisconnectMessage->PlayerID)
 							RemovePlayer(players[i]);
 					}
 				}
