@@ -77,6 +77,11 @@ private:
 	Player::ImageObject* images[PlayerImageSlot::Count] = { nullptr };
 	Player::ImageObject* primeImage		= nullptr;
 	Player::ImageObject* defaultImage	= nullptr;
+	Player::ImageObject* statusImage	= nullptr;
+
+	MEngineGraphics::MEngineTextureID statusActiveTextureID		= INVALID_MENGINE_TEXTURE_ID;
+	MEngineGraphics::MEngineTextureID statusInactiveTextureID	= INVALID_MENGINE_TEXTURE_ID;
+
 	
 	// Default values for these variables are set in the Reset() function
 	PlayerID m_PlayerID;									// TODODB: Switch to hungarian notation for members for the whole project

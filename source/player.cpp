@@ -13,6 +13,9 @@ Player::Player(int32_t posX, int32_t posY, int32_t width, int32_t height) :
 		MEngineEntityManager::RegisterNewEntity(images[i]);
 	}
 
+	statusActiveTextureID	= MEngineGraphics::GetTextureFromPath("resources/graphics/Check.png");
+	statusInactiveTextureID = MEngineGraphics::GetTextureFromPath("resources/graphics/Cross.png");
+
 	primeImage = new ImageObject(PositionX + UILayout::PLAYER_PRIME_INDICATOR_RELATIVE_POS_X, PositionY + UILayout::PLAYER_PRIME_INDICATOR_RELATIVE_POS_Y, UILayout::PLAYER_PRIME_INDICATOR_WIDTH, UILayout::PLAYER_PRIME_INDICATOR_HEIGHT);
 	MEngineEntityManager::RegisterNewEntity(primeImage);
 	primeImage->TextureID = MEngineGraphics::GetTextureFromPath("resources/graphics/RedDot.png"); // TODODB: Unload all the textures loaded here when there is a proper system for this in MEngine
@@ -20,6 +23,9 @@ Player::Player(int32_t posX, int32_t posY, int32_t width, int32_t height) :
 	defaultImage = new ImageObject(PositionX + UILayout::PLAYER_DEFAULT_IMAGE_RELATIVE_POS_X, PositionY + UILayout::PLAYER_DEFAULT_IMAGE_RELATIVE_POS_Y, UILayout::PLAYER_DEFAULT_IMAGE_WIDTH, UILayout::PLAYER_DEFAULT_IMAGE_HEIGHT);
 	MEngineEntityManager::RegisterNewEntity(defaultImage);
 	defaultImage->TextureID = MEngineGraphics::GetTextureFromPath("resources/graphics/Computer.png");
+
+	statusImage = new ImageObject(PositionX + UILayout::PLAYER_STATUS_IMAGE_RELATIVE_POS_X, PositionY + UILayout::PLAYER_STATUS_IMAGE_RELATIVE_POS_Y, UILayout::PLAYER_STATUS_IMAGE_WIDTH, UILayout::PLAYER_STATUS_IMAGE_HEIGHT);
+	MEngineEntityManager::RegisterNewEntity(statusImage);
 
 	Reset();
 }
@@ -39,6 +45,9 @@ Player::~Player()
 
 	MEngineEntityManager::DestroyEntity(defaultImage->EntityID);
 	defaultImage = nullptr;
+
+	MEngineEntityManager::DestroyEntity(statusImage->EntityID);
+	statusImage = nullptr;
 }
 
 void Player::Activate(PlayerID playerID, PlayerConnectionType::PlayerConnectionType connectionType, Tubes::ConnectionID connectionID)
@@ -53,6 +62,7 @@ void Player::Activate(PlayerID playerID, PlayerConnectionType::PlayerConnectionT
 	m_ConnectionType	= connectionType;
 	m_ConnectionID		= connectionID;
 	cycledScreenshotPrimed = true;
+	statusImage->TextureID = statusActiveTextureID;
 
 	isActive = true;
 }
@@ -97,6 +107,7 @@ void Player::SetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImageSlot,
 		MEngineGraphics::UnloadTexture(images[playerImageSlot]->TextureID);
 	images[playerImageSlot]->TextureID = textureID;
 	defaultImage->RenderIgnore = true;
+	statusImage->RenderIgnore = true;
 }
 
 PlayerID Player::GetPlayerID() const
@@ -132,12 +143,15 @@ void Player::SetCycledScreenshotPrimed(bool primed)
 
 void Player::Reset()
 {
-	m_PlayerID				= UNASSIGNED_PLAYER_ID;
-	m_ConnectionID			= INVALID_CONNECTION_ID;
-	m_ConnectionType		= PlayerConnectionType::Invalid;
-	isActive				= false;
+	m_PlayerID					= UNASSIGNED_PLAYER_ID;
+	m_ConnectionID				= INVALID_CONNECTION_ID;
+	m_ConnectionType			= PlayerConnectionType::Invalid;
+	isActive					= false;
+	defaultImage->RenderIgnore	= false;
+	statusImage->RenderIgnore	= false;
+	statusImage->TextureID		= statusInactiveTextureID;
+
 	SetCycledScreenshotPrimed(false);
-	defaultImage->RenderIgnore = false;
 }
 
 void Player::UnloadScreenshotTextures()
