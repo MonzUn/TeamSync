@@ -653,7 +653,9 @@ void Team::HandleNetworkCommunication()
 			} break;
 
 			default:
-				break;
+			{
+				MLOG_WARNING("Received message of unknown type (Type = " << receivedMessages[i]->Type << ")", LOG_CATEGORY_TEAM);
+			} break;
 		}
 
 		receivedMessages[i]->Destroy();
