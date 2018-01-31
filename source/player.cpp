@@ -16,6 +16,10 @@ Player::Player(int32_t posX, int32_t posY, int32_t width, int32_t height) :
 	statusActiveTextureID	= MEngineGraphics::GetTextureFromPath("resources/graphics/Check.png");
 	statusInactiveTextureID = MEngineGraphics::GetTextureFromPath("resources/graphics/Cross.png");
 
+	imageFrame = new ImageObject(PositionX + UILayout::PLAYER_FRAME_RELATIVE_POS_X, PositionY + UILayout::PLAYER_FRAME_RELATIVE_POS_Y, UILayout::PLAYER_FRAME_WIDTH, UILayout::PLAYER_FRAME_HEIGHT);
+	MEngineEntityManager::RegisterNewEntity(imageFrame);
+	imageFrame->TextureID = MEngineGraphics::GetTextureFromPath("resources/graphics/PlayerFrame.png");
+
 	primeImage = new ImageObject(PositionX + UILayout::PLAYER_PRIME_INDICATOR_RELATIVE_POS_X, PositionY + UILayout::PLAYER_PRIME_INDICATOR_RELATIVE_POS_Y, UILayout::PLAYER_PRIME_INDICATOR_WIDTH, UILayout::PLAYER_PRIME_INDICATOR_HEIGHT);
 	MEngineEntityManager::RegisterNewEntity(primeImage);
 	primeImage->TextureID = MEngineGraphics::GetTextureFromPath("resources/graphics/RedDot.png"); // TODODB: Unload all the textures loaded here when there is a proper system for this in MEngine

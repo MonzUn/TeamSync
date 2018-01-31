@@ -75,6 +75,7 @@ private:
 	int32_t Height		= -1;
 
 	Player::ImageObject* images[PlayerImageSlot::Count] = { nullptr };
+	Player::ImageObject* imageFrame		= nullptr;
 	Player::ImageObject* primeImage		= nullptr;
 	Player::ImageObject* defaultImage	= nullptr;
 	Player::ImageObject* statusImage	= nullptr;
