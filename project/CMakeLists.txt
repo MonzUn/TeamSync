@@ -39,10 +39,6 @@ get_filename_component(ReleaseLibraryDirectoryAbsolute ${ReleaseLibraryDirectory
 file(RELATIVE_PATH SharedLibraryDirectoryRelative ${TeamSync_SOURCE_DIR} ${ProjectRootAbsolute}/lib/shared/x64)
 get_filename_component(SharedLibraryDirectoryAbsolute ${SharedLibraryDirectoryRelative} ABSOLUTE)
 
-# Set output directory
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${ProjectRoot}/bin/${OperatingSystemNameLowerCase}/)
-get_filename_component(OutputDirectoryAbsolute ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ABSOLUTE)
-
 # Find MEngine
 find_path(MEngineInclude MEngine/mengine.h PATHS ${IncludeDirectoryAbsolute})
 set(MEngineIncludes ${MEngineInclude}/MEngine)
@@ -119,45 +115,47 @@ file(GLOB_RECURSE SOURCE_DIRECTORIES
 )
 
 # Create executable
-add_executable(${CMAKE_PROJECT_NAME} ${SOURCE_DIRECTORIES})
+add_executable(${PROJECT_NAME} ${SOURCE_DIRECTORIES})
+
+# Set output directory
+set(OutputDirectoryRelative ${ProjectRoot}bin/${OperatingSystemNameLowerCase})
+set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${OutputDirectoryRelative})
+get_filename_component(OutputDirectoryAbsolute ${OutputDirectoryRelative} ABSOLUTE)
 
 # Make sure that the linker language gets set to C++
-set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 # Link debug libraries to the executable
-target_link_libraries(${CMAKE_PROJECT_NAME} debug ${MEngineDebugLibraries} debug ${SDL2Libraries} debug ${MUtilityDebugLibraries} debug ${TubesDebugLibraries}
+target_link_libraries(${PROJECT_NAME} debug ${MEngineDebugLibraries} debug ${SDL2Libraries} debug ${MUtilityDebugLibraries} debug ${TubesDebugLibraries}
 )
 
 # Link release libraries to the executable
-target_link_libraries(${CMAKE_PROJECT_NAME} optimized ${MEngineReleaseLibraries} optimized ${SDL2Libraries} optimized ${MUtilityReleaseLibraries} optimized ${TubesReleaseLibraries}
+target_link_libraries(${PROJECT_NAME} optimized ${MEngineReleaseLibraries} optimized ${SDL2Libraries} optimized ${MUtilityReleaseLibraries} optimized ${TubesReleaseLibraries}
 )
 
 # Add postbuild scripts that moves DLL files to the directory of the executable
-add_custom_command(TARGET ${CMAKE_PROJECT_NAME}
+add_custom_command(TARGET ${PROJECT_NAME}
 	POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${ConfigurationBasedExternalPathAbsolute}
         ${OutputDirectoryAbsolute}/$<CONFIGURATION>)
 
-add_custom_command(TARGET ${CMAKE_PROJECT_NAME}
+add_custom_command(TARGET ${PROJECT_NAME}
 	POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${SharedExternalsPathAbsolute}
         ${OutputDirectoryAbsolute}/$<CONFIGURATION>)
 
 # Add postbuild scripts that moves resources to the directory of the executable
-add_custom_command(TARGET ${CMAKE_PROJECT_NAME}
+add_custom_command(TARGET ${PROJECT_NAME}
 	POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${ResourcePathAbsolute}
         ${OutputDirectoryAbsolute}/$<CONFIGURATION>/resources)
 
-# Get local(non versioned) paths to dependencies
-include("CMakeLocalDependenciesPaths.txt" OPTIONAL)
-
 # Add prebuilds scripts that copies local dependencies to their place within the project
 if(SDL2LibCopyPath)
-	add_custom_command(TARGET ${CMAKE_PROJECT_NAME}
+	add_custom_command(TARGET ${PROJECT_NAME}
 	PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${SDL2LibCopyPath}
@@ -165,15 +163,35 @@ if(SDL2LibCopyPath)
 endif(SDL2LibCopyPath)
 
 if(SDL2DLLCopyPath)
-	add_custom_command(TARGET ${CMAKE_PROJECT_NAME}
+	add_custom_command(TARGET ${PROJECT_NAME}
 	PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${SDL2DLLCopyPath}
         ${SharedExternalsPathAbsolute})
 endif(SDL2DLLCopyPath)
 
+# ---------- Dependencies ----------
+
+if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+	# Get local(non versioned) paths to dependencies
+	include("${CMAKE_CURRENT_LIST_DIR}/CMakeLocalDependenciesPaths.txt" OPTIONAL)
+
+	# Run CMake of dependencies
+	if(MEngineCMakePath)
+		add_subdirectory(${MEngineCMakePath} "${MEngineCMakePath}")
+	endif(MEngineCMakePath)
+
+	#if(TubesCMakePath)
+		add_subdirectory(${TubesCMakePath} "${TubesCMakePath}")
+	#endif(TubesCMakePath)
+
+	#if(MUtilityCMakePath)
+		add_subdirectory(${MUtilityCMakePath} "${MUtilityCMakePath}")
+	#endif(MUtilityCMakePath)
+endif(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+
 if(MEngineIncludeCopyPath)
-	add_custom_command(TARGET ${CMAKE_PROJECT_NAME}
+	add_custom_command(TARGET ${PROJECT_NAME}
 	PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${MEngineIncludeCopyPath}
@@ -181,7 +199,7 @@ if(MEngineIncludeCopyPath)
 endif(MEngineIncludeCopyPath)
 
 if(MEngineDebugLibCopyPath)
-	add_custom_command(TARGET ${CMAKE_PROJECT_NAME}
+	add_custom_command(TARGET ${PROJECT_NAME}
 	PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${MEngineDebugLibCopyPath}
@@ -189,7 +207,7 @@ if(MEngineDebugLibCopyPath)
 endif(MEngineDebugLibCopyPath)
 
 if(MEngineReleaseLibCopyPath)
-	add_custom_command(TARGET ${CMAKE_PROJECT_NAME}
+	add_custom_command(TARGET ${PROJECT_NAME}
 	PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${MEngineReleaseLibCopyPath}
@@ -197,7 +215,7 @@ if(MEngineReleaseLibCopyPath)
 endif(MEngineReleaseLibCopyPath)
 
 if(MUtilityIncludeCopyPath)
-	add_custom_command(TARGET ${CMAKE_PROJECT_NAME}
+	add_custom_command(TARGET ${PROJECT_NAME}
 	PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${MUtilityIncludeCopyPath}
@@ -205,7 +223,7 @@ if(MUtilityIncludeCopyPath)
 endif(MUtilityIncludeCopyPath)
 
 if(MUtilityDebugLibCopyPath)
-	add_custom_command(TARGET ${CMAKE_PROJECT_NAME}
+	add_custom_command(TARGET ${PROJECT_NAME}
 	PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${MUtilityDebugLibCopyPath}
@@ -213,7 +231,7 @@ if(MUtilityDebugLibCopyPath)
 endif(MUtilityDebugLibCopyPath)
 
 if(MUtilityReleaseLibCopyPath)
-	add_custom_command(TARGET ${CMAKE_PROJECT_NAME}
+	add_custom_command(TARGET ${PROJECT_NAME}
 	PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${MUtilityReleaseLibCopyPath}
@@ -221,7 +239,7 @@ if(MUtilityReleaseLibCopyPath)
 endif(MUtilityReleaseLibCopyPath)
 
 if(TubesIncludeCopyPath)
-	add_custom_command(TARGET ${CMAKE_PROJECT_NAME}
+	add_custom_command(TARGET ${PROJECT_NAME}
 	PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${TubesIncludeCopyPath}
@@ -229,7 +247,7 @@ if(TubesIncludeCopyPath)
 endif(TubesIncludeCopyPath)
 
 if(TubesDebugLibCopyPath)
-	add_custom_command(TARGET ${CMAKE_PROJECT_NAME}
+	add_custom_command(TARGET ${PROJECT_NAME}
 	PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${TubesDebugLibCopyPath}
@@ -237,7 +255,7 @@ if(TubesDebugLibCopyPath)
 endif(TubesDebugLibCopyPath)
 
 if(TubesReleaseLibCopyPath)
-	add_custom_command(TARGET ${CMAKE_PROJECT_NAME}
+	add_custom_command(TARGET ${PROJECT_NAME}
 	PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${TubesReleaseLibCopyPath}
