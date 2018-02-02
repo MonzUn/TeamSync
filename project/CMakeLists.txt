@@ -126,141 +126,74 @@ get_filename_component(OutputDirectoryAbsolute ${OutputDirectoryRelative} ABSOLU
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 # Link debug libraries to the executable
-target_link_libraries(${PROJECT_NAME} debug ${MEngineDebugLibraries} debug ${SDL2Libraries} debug ${MUtilityDebugLibraries} debug ${TubesDebugLibraries}
-)
+target_link_libraries(${PROJECT_NAME} debug ${MEngineDebugLibraries} debug ${SDL2Libraries} debug ${MUtilityDebugLibraries} debug ${TubesDebugLibraries})
 
 # Link release libraries to the executable
-target_link_libraries(${PROJECT_NAME} optimized ${MEngineReleaseLibraries} optimized ${SDL2Libraries} optimized ${MUtilityReleaseLibraries} optimized ${TubesReleaseLibraries}
-)
+target_link_libraries(${PROJECT_NAME} optimized ${MEngineReleaseLibraries} optimized ${SDL2Libraries} optimized ${MUtilityReleaseLibraries} optimized ${TubesReleaseLibraries})
 
 # Add postbuild scripts that moves DLL files to the directory of the executable
-add_custom_command(TARGET ${PROJECT_NAME}
-	POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${ConfigurationBasedExternalPathAbsolute}
-        ${OutputDirectoryAbsolute}/$<CONFIGURATION>)
-
-add_custom_command(TARGET ${PROJECT_NAME}
-	POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${SharedExternalsPathAbsolute}
-        ${OutputDirectoryAbsolute}/$<CONFIGURATION>)
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${ConfigurationBasedExternalPathAbsolute} ${OutputDirectoryAbsolute}/$<CONFIGURATION>)
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${SharedExternalsPathAbsolute} ${OutputDirectoryAbsolute}/$<CONFIGURATION>)
 
 # Add postbuild scripts that moves resources to the directory of the executable
-add_custom_command(TARGET ${PROJECT_NAME}
-	POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${ResourcePathAbsolute}
-        ${OutputDirectoryAbsolute}/$<CONFIGURATION>/resources)
-
-# Add prebuilds scripts that copies local dependencies to their place within the project
-if(SDL2LibCopyPath)
-	add_custom_command(TARGET ${PROJECT_NAME}
-	PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${SDL2LibCopyPath}
-        ${SDL2LibraryDirectoryAbsolute})
-endif(SDL2LibCopyPath)
-
-if(SDL2DLLCopyPath)
-	add_custom_command(TARGET ${PROJECT_NAME}
-	PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${SDL2DLLCopyPath}
-        ${SharedExternalsPathAbsolute})
-endif(SDL2DLLCopyPath)
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${ResourcePathAbsolute} ${OutputDirectoryAbsolute}/$<CONFIGURATION>/resources)
 
 # ---------- Dependencies ----------
 
-if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-	# Get local(non versioned) paths to dependencies
-	include("${CMAKE_CURRENT_LIST_DIR}/CMakeLocalDependenciesPaths.txt" OPTIONAL)
+# Get local(non versioned) paths to dependencies
+include("${CMAKE_CURRENT_LIST_DIR}/CMakeLocalDependenciesPaths.txt" OPTIONAL)
 
-	# Run CMake of dependencies
-	if(MEngineCMakePath)
+if(MengineRootPath)
+	message("[${PROJECT_NAME}] - Found MEngine at path ${MengineRootPath}")
+	set(MEngineCMakePath "${MengineRootPath}/project")
+	set(MEngineIncludeCopyPath "${MengineRootPath}/source/interface")
+	set(MEngineDebugLibCopyPath "${MengineRootPath}/output/Debug")
+	set(MEngineReleaseLibCopyPath "${MengineRootPath}/output/Release")
+	add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${MEngineIncludeCopyPath} ${MEngineIncludes})
+   	add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${MEngineDebugLibCopyPath} ${MEngineDebugLibraryDirectoryAbsolute})
+	add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${MEngineReleaseLibCopyPath} ${MEngineReleaseLibraryDirectoryAbsolute})
+	if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 		add_subdirectory(${MEngineCMakePath} "${MEngineCMakePath}")
-	endif(MEngineCMakePath)
+	endif(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+endif(MengineRootPath)
 
-	#if(TubesCMakePath)
-		add_subdirectory(${TubesCMakePath} "${TubesCMakePath}")
-	#endif(TubesCMakePath)
-
-	#if(MUtilityCMakePath)
+if(MUtilityRootPath)
+	message("[${PROJECT_NAME}] - Found MUtility at path ${MUtilityRootPath}")
+	set(MUtilityCMakePath "${MUtilityRootPath}/project")
+	set(MUtilityIncludeCopyPath "${MUtilityRootPath}/source/interface")
+	set(MUtilityDebugLibCopyPath "${MUtilityRootPath}/output/Debug")
+	set(MUtilityReleaseLibCopyPath "${MUtilityRootPath}/output/Release")
+	add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${MUtilityIncludeCopyPath} ${MUtilityIncludes})
+	add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${MUtilityDebugLibCopyPath} ${MUtilityDebugLibraryDirectoryAbsolute})
+	add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${MUtilityReleaseLibCopyPath} ${MUtilityReleaseLibraryDirectoryAbsolute})
+	if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 		add_subdirectory(${MUtilityCMakePath} "${MUtilityCMakePath}")
-	#endif(MUtilityCMakePath)
-endif(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+	endif(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+endif(MUtilityRootPath)
 
-if(MEngineIncludeCopyPath)
-	add_custom_command(TARGET ${PROJECT_NAME}
-	PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${MEngineIncludeCopyPath}
-        ${MEngineIncludes})
-endif(MEngineIncludeCopyPath)
+if(TubesRootPath)	
+	message("[${PROJECT_NAME}] - Found Tubes at path ${TubesRootPath}")
+	set(TubesCMakePath "${TubesRootPath}/project")
+	set(TubesIncludeCopyPath "${TubesRootPath}/source/interface")
+	set(TubesDebugLibCopyPath "${TubesRootPath}/output/Debug")
+	set(TubesReleaseLibCopyPath "${TubesRootPath}/output/Release")
+	add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${TubesIncludeCopyPath} ${TubesIncludes})
+	add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${TubesDebugLibCopyPath} ${TubesDebugLibraryDirectoryAbsolute})
+    add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${TubesReleaseLibCopyPath} ${TubesReleaseLibraryDirectoryAbsolute})
+    if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    	add_subdirectory(${TubesCMakePath} "${TubesCMakePath}")
+    endif(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+endif(TubesRootPath)
 
-if(MEngineDebugLibCopyPath)
-	add_custom_command(TARGET ${PROJECT_NAME}
-	PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${MEngineDebugLibCopyPath}
-        ${MEngineDebugLibraryDirectoryAbsolute})
-endif(MEngineDebugLibCopyPath)
+if(SDL2LibPath)
+	message("[${PROJECT_NAME}] - Found SDL2lib at path ${SDL2LibPath}")
+	add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${SDL2LibPath} ${SDL2LibraryDirectoryAbsolute})
+endif(SDL2LibPath)
 
-if(MEngineReleaseLibCopyPath)
-	add_custom_command(TARGET ${PROJECT_NAME}
-	PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${MEngineReleaseLibCopyPath}
-        ${MEngineReleaseLibraryDirectoryAbsolute})
-endif(MEngineReleaseLibCopyPath)
-
-if(MUtilityIncludeCopyPath)
-	add_custom_command(TARGET ${PROJECT_NAME}
-	PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${MUtilityIncludeCopyPath}
-        ${MUtilityIncludes})
-endif(MUtilityIncludeCopyPath)
-
-if(MUtilityDebugLibCopyPath)
-	add_custom_command(TARGET ${PROJECT_NAME}
-	PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${MUtilityDebugLibCopyPath}
-        ${MUtilityDebugLibraryDirectoryAbsolute})
-endif(MUtilityDebugLibCopyPath)
-
-if(MUtilityReleaseLibCopyPath)
-	add_custom_command(TARGET ${PROJECT_NAME}
-	PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${MUtilityReleaseLibCopyPath}
-        ${MUtilityReleaseLibraryDirectoryAbsolute})
-endif(MUtilityReleaseLibCopyPath)
-
-if(TubesIncludeCopyPath)
-	add_custom_command(TARGET ${PROJECT_NAME}
-	PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${TubesIncludeCopyPath}
-        ${TubesIncludes})
-endif(TubesIncludeCopyPath)
-
-if(TubesDebugLibCopyPath)
-	add_custom_command(TARGET ${PROJECT_NAME}
-	PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${TubesDebugLibCopyPath}
-        ${TubesDebugLibraryDirectoryAbsolute})
-endif(TubesDebugLibCopyPath)
-
-if(TubesReleaseLibCopyPath)
-	add_custom_command(TARGET ${PROJECT_NAME}
-	PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${TubesReleaseLibCopyPath}
-        ${TubesReleaseLibraryDirectoryAbsolute})
-endif(TubesReleaseLibCopyPath)
+if(SDL2DLLPath)
+	message("[${PROJECT_NAME}] - Found SDL2DLL at path ${SDL2DLLPath}")
+	add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${SDL2DLLPath} ${SharedExternalsPathAbsolute})
+endif(SDL2DLLPath)
 
 # --- DEBUG COPY PASTE ---
 #message("|||--- TEST ---||| ${var}")
