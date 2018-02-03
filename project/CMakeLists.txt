@@ -20,7 +20,7 @@ set(ResourcePathAbsolute "${ProjectRootAbsolute}/resources")
 
 # Visual Studio settings
 if(MSVC)
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP /D \"_CRT_SECURE_NO_WARNINGS\"")
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP /D _CRT_SECURE_NO_WARNINGS")
 endif(MSVC)
 
 # Include directory
