@@ -1,16 +1,14 @@
-#include "team.h"
-#include "player.h"
+#include "teamSystem.h"
+#include "commandBlackboard.h"
+#include "globals.h"
+#include "imageJob.h"
 #include "teamSyncMessages.h"
 #include "uiLayout.h"
-#include <mengine.h>
 #include <mengineInput.h>
-#include <Tubes.h>
-#include <TubesTypes.h>
-#include <MUtilityThreading.h>
 #include <MUtilityLog.h>
-#include <MUtilityString.h>
-#include <MUtilitySystem.h>
-#include <chrono>
+#include "MUtilityString.h"
+#include <MUtilityThreading.h>
+#include <Tubes.h>
 #include <iostream>
 
 using namespace MEngineInput;
@@ -19,39 +17,31 @@ using MEngineGraphics::MEngineTextureID;
 #define LOG_CATEGORY_TEAM "Team"
 #define DELAYED_SCREENSHOT_WAIT_TIME_MILLISECONDS 150
 
-const uint16_t DefaultPort = 19200;
+constexpr uint16_t DefaultPort = 19200;
 
 // ---------- PUBLIC ----------
 
-bool Team::Initialize()
+TeamSystem::TeamSystem() : MEngineSystem::System(0U)
+{ }
+
+void TeamSystem::Initialize()
 {
-	std::string applicationName = "TeamSync";
-#ifdef _DEBUG
-	applicationName += " (PID=" + std::to_string(MUtility::GetPid()) + ")";
-#endif
-	if (!MEngine::Initialize(applicationName.c_str(), UILayout::ApplicationWindowWidth, UILayout::ApplicationWindowHeight))
-		return false;
+	connectionCallbackHandle = Tubes::RegisterConnectionCallback(Tubes::ConnectionCallbackFunction(std::bind(&TeamSystem::ConnectionCallback, this, std::placeholders::_1)));
+	disconnectionCallbackHandle = Tubes::RegisterDisconnectionCallback(Tubes::DisconnectionCallbackFunction(std::bind(&TeamSystem::DisconnectionCallback, this, std::placeholders::_1)));
 
-	MEngineInput::SetFocusRequired(false);
+	imageJobThread = std::thread(&TeamSystem::ProcessImageJobs, this);
 
-	connectionCallbackHandle = Tubes::RegisterConnectionCallback(Tubes::ConnectionCallbackFunction(std::bind(&Team::ConnectionCallback, this, std::placeholders::_1)));
-	disconnectionCallbackHandle = Tubes::RegisterDisconnectionCallback(Tubes::DisconnectionCallbackFunction(std::bind(&Team::DisconnectionCallback, this, std::placeholders::_1)));
-
-	imageJobThread = std::thread(&Team::ProcessImageJobs, this);
-
-	for (int i = 0; i < MAX_PLAYERS; ++i)
+	for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
 	{
 		players[i] = new Player(UILayout::PlayerPositions[i][0], UILayout::PlayerPositions[i][1], UILayout::PLAYER_IMAGE_WIDTH, UILayout::PLAYER_IMAGE_HEIGHT);
 	}
-
-	return true;
 }
 
-void Team::Shutdown()
+void TeamSystem::Shutdown()
 {
 	if (connectionCallbackHandle != Tubes::ConnectionCallbackHandle::invalid())
 		Tubes::UnregisterConnectionCallback(connectionCallbackHandle);
-	if(disconnectionCallbackHandle != Tubes::DisconnectionCallbackHandle::invalid())
+	if (disconnectionCallbackHandle != Tubes::DisconnectionCallbackHandle::invalid())
 		Tubes::UnregisterDisconnectionCallback(disconnectionCallbackHandle);
 
 	runImageJobThread = false;
@@ -68,18 +58,13 @@ void Team::Shutdown()
 	imageJobQueue.Clear();
 	imageJobResultQueue.Clear();
 
-	for (int i = 0; i < MAX_PLAYERS; ++i)
+	for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
 	{
 		delete players[i];
 	}
 }
 
-void Team::EnqueueCommand(const std::string& command)
-{
-	commandQueue.Produce(command);
-}
-
-void Team::Update()
+void TeamSystem::UpdatePresentationLayer(float deltaTime)
 {
 	HandleCommands();
 	HandleLogging();
@@ -93,9 +78,9 @@ void Team::Update()
 
 // ---------- PRIVATE ----------
 
-PlayerID Team::FindFreePlayerSlot() const
+PlayerID TeamSystem::FindFreePlayerSlot() const
 {
-	for (int i = 0; i < MAX_PLAYERS; ++i)
+	for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
 	{
 		if (!players[i]->IsActive())
 			return i;
@@ -104,14 +89,14 @@ PlayerID Team::FindFreePlayerSlot() const
 	return UNASSIGNED_PLAYER_ID;
 }
 
-void Team::RemovePlayer(Player* player)
+void TeamSystem::RemovePlayer(Player* player)
 {
 	players[player->GetPlayerID()]->Deactivate();
 	if (player->GetPlayerID() == localPlayerID)
 		localPlayerID = UNASSIGNED_PLAYER_ID;
 }
 
-void Team::ConnectionCallback(Tubes::ConnectionID connectionID)
+void TeamSystem::ConnectionCallback(Tubes::ConnectionID connectionID)
 {
 	if (Tubes::GetHostFlag())
 	{
@@ -130,7 +115,7 @@ void Team::ConnectionCallback(Tubes::ConnectionID connectionID)
 			idMessage.Destroy();
 
 			// Make the new client aware of the relayed clients and update the new clients view of the relayed clients 
-			for (int i = 0; i < MAX_PLAYERS; ++i)
+			for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
 			{
 				if (players[i]->IsActive())
 				{
@@ -175,10 +160,10 @@ void Team::ConnectionCallback(Tubes::ConnectionID connectionID)
 	}
 }
 
-void Team::DisconnectionCallback(Tubes::ConnectionID connectionID)
+void TeamSystem::DisconnectionCallback(Tubes::ConnectionID connectionID)
 {
 	Player* disconnectingPlayer = nullptr;
-	for (int i = 0; i < MAX_PLAYERS; ++i)
+	for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
 	{
 		if (players[i]->IsActive() && players[i]->GetPlayerConnectionID() == connectionID)
 		{
@@ -199,19 +184,19 @@ void Team::DisconnectionCallback(Tubes::ConnectionID connectionID)
 		}
 		else
 		{
-			for (int i = 0; i < MAX_PLAYERS; ++i)
+			for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
 			{
 				if (players[i]->IsActive())
 					RemovePlayer(players[i]);
 			}
 
-			delayedScreenshotcounter	= 0;
-			awaitingDelayedScreenshot	= false;
+			delayedScreenshotcounter = 0;
+			awaitingDelayedScreenshot = false;
 		}
 	}
 }
 
-void Team::ProcessImageJobs()
+void TeamSystem::ProcessImageJobs()
 {
 	imageJobLock = std::unique_lock<std::mutex>(imageJobLockMutex);
 
@@ -222,37 +207,37 @@ void Team::ProcessImageJobs()
 		{
 			switch (job->JobType)
 			{
-				case ImageJobType::TakeScreenshot:
-				case ImageJobType::TakeCycledScreenshot:
-				{
-					job->ResultTextureID = MEngineGraphics::CaptureScreenToTexture(true);
-					imageJobResultQueue.Produce(job);
-				} break;
+			case ImageJobType::TakeScreenshot:
+			case ImageJobType::TakeCycledScreenshot:
+			{
+				job->ResultTextureID = MEngineGraphics::CaptureScreenToTexture(true);
+				imageJobResultQueue.Produce(job);
+			} break;
 
-				case ImageJobType::CreateImageFromData:
-				{
-					job->ResultTextureID = MEngineGraphics::CreateTextureFromTextureData(MEngineGraphics::MEngineTextureData(job->ImageWidth, job->ImageHeight, job->Pixels), true);
-					imageJobResultQueue.Produce(job);
-				} break;
+			case ImageJobType::CreateImageFromData:
+			{
+				job->ResultTextureID = MEngineGraphics::CreateTextureFromTextureData(MEngineGraphics::MEngineTextureData(job->ImageWidth, job->ImageHeight, job->Pixels), true);
+				imageJobResultQueue.Produce(job);
+			} break;
 
-				case ImageJobType::SplitImage:
-				{
-					const int32_t(*cutPositionArray)[PlayerImageSlot::Count - 1][4] = nullptr;
-					if(job->ImageWidth == 2560 && job->ImageHeight == 1440)
-						cutPositionArray = &UILayout::CutPositions1440P;
-					else if(job->ImageWidth == 1920 && job->ImageHeight == 1080)
-						cutPositionArray = &UILayout::CutPositions1080P;
-					else
-						MLOG_WARNING("Attempted to split image of unsupported size (" <<  job->ImageWidth << ", " << job->ImageHeight << ')', LOG_CATEGORY_TEAM);
+			case ImageJobType::SplitImage:
+			{
+				const int32_t(*cutPositionArray)[PlayerImageSlot::Count - 1][4] = nullptr;
+				if (job->ImageWidth == 2560 && job->ImageHeight == 1440)
+					cutPositionArray = &UILayout::CutPositions1440P;
+				else if (job->ImageWidth == 1920 && job->ImageHeight == 1080)
+					cutPositionArray = &UILayout::CutPositions1080P;
+				else
+					MLOG_WARNING("Attempted to split image of unsupported size (" << job->ImageWidth << ", " << job->ImageHeight << ')', LOG_CATEGORY_TEAM);
 
-					if(cutPositionArray != nullptr)
-						job->ResultTextureID = MEngineGraphics::CreateSubTextureFromTextureData(MEngineGraphics::MEngineTextureData(job->ImageWidth, job->ImageHeight, job->Pixels), (*cutPositionArray)[job->ImageSlot][0], (*cutPositionArray)[job->ImageSlot][1], (*cutPositionArray)[job->ImageSlot][2], (*cutPositionArray)[job->ImageSlot][3], true);
+				if (cutPositionArray != nullptr)
+					job->ResultTextureID = MEngineGraphics::CreateSubTextureFromTextureData(MEngineGraphics::MEngineTextureData(job->ImageWidth, job->ImageHeight, job->Pixels), (*cutPositionArray)[job->ImageSlot][0], (*cutPositionArray)[job->ImageSlot][1], (*cutPositionArray)[job->ImageSlot][2], (*cutPositionArray)[job->ImageSlot][3], true);
 
-					imageJobResultQueue.Produce(job);
-				} break;
+				imageJobResultQueue.Produce(job);
+			} break;
 
-				default:
-					break;
+			default:
+				break;
 			}
 		}
 		else
@@ -261,10 +246,10 @@ void Team::ProcessImageJobs()
 	imageJobLock.unlock();
 }
 
-void Team::HandleCommands()
+void TeamSystem::HandleCommands()
 {
 	std::string command;
-	while (commandQueue.Consume(command))
+	while (CommandBlackboard::GetInstance().CommandQueue.Consume(command))
 	{
 		std::string response = "";
 		if (command == "host")
@@ -290,7 +275,7 @@ void Team::HandleCommands()
 				if (MUtilityString::IsStringNumber(playerIDString))
 				{
 					int32_t playerID = std::stoi(playerIDString) - 1;
-					if (playerID >= 0 && playerID < MAX_PLAYERS)
+					if (playerID >= 0 && playerID < TEAMSYNC_MAX_PLAYERS)
 					{
 						if (playerID != localPlayerID)
 						{
@@ -317,8 +302,8 @@ void Team::HandleCommands()
 			}
 			else
 				disconnectSelf = true;
-			
-			if(disconnectSelf)
+
+			if (disconnectSelf)
 			{
 				if (Tubes::GetHostFlag())
 				{
@@ -327,7 +312,7 @@ void Team::HandleCommands()
 					Tubes::DisconnectAll();
 
 					localPlayerID = UNASSIGNED_PLAYER_ID;
-					for (int i = 0; i < MAX_PLAYERS; ++i)
+					for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
 					{
 						if (players[i]->IsActive())
 							RemovePlayer(players[i]);
@@ -340,7 +325,7 @@ void Team::HandleCommands()
 					Tubes::DisconnectAll();
 
 					localPlayerID = UNASSIGNED_PLAYER_ID;
-					for (int i = 0; i < MAX_PLAYERS; ++i)
+					for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
 					{
 						if (players[i]->IsActive())
 							RemovePlayer(players[i]);
@@ -372,7 +357,7 @@ void Team::HandleCommands()
 			else
 				response = "Connecting to remote clients is not allowed while hosting";
 		}
-		else if(command.find("prime") != std::string::npos)
+		else if (command.find("prime") != std::string::npos)
 		{
 			size_t spacePos = command.find(' ');
 			if (spacePos != std::string::npos && command.back() != ' ')
@@ -381,7 +366,7 @@ void Team::HandleCommands()
 				if (MUtilityString::IsStringNumber(playerIDString))
 				{
 					int32_t playerID = std::stoi(playerIDString) - 1;
-					if (playerID >= 0 && playerID < MAX_PLAYERS)
+					if (playerID >= 0 && playerID < TEAMSYNC_MAX_PLAYERS)
 					{
 						if (playerID != localPlayerID)
 						{
@@ -429,16 +414,16 @@ void Team::HandleCommands()
 	}
 }
 
-void Team::HandleLogging()
+void TeamSystem::HandleLogging()
 {
 	std::string newMessages;
-	if(MUtilityLog::FetchUnreadMessages(newMessages))
+	if (MUtilityLog::FetchUnreadMessages(newMessages))
 		std::cout << newMessages;
 }
 
-void Team::HandleInput()
+void TeamSystem::HandleInput()
 {
-	if (KeyReleased(MKEY_ANGLED_BRACKET)) // Reset screenshot cycling
+	if (KeyReleased(MKEY_ANGLED_BRACKET) && localPlayerID != UNASSIGNED_PLAYER_ID) // Reset screenshot cycling
 	{
 		PrimeCycledScreenshot();
 	}
@@ -484,7 +469,7 @@ void Team::HandleInput()
 	}
 }
 
-void Team::HandleImageJobResults()
+void TeamSystem::HandleImageJobResults()
 {
 	ImageJob* finishedJob = nullptr;
 	while (imageJobResultQueue.Consume(finishedJob))
@@ -548,7 +533,7 @@ void Team::HandleImageJobResults()
 	}
 }
 
-void Team::HandleNetworkCommunication()
+void TeamSystem::HandleNetworkCommunication()
 {
 	std::vector<Message*> receivedMessages;
 	std::vector<Tubes::ConnectionID> messageSenders;
@@ -557,105 +542,105 @@ void Team::HandleNetworkCommunication()
 	{
 		switch (receivedMessages[i]->Type)
 		{
-			case TeamSyncMessages::SIGNAL:
+		case TeamSyncMessages::SIGNAL:
+		{
+			const SignalMessage* signalMessage = static_cast<const SignalMessage*>(receivedMessages[i]);
+			switch (signalMessage->Signal)
 			{
-				const SignalMessage* signalMessage = static_cast<const SignalMessage*>(receivedMessages[i]);
-				switch (signalMessage->Signal)
-				{
-					case TeamSyncSignals::PRIME:
-					{
-						PrimeCycledScreenshot();
-					} break;
-
-					default:
-						break;
-				}
+			case TeamSyncSignals::PRIME:
+			{
+				PrimeCycledScreenshot();
 			} break;
 
-			case TeamSyncMessages::SIGNAL_FLAG:
+			default:
+				break;
+			}
+		} break;
+
+		case TeamSyncMessages::SIGNAL_FLAG:
+		{
+			const SignalFlagMessage* signalFlagMessage = static_cast<const SignalFlagMessage*>(receivedMessages[i]);
+			switch (signalFlagMessage->Signal)
 			{
-				const SignalFlagMessage* signalFlagMessage = static_cast<const SignalFlagMessage*>(receivedMessages[i]);
-				switch (signalFlagMessage->Signal)
-				{
-					case TeamSyncSignals::PRIME:
-					{
-						if (players[signalFlagMessage->PlayerID]->IsActive())
-							players[signalFlagMessage->PlayerID]->SetCycledScreenshotPrimed(signalFlagMessage->Flag);
-
-						// Relay
-						if (Tubes::GetHostFlag())
-							Tubes::SendToAll(receivedMessages[i], messageSenders[i]);
-					} break;
-
-					default:
-						break;
-					}
-			} break;
-
-			case TeamSyncMessages::PLAYER_ID:
+			case TeamSyncSignals::PRIME:
 			{
-				if (!Tubes::GetHostFlag())
-				{
-					const PlayerIDMessage* playerIDMessage = static_cast<const PlayerIDMessage*>(receivedMessages[i]);
-					PlayerID playerID = playerIDMessage->PlayerID;
-					PlayerConnectionType::PlayerConnectionType connectionType = static_cast<PlayerConnectionType::PlayerConnectionType>(playerIDMessage->PlayerConnectionType);
-					Tubes::ConnectionID connectionID = INVALID_CONNECTION_ID;
-
-					if (playerIDMessage->PlayerConnectionType == PlayerConnectionType::Local)
-					{
-						if (localPlayerID == UNASSIGNED_PLAYER_ID)
-							localPlayerID = playerID;
-						else
-							MLOG_WARNING("Received playerID message with ConnectionType::Local but the local player ID is already set", LOG_CATEGORY_TEAM);
-					}
-					else if (playerIDMessage->PlayerConnectionType == PlayerConnectionType::Direct)
-					{
-						connectionID = messageSenders[i];
-					}
-
-					if (!players[playerID]->IsActive())
-						players[playerID]->Activate(playerID, connectionType, connectionID);
-					else
-						MLOG_WARNING("Received playerID message for playerID " << playerID + " but there is already a player assigned to that ID", LOG_CATEGORY_TEAM);
-				}
-				else
-					MLOG_WARNING("Received playerID message as host", LOG_CATEGORY_TEAM);
-			} break;
-
-			case TeamSyncMessages::PLAYER_UPDATE:
-			{
-				const PlayerUpdateMessage* playerUpdateMessage = static_cast<const PlayerUpdateMessage*>(receivedMessages[i]);
+				if (players[signalFlagMessage->PlayerID]->IsActive())
+					players[signalFlagMessage->PlayerID]->SetCycledScreenshotPrimed(signalFlagMessage->Flag);
 
 				// Relay
 				if (Tubes::GetHostFlag())
 					Tubes::SendToAll(receivedMessages[i], messageSenders[i]);
-
-				void* pixelsCopy = malloc(playerUpdateMessage->ImageByteSize);
-				memcpy(pixelsCopy, playerUpdateMessage->Pixels, playerUpdateMessage->ImageByteSize); // Message will get destroyed; make a copy of the pixel data for the asynchronous job
-				ImageJob* imageFromDataJob = new ImageJob(ImageJobType::CreateImageFromData, playerUpdateMessage->PlayerID, static_cast<PlayerImageSlot::PlayerImageSlot>(playerUpdateMessage->ImageSlot), playerUpdateMessage->Width, playerUpdateMessage->Height, pixelsCopy);
-				imageJobQueue.Produce(imageFromDataJob);
-				imageJobLockCondition.notify_one();
-			} break;
-
-			case TeamSyncMessages::PLAYER_DISCONNECT:
-			{
-				if (!Tubes::GetHostFlag())
-				{
-					const PlayerDisconnectMessage* playerDisconnectMessage = static_cast<const PlayerDisconnectMessage*>(receivedMessages[i]);
-					for (int i = 0; i < MAX_PLAYERS; ++i)
-					{
-						if (players[i]->IsActive() && players[i]->GetPlayerID() == playerDisconnectMessage->PlayerID)
-							RemovePlayer(players[i]);
-					}
-				}
-				else
-					MLOG_WARNING("Received disconnection message as host", LOG_CATEGORY_TEAM);
 			} break;
 
 			default:
+				break;
+			}
+		} break;
+
+		case TeamSyncMessages::PLAYER_ID:
+		{
+			if (!Tubes::GetHostFlag())
 			{
-				MLOG_WARNING("Received message of unknown type (Type = " << receivedMessages[i]->Type << ")", LOG_CATEGORY_TEAM);
-			} break;
+				const PlayerIDMessage* playerIDMessage = static_cast<const PlayerIDMessage*>(receivedMessages[i]);
+				PlayerID playerID = playerIDMessage->PlayerID;
+				PlayerConnectionType::PlayerConnectionType connectionType = static_cast<PlayerConnectionType::PlayerConnectionType>(playerIDMessage->PlayerConnectionType);
+				Tubes::ConnectionID connectionID = INVALID_CONNECTION_ID;
+
+				if (playerIDMessage->PlayerConnectionType == PlayerConnectionType::Local)
+				{
+					if (localPlayerID == UNASSIGNED_PLAYER_ID)
+						localPlayerID = playerID;
+					else
+						MLOG_WARNING("Received playerID message with ConnectionType::Local but the local player ID is already set", LOG_CATEGORY_TEAM);
+				}
+				else if (playerIDMessage->PlayerConnectionType == PlayerConnectionType::Direct)
+				{
+					connectionID = messageSenders[i];
+				}
+
+				if (!players[playerID]->IsActive())
+					players[playerID]->Activate(playerID, connectionType, connectionID);
+				else
+					MLOG_WARNING("Received playerID message for playerID " << playerID + " but there is already a player assigned to that ID", LOG_CATEGORY_TEAM);
+			}
+			else
+				MLOG_WARNING("Received playerID message as host", LOG_CATEGORY_TEAM);
+		} break;
+
+		case TeamSyncMessages::PLAYER_UPDATE:
+		{
+			const PlayerUpdateMessage* playerUpdateMessage = static_cast<const PlayerUpdateMessage*>(receivedMessages[i]);
+
+			// Relay
+			if (Tubes::GetHostFlag())
+				Tubes::SendToAll(receivedMessages[i], messageSenders[i]);
+
+			void* pixelsCopy = malloc(playerUpdateMessage->ImageByteSize);
+			memcpy(pixelsCopy, playerUpdateMessage->Pixels, playerUpdateMessage->ImageByteSize); // Message will get destroyed; make a copy of the pixel data for the asynchronous job
+			ImageJob* imageFromDataJob = new ImageJob(ImageJobType::CreateImageFromData, playerUpdateMessage->PlayerID, static_cast<PlayerImageSlot::PlayerImageSlot>(playerUpdateMessage->ImageSlot), playerUpdateMessage->Width, playerUpdateMessage->Height, pixelsCopy);
+			imageJobQueue.Produce(imageFromDataJob);
+			imageJobLockCondition.notify_one();
+		} break;
+
+		case TeamSyncMessages::PLAYER_DISCONNECT:
+		{
+			if (!Tubes::GetHostFlag())
+			{
+				const PlayerDisconnectMessage* playerDisconnectMessage = static_cast<const PlayerDisconnectMessage*>(receivedMessages[i]);
+				for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
+				{
+					if (players[i]->IsActive() && players[i]->GetPlayerID() == playerDisconnectMessage->PlayerID)
+						RemovePlayer(players[i]);
+				}
+			}
+			else
+				MLOG_WARNING("Received disconnection message as host", LOG_CATEGORY_TEAM);
+		} break;
+
+		default:
+		{
+			MLOG_WARNING("Received message of unknown type (Type = " << receivedMessages[i]->Type << ")", LOG_CATEGORY_TEAM);
+		} break;
 		}
 
 		receivedMessages[i]->Destroy();
@@ -663,7 +648,7 @@ void Team::HandleNetworkCommunication()
 	}
 }
 
-void Team::PrimeCycledScreenshot()
+void TeamSystem::PrimeCycledScreenshot()
 {
 	if (delayedScreenshotcounter % 2 != 0)
 		++delayedScreenshotcounter;
@@ -675,7 +660,7 @@ void Team::PrimeCycledScreenshot()
 }
 
 #ifdef _DEBUG
-void Team::RunDebugCode()
+void TeamSystem::RunDebugCode()
 {
 	bool ContinuousScreenshots = false;
 

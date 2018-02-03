@@ -65,7 +65,7 @@ void Player::Activate(PlayerID playerID, PlayerConnectionType::PlayerConnectionT
 	m_PlayerID			= playerID;
 	m_ConnectionType	= connectionType;
 	m_ConnectionID		= connectionID;
-	cycledScreenshotPrimed = true;
+	SetCycledScreenshotPrimed(true);
 	statusImage->TextureID = statusActiveTextureID;
 
 	isActive = true;
