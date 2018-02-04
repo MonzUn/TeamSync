@@ -40,69 +40,60 @@ file(RELATIVE_PATH SharedLibraryDirectoryRelative ${TeamSync_SOURCE_DIR} ${Proje
 get_filename_component(SharedLibraryDirectoryAbsolute ${SharedLibraryDirectoryRelative} ABSOLUTE)
 
 # Find MEngine
-find_path(MEngineInclude MEngine/mengine.h PATHS ${IncludeDirectoryAbsolute})
-set(MEngineIncludes ${MEngineInclude}/MEngine)
-
+set(MEngineIncludes ${IncludeDirectoryAbsolute}/MEngine)
 set(MEngineDebugLibraryDirectoryAbsolute "${DebugLibraryDirectoryAbsolute}/MEngine")
-find_library(MEngineDebugLibrary
-	NAMES MEngine
-	PATHS ${MEngineDebugLibraryDirectoryAbsolute})
-set(MEngineDebugLibraries ${MEngineDebugLibrary})
-
 set(MEngineReleaseLibraryDirectoryAbsolute "${ReleaseLibraryDirectoryAbsolute}/MEngine")
-find_library(MEngineReleaseLibrary
-	NAMES MEngine
-	PATHS ${MEngineReleaseLibraryDirectoryAbsolute})
-set(MEngineReleaseLibraries ${MEngineReleaseLibrary})
+message("[${PROJECT_NAME}] - Assuming MEngine includes are located at path ${MEngineIncludes}")
+message("[${PROJECT_NAME}] - Assuming MEngine debug libs are located at path ${MEngineDebugLibraryDirectoryAbsolute}")
+message("[${PROJECT_NAME}] - Assuming MEngine release libs are located at path ${MEngineReleaseLibraryDirectoryAbsolute}")
+
+find_library(MEngineDebugLibrary NAMES MEngine PATHS ${MEngineDebugLibraryDirectoryAbsolute})
+find_library(MEngineReleaseLibrary NAMES MEngine PATHS ${MEngineReleaseLibraryDirectoryAbsolute})
+message("[${PROJECT_NAME}] - Found MUtility debug libs at path ${MEngineDebugLibrary}")
+message("[${PROJECT_NAME}] - Found MUtility release libs at path ${MEngineReleaseLibrary}")
 
 # Find SDL2
-find_path(SDL2Include SDL2/SDL.h PATHS ${IncludeDirectoryAbsolute})
-set(SDL2Includes ${SDL2Include}/SDL2)
-
+set(SDL2Includes ${IncludeDirectoryAbsolute}/SDL2)
 set(SDL2LibraryDirectoryAbsolute "${SharedLibraryDirectoryAbsolute}/SDL2")
-find_library(SDL2Library
-	NAMES SDL2 SDL2
-	PATHS ${SDL2LibraryDirectoryAbsolute})
-set(SDL2Libraries ${SDL2Library})
+message("[${PROJECT_NAME}] - Assuming SDL2 includes are located at path ${SDL2Includes}")
+message("[${PROJECT_NAME}] - Assuming SDL2 libs are located at path ${SDL2LibraryDirectoryAbsolute}")
 
-find_library(SDL2imageLibrary
-	NAMES SDL2_image
-	PATHS ${SDL2LibraryDirectoryAbsolute})
+find_library(SDL2Library NAMES SDL2 SDL2 PATHS ${SDL2LibraryDirectoryAbsolute})
+set(SDL2Libraries ${SDL2Library})
+message("[${PROJECT_NAME}] - Found SDL2 base libs at path ${SDL2Library}")
+
+find_library(SDL2imageLibrary NAMES SDL2_image PATHS ${SDL2LibraryDirectoryAbsolute})
 list(APPEND SDL2Libraries ${SDL2imageLibrary})
+message("[${PROJECT_NAME}] - Found SDL2 image libs at path ${SDL2imageLibrary}")
 
 # Find MUtility
-find_path(MUtilityInclude MUtility/MUtilityByte.h PATHS ${IncludeDirectoryAbsolute})
-set(MUtilityIncludes ${MUtilityInclude}/MUtility)
-
+set(MUtilityIncludes "${IncludeDirectoryAbsolute}/MUtility")
 set(MUtilityDebugLibraryDirectoryAbsolute "${DebugLibraryDirectoryAbsolute}/MUtility")
-find_library(MUtilityDebugLibrary
-	NAMES MUtility
-	PATHS ${MUtilityDebugLibraryDirectoryAbsolute})
-set(MUtilityDebugLibraries ${MUtilityDebugLibrary})
-
 set(MUtilityReleaseLibraryDirectoryAbsolute "${ReleaseLibraryDirectoryAbsolute}/MUtility")
-find_library(MUtilityReleaseLibrary
-	NAMES MUtility
-	PATHS ${MUtilityReleaseLibraryDirectoryAbsolute})
-set(MUtilityReleaseLibraries ${MUtilityReleaseLibrary})
+message("[${PROJECT_NAME}] - Assuming MUtility includes are located at path ${MUtilityIncludes}")
+message("[${PROJECT_NAME}] - Assuming MUtility debug libs are located at path ${MUtilityDebugLibraryDirectoryAbsolute}")
+message("[${PROJECT_NAME}] - Assuming MUtility release libs are located at path ${MUtilityReleaseLibraryDirectoryAbsolute}")
+
+find_library(MUtilityDebugLibrary NAMES MUtility PATHS ${MUtilityDebugLibraryDirectoryAbsolute})
+find_library(MUtilityReleaseLibrary NAMES MUtility PATHS ${MUtilityReleaseLibraryDirectoryAbsolute})
+message("[${PROJECT_NAME}] - Found MUtility debug libs at path ${MUtilityDebugLibrary}")
+message("[${PROJECT_NAME}] - Found MUtility release libs at path ${MUtilityReleaseLibrary}")
 
 # Find Tubes
-find_path(TubesInclude Tubes/Tubes.h PATHS ${IncludeDirectoryAbsolute})
-set(TubesIncludes ${TubesInclude}/Tubes)
-
+set(TubesIncludes ${IncludeDirectoryAbsolute}/Tubes)
 set(TubesDebugLibraryDirectoryAbsolute "${DebugLibraryDirectoryAbsolute}/Tubes")
-find_library(TubesDebugLibrary
-	NAMES Tubes
-	PATHS ${TubesDebugLibraryDirectoryAbsolute})
-set(TubesDebugLibraries ${TubesDebugLibrary})
-
 set(TubesReleaseLibraryDirectoryAbsolute "${ReleaseLibraryDirectoryAbsolute}/Tubes")
-find_library(TubesReleaseLibrary
-	NAMES Tubes
-	PATHS ${TubesReleaseLibraryDirectoryAbsolute})
-set(TubesReleaseLibraries ${TubesReleaseLibrary})
+message("[${PROJECT_NAME}] - Assuming Tubes includes are located at path ${TubesIncludes}")
+message("[${PROJECT_NAME}] - Assuming Tubes debug libs are located at path ${TubesDebugLibraryDirectoryAbsolute}")
+message("[${PROJECT_NAME}] - Assuming Tubes release libs are located at path ${TubesReleaseLibraryDirectoryAbsolute}")
 
-include_directories(
+find_library(TubesDebugLibrary NAMES Tubes PATHS ${TubesDebugLibraryDirectoryAbsolute})
+find_library(TubesReleaseLibrary NAMES Tubes PATHS ${TubesReleaseLibraryDirectoryAbsolute})
+message("[${PROJECT_NAME}] - Found Tubes debug libs at path ${TubesDebugLibrary}")
+message("[${PROJECT_NAME}] - Found Tubes release libs at path ${TubesReleaseLibrary}")
+
+include_directories (
+	${SDL2Includes}
 	${MEngineIncludes}
 	${MUtilityIncludes}
 	${TubesIncludes}
@@ -126,10 +117,10 @@ get_filename_component(OutputDirectoryAbsolute ${OutputDirectoryRelative} ABSOLU
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 # Link debug libraries to the executable
-target_link_libraries(${PROJECT_NAME} debug ${MEngineDebugLibraries} debug ${SDL2Libraries} debug ${MUtilityDebugLibraries} debug ${TubesDebugLibraries})
+target_link_libraries(${PROJECT_NAME} debug ${MEngineDebugLibrary} debug ${SDL2Libraries} debug ${MUtilityDebugLibrary} debug ${TubesDebugLibrary})
 
 # Link release libraries to the executable
-target_link_libraries(${PROJECT_NAME} optimized ${MEngineReleaseLibraries} optimized ${SDL2Libraries} optimized ${MUtilityReleaseLibraries} optimized ${TubesReleaseLibraries})
+target_link_libraries(${PROJECT_NAME} optimized ${MEngineReleaseLibrary} optimized ${SDL2Libraries} optimized ${MUtilityReleaseLibrary} optimized ${TubesReleaseLibrary})
 
 # Add postbuild scripts that moves DLL files to the directory of the executable
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${ConfigurationBasedExternalPathAbsolute} ${OutputDirectoryAbsolute}/$<CONFIGURATION>)
@@ -144,7 +135,7 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E
 include("${CMAKE_CURRENT_LIST_DIR}/CMakeLocalDependenciesPaths.txt" OPTIONAL)
 
 if(MengineRootPath)
-	message("[${PROJECT_NAME}] - Found MEngine at path ${MengineRootPath}")
+	message("[${PROJECT_NAME}] - Found MEngine project at path ${MengineRootPath}")
 	set(MEngineCMakePath "${MengineRootPath}/project")
 	set(MEngineIncludeCopyPath "${MengineRootPath}/source/interface")
 	set(MEngineDebugLibCopyPath "${MengineRootPath}/output/Debug")
@@ -158,7 +149,7 @@ if(MengineRootPath)
 endif(MengineRootPath)
 
 if(MUtilityRootPath)
-	message("[${PROJECT_NAME}] - Found MUtility at path ${MUtilityRootPath}")
+	message("[${PROJECT_NAME}] - Found MUtility project at path ${MUtilityRootPath}")
 	set(MUtilityCMakePath "${MUtilityRootPath}/project")
 	set(MUtilityIncludeCopyPath "${MUtilityRootPath}/source/interface")
 	set(MUtilityDebugLibCopyPath "${MUtilityRootPath}/output/Debug")
@@ -172,7 +163,7 @@ if(MUtilityRootPath)
 endif(MUtilityRootPath)
 
 if(TubesRootPath)	
-	message("[${PROJECT_NAME}] - Found Tubes at path ${TubesRootPath}")
+	message("[${PROJECT_NAME}] - Found Tubes project at path ${TubesRootPath}")
 	set(TubesCMakePath "${TubesRootPath}/project")
 	set(TubesIncludeCopyPath "${TubesRootPath}/source/interface")
 	set(TubesDebugLibCopyPath "${TubesRootPath}/output/Debug")
@@ -186,12 +177,12 @@ if(TubesRootPath)
 endif(TubesRootPath)
 
 if(SDL2LibPath)
-	message("[${PROJECT_NAME}] - Found SDL2lib at path ${SDL2LibPath}")
+	message("[${PROJECT_NAME}] - Found SDL2lib copy path at ${SDL2LibPath}")
 	add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${SDL2LibPath} ${SDL2LibraryDirectoryAbsolute})
 endif(SDL2LibPath)
 
 if(SDL2DLLPath)
-	message("[${PROJECT_NAME}] - Found SDL2DLL at path ${SDL2DLLPath}")
+	message("[${PROJECT_NAME}] - Found SDL2DLL copy path at ${SDL2DLLPath}")
 	add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${SDL2DLLPath} ${SharedExternalsPathAbsolute})
 endif(SDL2DLLPath)
 
