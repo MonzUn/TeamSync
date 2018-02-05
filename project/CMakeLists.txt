@@ -92,7 +92,8 @@ find_library(TubesReleaseLibrary NAMES Tubes PATHS ${TubesReleaseLibraryDirector
 message("[${PROJECT_NAME}] - Found Tubes debug libs at path ${TubesDebugLibrary}")
 message("[${PROJECT_NAME}] - Found Tubes release libs at path ${TubesReleaseLibrary}")
 
-include_directories (
+# List include directories
+set(IncludeDirectoryList
 	${SDL2Includes}
 	${MEngineIncludes}
 	${MUtilityIncludes}
@@ -107,6 +108,9 @@ file(GLOB_RECURSE SOURCE_DIRECTORIES
 
 # Create executable
 add_executable(${PROJECT_NAME} ${SOURCE_DIRECTORIES})
+
+# Set include directories
+set_property(TARGET ${PROJECT_NAME} PROPERTY INCLUDE_DIRECTORIES ${IncludeDirectoryList})
 
 # Set output directory
 set(OutputDirectoryRelative ${ProjectRoot}bin/${OperatingSystemNameLowerCase})
