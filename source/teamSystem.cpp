@@ -4,6 +4,7 @@
 #include "imageJob.h"
 #include "teamSyncMessages.h"
 #include "uiLayout.h"
+#include <mengineConfig.h>
 #include <mengineInput.h>
 #include <MUtilityLog.h>
 #include "MUtilityString.h"
@@ -343,16 +344,26 @@ void TeamSystem::HandleCommands()
 			if (!Tubes::GetHostFlag())
 			{
 				size_t spacePos = command.find(' ');
+				std::string ipv4String = "";
 				if (spacePos != std::string::npos && command.back() != ' ')
 				{
-					std::string ipv4String = command.substr(spacePos + 1);
+					ipv4String = command.substr(spacePos + 1);
 					if (Tubes::IsValidIPv4Address(ipv4String.c_str()))
+					{
 						Tubes::RequestConnection(ipv4String, DefaultPort);
+						MEngineConfig::SetString("DefaultConnectionIP", ipv4String);
+					}
 					else
 						response = "The supplied IP address was invalid";
 				}
 				else
-					response = "No IP address supplied";
+				{
+					ipv4String = MEngineConfig::GetString("DefaultConnectionIP", "127.0.0.1");
+					if (Tubes::IsValidIPv4Address(ipv4String.c_str()))
+						Tubes::RequestConnection(ipv4String, DefaultPort);
+					else
+						response = "The IP address stored in the config was invalid";
+				}
 			}
 			else
 				response = "Connecting to remote clients is not allowed while hosting";
