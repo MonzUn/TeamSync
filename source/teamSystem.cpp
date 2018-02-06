@@ -258,7 +258,7 @@ void TeamSystem::HandleCommands()
 			if (!Tubes::GetHostFlag())
 			{
 				Tubes::SetHostFlag(true);
-				Tubes::StartListener(DefaultPort);
+				Tubes::StartListener(static_cast<uint16_t>(MEngineConfig::GetInt("DefaultHostPort", DefaultPort)));
 
 				localPlayerID = 0;
 				players[localPlayerID]->Activate(localPlayerID, PlayerConnectionType::Local, INVALID_CONNECTION_ID);
@@ -350,7 +350,7 @@ void TeamSystem::HandleCommands()
 					ipv4String = command.substr(spacePos + 1);
 					if (Tubes::IsValidIPv4Address(ipv4String.c_str()))
 					{
-						Tubes::RequestConnection(ipv4String, DefaultPort);
+						Tubes::RequestConnection(ipv4String, static_cast<uint16_t>(MEngineConfig::GetInt("DefaultConnectionPort", DefaultPort)));
 						MEngineConfig::SetString("DefaultConnectionIP", ipv4String);
 					}
 					else
@@ -360,7 +360,7 @@ void TeamSystem::HandleCommands()
 				{
 					ipv4String = MEngineConfig::GetString("DefaultConnectionIP", "127.0.0.1");
 					if (Tubes::IsValidIPv4Address(ipv4String.c_str()))
-						Tubes::RequestConnection(ipv4String, DefaultPort);
+						Tubes::RequestConnection(ipv4String, static_cast<uint16_t>(MEngineConfig::GetInt("DefaultConnectionPort", DefaultPort)));
 					else
 						response = "The IP address stored in the config was invalid";
 				}
