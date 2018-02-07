@@ -177,15 +177,5 @@ if(TubesRootPath)
     endif(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 endif(TubesRootPath)
 
-if(SDL2LibPath)
-	message("[${PROJECT_NAME}] - Found SDL2lib copy path at ${SDL2LibPath}")
-	add_custom_command(TARGET ${PROJECT_NAME} PRE_LINK COMMAND ${CMAKE_COMMAND} -E copy_directory ${SDL2LibPath} ${SDL2LibraryDirectoryAbsolute})
-endif(SDL2LibPath)
-
-if(SDL2DLLPath)
-	message("[${PROJECT_NAME}] - Found SDL2DLL copy path at ${SDL2DLLPath}")
-	add_custom_command(TARGET ${PROJECT_NAME} PRE_LINK COMMAND ${CMAKE_COMMAND} -E copy_directory ${SDL2DLLPath} ${SharedExternalsPathAbsolute})
-endif(SDL2DLLPath)
-
 # --- DEBUG COPY PASTE ---
 #message("|||--- TEST ---||| ${var}")
