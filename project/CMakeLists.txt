@@ -53,9 +53,7 @@ message("[${PROJECT_NAME}] - Found MUtility debug libs at path ${MEngineDebugLib
 message("[${PROJECT_NAME}] - Found MUtility release libs at path ${MEngineReleaseLibrary}")
 
 # Find SDL2
-set(SDL2Includes ${IncludeDirectoryAbsolute}/SDL2)
 set(SDL2LibraryDirectoryAbsolute "${SharedLibraryDirectoryAbsolute}/SDL2")
-message("[${PROJECT_NAME}] - Assuming SDL2 includes are located at path ${SDL2Includes}")
 message("[${PROJECT_NAME}] - Assuming SDL2 libs are located at path ${SDL2LibraryDirectoryAbsolute}")
 
 find_library(SDL2Library NAMES SDL2 SDL2 PATHS ${SDL2LibraryDirectoryAbsolute})
@@ -94,7 +92,6 @@ message("[${PROJECT_NAME}] - Found Tubes release libs at path ${TubesReleaseLibr
 
 # List include directories
 set(IncludeDirectoryList
-	${SDL2Includes}
 	${MEngineIncludes}
 	${MUtilityIncludes}
 	${TubesIncludes}
