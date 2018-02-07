@@ -6,6 +6,7 @@
 #include <mengine.h>
 #include <mengineInput.h>
 #include <mengineSystem.h>
+#include <mengineText.h>
 #include <Tubes.h>
 #include <TubesTypes.h>
 #include <MUtilityThreading.h>
@@ -28,6 +29,7 @@ bool TeamSync::Initialize()
 		return false;
 
 	MEngineInput::SetFocusRequired(false);
+	MEngineText::SetFont("resources/fonts/OpenSans-Regular.ttf");
 
 	Tubes::RegisterReplicator(new Replicator());
 

@@ -64,6 +64,21 @@ find_library(SDL2imageLibrary NAMES SDL2_image PATHS ${SDL2LibraryDirectoryAbsol
 list(APPEND SDL2Libraries ${SDL2imageLibrary})
 message("[${PROJECT_NAME}] - Found SDL2 image libs at path ${SDL2imageLibrary}")
 
+find_library(SDL2_ttfLibrary NAMES SDL2_ttf PATHS ${SDL2LibraryDirectoryAbsolute})
+list(APPEND SDL2Libraries ${SDL2_ttfLibrary})
+message("[${PROJECT_NAME}] - Found SDL2_ttf libs at path ${SDL2_ttfLibrary}")
+
+# Find SDL_FontCache
+set(SDL_FontCacheDebugLibraryDirectoryAbsolute "${DebugLibraryDirectoryAbsolute}/SDL_FontCache")
+set(SDL_FontCacheReleaseLibraryDirectoryAbsolute "${ReleaseLibraryDirectoryAbsolute}/SDL_FontCache")
+message("[${PROJECT_NAME}] - Assuming SDL_FontCache debug libs are located at path ${SDL_FontCacheDebugLibraryDirectoryAbsolute}")
+message("[${PROJECT_NAME}] - Assuming SDL_FontCache release libs are located at path ${SDL_FontCacheReleaseLibraryDirectoryAbsolute}")
+
+find_library(SDL_FontCacheDebugLibrary NAMES SDL_FontCache PATHS ${SDL_FontCacheDebugLibraryDirectoryAbsolute})
+find_library(SDL_FontCacheReleaseLibrary NAMES SDL_FontCache PATHS ${SDL_FontCacheReleaseLibraryDirectoryAbsolute})
+message("[${PROJECT_NAME}] - Found SDL_FontCache debug libs at path ${SDL_FontCacheDebugLibrary}")
+message("[${PROJECT_NAME}] - Found SDL_FontCache release libs at path ${SDL_FontCacheReleaseLibrary}")
+
 # Find MUtility
 set(MUtilityIncludes "${IncludeDirectoryAbsolute}/MUtility")
 set(MUtilityDebugLibraryDirectoryAbsolute "${DebugLibraryDirectoryAbsolute}/MUtility")
@@ -118,10 +133,10 @@ get_filename_component(OutputDirectoryAbsolute ${OutputDirectoryRelative} ABSOLU
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 # Link debug libraries to the executable
-target_link_libraries(${PROJECT_NAME} debug ${MEngineDebugLibrary} debug ${SDL2Libraries} debug ${MUtilityDebugLibrary} debug ${TubesDebugLibrary})
+target_link_libraries(${PROJECT_NAME} debug ${MEngineDebugLibrary} debug ${SDL2Libraries} debug ${SDL_FontCacheDebugLibrary} debug ${MUtilityDebugLibrary} debug ${TubesDebugLibrary})
 
 # Link release libraries to the executable
-target_link_libraries(${PROJECT_NAME} optimized ${MEngineReleaseLibrary} optimized ${SDL2Libraries} optimized ${MUtilityReleaseLibrary} optimized ${TubesReleaseLibrary})
+target_link_libraries(${PROJECT_NAME} optimized ${MEngineReleaseLibrary} optimized ${SDL2Libraries} optimized ${SDL_FontCacheReleaseLibrary} optimized ${MUtilityReleaseLibrary} optimized ${TubesReleaseLibrary})
 
 # Add postbuild scripts that moves DLL files to the directory of the executable
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${ConfigurationBasedExternalPathAbsolute} ${OutputDirectoryAbsolute}/$<CONFIGURATION>)
