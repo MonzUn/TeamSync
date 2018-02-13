@@ -40,6 +40,7 @@ private:
 
 	Player* players[TEAMSYNC_MAX_PLAYERS] = { nullptr };
 	PlayerID localPlayerID = UNASSIGNED_PLAYER_ID;
+	bool isHost = false;
 
 	uint64_t delayedScreenshotcounter = 0;
 	bool awaitingDelayedScreenshot = false;

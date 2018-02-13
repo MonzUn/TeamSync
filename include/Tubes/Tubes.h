@@ -15,7 +15,7 @@ namespace Tubes
 	void SendToAll( const Message* message, ConnectionID exception = INVALID_CONNECTION_ID );
 	void Receive( std::vector<Message*>& outMessages, std::vector<ConnectionID>* outSenderIDs = nullptr );
 
-	void RequestConnection( const std::string& address, uint16_t port ); // TODODB: Can we use tubes specific typdefes in this interface (Want to use Port here)
+	void RequestConnection( const std::string& address, uint16_t port );
 	void StartListener( uint16_t port );
 	void StopAllListeners();
 	void Disconnect( ConnectionID connectionID );
@@ -23,13 +23,10 @@ namespace Tubes
 
 	void RegisterReplicator( MessageReplicator* replicator );
 
-	ConnectionCallbackHandle RegisterConnectionCallback( ConnectionCallbackFunction callbackFunction );
+	ConnectionCallbackHandle RegisterConnectionCallback( ConnectionCallbackFunction callbackFunction ); // TODODB: Make a generic function for registering and unregistering all callbacks
 	bool UnregisterConnectionCallback( ConnectionCallbackHandle handle );
 	DisconnectionCallbackHandle RegisterDisconnectionCallback( DisconnectionCallbackFunction callbackFunction );
 	bool UnregisterDisconnectionCallback( DisconnectionCallbackHandle handle );
 
 	bool IsValidIPv4Address( const char* ipv4String );
-
-	bool GetHostFlag();
-	void SetHostFlag( bool isHost );
 };

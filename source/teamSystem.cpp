@@ -99,7 +99,7 @@ void TeamSystem::RemovePlayer(Player* player)
 
 void TeamSystem::ConnectionCallback(Tubes::ConnectionID connectionID)
 {
-	if (Tubes::GetHostFlag())
+	if (isHost)
 	{
 		PlayerID newPlayerID = FindFreePlayerSlot();
 		if (newPlayerID >= 0)
@@ -175,7 +175,7 @@ void TeamSystem::DisconnectionCallback(Tubes::ConnectionID connectionID)
 
 	if (disconnectingPlayer != nullptr)
 	{
-		if (Tubes::GetHostFlag())
+		if (isHost)
 		{
 			PlayerDisconnectMessage disconnectMessage = PlayerDisconnectMessage(disconnectingPlayer->GetPlayerID());
 			Tubes::SendToAll(&disconnectMessage);
@@ -255,9 +255,9 @@ void TeamSystem::HandleCommands()
 		std::string response = "";
 		if (command == "host")
 		{
-			if (!Tubes::GetHostFlag())
+			if (!isHost)
 			{
-				Tubes::SetHostFlag(true);
+				isHost = true;
 				Tubes::StartListener(static_cast<uint16_t>(MEngineConfig::GetInt("DefaultHostPort", DefaultPort)));
 
 				localPlayerID = 0;
@@ -306,9 +306,9 @@ void TeamSystem::HandleCommands()
 
 			if (disconnectSelf)
 			{
-				if (Tubes::GetHostFlag())
+				if (isHost)
 				{
-					Tubes::SetHostFlag(false);
+					isHost = false;
 					Tubes::StopAllListeners();
 					Tubes::DisconnectAll();
 
@@ -341,7 +341,7 @@ void TeamSystem::HandleCommands()
 		}
 		else if (command.find("connect") != std::string::npos && command.find("disconnect") == std::string::npos)
 		{
-			if (!Tubes::GetHostFlag())
+			if (!isHost)
 			{
 				size_t spacePos = command.find(' ');
 				std::string ipv4String = "";
@@ -579,7 +579,7 @@ void TeamSystem::HandleNetworkCommunication()
 					players[signalFlagMessage->PlayerID]->SetCycledScreenshotPrimed(signalFlagMessage->Flag);
 
 				// Relay
-				if (Tubes::GetHostFlag())
+				if (isHost)
 					Tubes::SendToAll(receivedMessages[i], messageSenders[i]);
 			} break;
 
@@ -590,7 +590,7 @@ void TeamSystem::HandleNetworkCommunication()
 
 		case TeamSyncMessages::PLAYER_ID:
 		{
-			if (!Tubes::GetHostFlag())
+			if (!isHost)
 			{
 				const PlayerIDMessage* playerIDMessage = static_cast<const PlayerIDMessage*>(receivedMessages[i]);
 				PlayerID playerID = playerIDMessage->PlayerID;
@@ -623,7 +623,7 @@ void TeamSystem::HandleNetworkCommunication()
 			const PlayerUpdateMessage* playerUpdateMessage = static_cast<const PlayerUpdateMessage*>(receivedMessages[i]);
 
 			// Relay
-			if (Tubes::GetHostFlag())
+			if (isHost)
 				Tubes::SendToAll(receivedMessages[i], messageSenders[i]);
 
 			void* pixelsCopy = malloc(playerUpdateMessage->ImageByteSize);
@@ -635,7 +635,7 @@ void TeamSystem::HandleNetworkCommunication()
 
 		case TeamSyncMessages::PLAYER_DISCONNECT:
 		{
-			if (!Tubes::GetHostFlag())
+			if (!isHost)
 			{
 				const PlayerDisconnectMessage* playerDisconnectMessage = static_cast<const PlayerDisconnectMessage*>(receivedMessages[i]);
 				for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
