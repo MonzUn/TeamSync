@@ -16,17 +16,19 @@
 #include <algorithm>
 #include <iostream>
 
+#define LOG_CATEGORY_TEAMSYNC "TeamSyncApp"
+
 bool TeamSync::Initialize()
 {
-	if (!Tubes::Initialize())
-		return false;
-
 	std::string applicationName = "TeamSync";
 #ifdef _DEBUG
 	applicationName += " (PID=" + std::to_string(MUtility::GetPid()) + ")";
 #endif
 	if (!MEngine::Initialize(applicationName.c_str(), UILayout::ApplicationWindowWidth, UILayout::ApplicationWindowHeight))
 		return false;
+
+	if (!Tubes::Initialize())
+		MLOG_ERROR("Failed to initialize Tubes", LOG_CATEGORY_TEAMSYNC);
 
 	MEngineInput::SetFocusRequired(false);
 	MEngineText::SetFont("resources/fonts/OpenSans-Regular.ttf");
