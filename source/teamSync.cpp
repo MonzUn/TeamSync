@@ -35,8 +35,7 @@ bool TeamSync::Initialize()
 
 	Tubes::RegisterReplicator(new Replicator());
 
-	std::thread textInputThread = std::thread(&TeamSync::HandleTextInputOutput, this);
-	textInputThread.detach();
+	textInputThread = std::thread(&TeamSync::HandleTextInputOutput, this);
 
 	MEngineSystem::RegisterSystem(new TeamSystem());
 
@@ -52,8 +51,13 @@ void TeamSync::Run()
 		MEngine::Render();
 	}
 
+	quit = true;
+	MUtility::UnblockSTDIn();
+
 	Tubes::Shutdown();
 	MEngine::Shutdown();
+
+	textInputThread.join();
 }
 
 void TeamSync::HandleTextInputOutput() // TODODB: Create a command handler to avoid spreading input and output all over code and threads
@@ -67,10 +71,13 @@ void TeamSync::HandleTextInputOutput() // TODODB: Create a command handler to av
 	while (!quit)
 	{
 		getline(std::cin, input);
-		std::transform(input.begin(), input.end(), input.begin(), ::tolower);
-		if (input == "quit")
-			quit = true;
-		else
-			CommandBlackboard::GetInstance().EnqueueCommand(input);
+		if (!quit)
+		{
+			std::transform(input.begin(), input.end(), input.begin(), ::tolower);
+			if (input == "quit")
+				quit = true;
+			else
+				CommandBlackboard::GetInstance().EnqueueCommand(input);
+		}
 	}
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include <atomic>
+#include <thread>
 
 class TeamSync
 {
@@ -10,4 +11,5 @@ public:
 private:
 	void HandleTextInputOutput();
 	std::atomic<bool> quit = false;
+	std::thread textInputThread;
 };
