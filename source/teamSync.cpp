@@ -51,6 +51,8 @@ void TeamSync::Run()
 		MEngine::Render();
 	}
 
+	CommandBlackboard::Destroy();
+
 	quit = true;
 	MUtility::UnblockSTDIn();
 
@@ -77,7 +79,7 @@ void TeamSync::HandleTextInputOutput() // TODODB: Create a command handler to av
 			if (input == "quit")
 				quit = true;
 			else
-				CommandBlackboard::GetInstance().EnqueueCommand(input);
+				CommandBlackboard::GetInstance()->EnqueueCommand(input);
 		}
 	}
 }

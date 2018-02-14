@@ -250,7 +250,7 @@ void TeamSystem::ProcessImageJobs()
 void TeamSystem::HandleCommands()
 {
 	std::string command;
-	while (CommandBlackboard::GetInstance().CommandQueue.Consume(command))
+	while (CommandBlackboard::GetInstance()->CommandQueue.Consume(command))
 	{
 		std::string response = "";
 		if (command == "host")
