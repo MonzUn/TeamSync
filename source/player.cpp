@@ -44,6 +44,9 @@ Player::~Player()
 		images[i] = nullptr;
 	}
 
+	MEngineEntityManager::DestroyEntity(imageFrame->EntityID);
+	imageFrame = nullptr;
+
 	MEngineEntityManager::DestroyEntity(primeImage->EntityID);
 	primeImage = nullptr;
 
