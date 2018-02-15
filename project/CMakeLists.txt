@@ -11,6 +11,9 @@ string(TOLOWER ${CMAKE_SYSTEM_NAME} OperatingSystemNameLowerCase)
 set(ProjectRoot ${CMAKE_CURRENT_LIST_DIR}/../)
 get_filename_component(ProjectRootAbsolute ${ProjectRoot} ABSOLUTE)
 
+# Get local(non versioned) paths to dependencies (Note: These values will be inherited to subdirectories if the subdirectories do not specify their own paths)
+include("${CMAKE_CURRENT_LIST_DIR}/CMakeLocalDependenciesPaths.txt" OPTIONAL)
+
 # Externals paths
 set(SharedExternalsPathAbsolute "${ProjectRootAbsolute}/external/windows/shared")
 set(ConfigurationBasedExternalPathAbsolute "${ProjectRootAbsolute}/external/windows/$<CONFIGURATION>")
@@ -39,24 +42,10 @@ get_filename_component(ReleaseLibraryDirectoryAbsolute ${ReleaseLibraryDirectory
 file(RELATIVE_PATH SharedLibraryDirectoryRelative ${TeamSync_SOURCE_DIR} ${ProjectRootAbsolute}/lib/shared/x64)
 get_filename_component(SharedLibraryDirectoryAbsolute ${SharedLibraryDirectoryRelative} ABSOLUTE)
 
-# Find MEngine
-set(MEngineIncludes ${IncludeDirectoryAbsolute}/MEngine)
-set(MEngineDebugLibraryDirectoryAbsolute "${DebugLibraryDirectoryAbsolute}/MEngine")
-set(MEngineReleaseLibraryDirectoryAbsolute "${ReleaseLibraryDirectoryAbsolute}/MEngine")
-message("[${PROJECT_NAME}] - Assuming MEngine includes are located at path ${MEngineIncludes}")
-message("[${PROJECT_NAME}] - Assuming MEngine debug libs are located at path ${MEngineDebugLibraryDirectoryAbsolute}")
-message("[${PROJECT_NAME}] - Assuming MEngine release libs are located at path ${MEngineReleaseLibraryDirectoryAbsolute}")
-
-find_library(MEngineDebugLibrary NAMES MEngine PATHS ${MEngineDebugLibraryDirectoryAbsolute})
-find_library(MEngineReleaseLibrary NAMES MEngine PATHS ${MEngineReleaseLibraryDirectoryAbsolute})
-message("[${PROJECT_NAME}] - Found MUtility debug libs at path ${MEngineDebugLibrary}")
-message("[${PROJECT_NAME}] - Found MUtility release libs at path ${MEngineReleaseLibrary}")
-
 # Find SDL2
 set(SDL2LibraryDirectoryAbsolute "${SharedLibraryDirectoryAbsolute}/SDL2")
-message("[${PROJECT_NAME}] - Assuming SDL2 libs are located at path ${SDL2LibraryDirectoryAbsolute}")
 
-find_library(SDL2Library NAMES SDL2 SDL2 PATHS ${SDL2LibraryDirectoryAbsolute})
+find_library(SDL2Library NAMES SDL2 PATHS ${SDL2LibraryDirectoryAbsolute})
 set(SDL2Libraries ${SDL2Library})
 message("[${PROJECT_NAME}] - Found SDL2 base libs at path ${SDL2Library}")
 
@@ -71,8 +60,6 @@ message("[${PROJECT_NAME}] - Found SDL2_ttf libs at path ${SDL2_ttfLibrary}")
 # Find SDL_FontCache
 set(SDL_FontCacheDebugLibraryDirectoryAbsolute "${DebugLibraryDirectoryAbsolute}/SDL_FontCache")
 set(SDL_FontCacheReleaseLibraryDirectoryAbsolute "${ReleaseLibraryDirectoryAbsolute}/SDL_FontCache")
-message("[${PROJECT_NAME}] - Assuming SDL_FontCache debug libs are located at path ${SDL_FontCacheDebugLibraryDirectoryAbsolute}")
-message("[${PROJECT_NAME}] - Assuming SDL_FontCache release libs are located at path ${SDL_FontCacheReleaseLibraryDirectoryAbsolute}")
 
 find_library(SDL_FontCacheDebugLibrary NAMES SDL_FontCache PATHS ${SDL_FontCacheDebugLibraryDirectoryAbsolute})
 find_library(SDL_FontCacheReleaseLibrary NAMES SDL_FontCache PATHS ${SDL_FontCacheReleaseLibraryDirectoryAbsolute})
@@ -80,37 +67,93 @@ message("[${PROJECT_NAME}] - Found SDL_FontCache debug libs at path ${SDL_FontCa
 message("[${PROJECT_NAME}] - Found SDL_FontCache release libs at path ${SDL_FontCacheReleaseLibrary}")
 
 # Find MUtility
-set(MUtilityIncludes "${IncludeDirectoryAbsolute}/MUtility")
-set(MUtilityDebugLibraryDirectoryAbsolute "${DebugLibraryDirectoryAbsolute}/MUtility")
-set(MUtilityReleaseLibraryDirectoryAbsolute "${ReleaseLibraryDirectoryAbsolute}/MUtility")
-message("[${PROJECT_NAME}] - Assuming MUtility includes are located at path ${MUtilityIncludes}")
-message("[${PROJECT_NAME}] - Assuming MUtility debug libs are located at path ${MUtilityDebugLibraryDirectoryAbsolute}")
-message("[${PROJECT_NAME}] - Assuming MUtility release libs are located at path ${MUtilityReleaseLibraryDirectoryAbsolute}")
+set(MUtilityLocalIncludePath ${IncludeDirectoryAbsolute}/MUtility)
+set(MUtilityLocalDebugLibPath "${DebugLibraryDirectoryAbsolute}/MUtility")
+set(MUtilityLocalReleaseLibPath "${ReleaseLibraryDirectoryAbsolute}/MUtility")
 
-find_library(MUtilityDebugLibrary NAMES MUtility PATHS ${MUtilityDebugLibraryDirectoryAbsolute})
-find_library(MUtilityReleaseLibrary NAMES MUtility PATHS ${MUtilityReleaseLibraryDirectoryAbsolute})
+if(MUtilityRootPath)
+	message("[${PROJECT_NAME}] - Found MUtility project at path ${MUtilityRootPath}")
+	set(MUtilityCMakePath "${MUtilityRootPath}/project")
+	set(MUtilityIncludePath "${MUtilityRootPath}/source/interface")
+	set(MUtilityDebugLibPath "${MUtilityRootPath}/output/Debug")
+	set(MUtilityReleaseLibPath "${MUtilityRootPath}/output/Release")
+
+	set(MUtilityIncludes ${MUtilityIncludePath})
+	set(MUtilityDebugLibs ${MUtilityDebugLibPath})
+	set(MUtilityReleaseLibs ${MUtilityReleaseLibPath})
+else(MUtilityRootPath)
+	set(MUtilityIncludes ${MUtilityLocalIncludePath})
+	set(MUtilityDebugLibs ${MUtilityLocalDebugLibPath})
+	set(MUtilityReleaseLibs ${MUtilityLocalReleaseLibPath})
+endif(MUtilityRootPath)
+
+find_library(MUtilityDebugLibrary NAMES MUtility PATHS ${MUtilityDebugLibs})
 message("[${PROJECT_NAME}] - Found MUtility debug libs at path ${MUtilityDebugLibrary}")
+find_library(MUtilityReleaseLibrary NAMES MUtility PATHS ${MUtilityReleaseLibs})
 message("[${PROJECT_NAME}] - Found MUtility release libs at path ${MUtilityReleaseLibrary}")
 
-# Find Tubes
-set(TubesIncludes ${IncludeDirectoryAbsolute}/Tubes)
-set(TubesDebugLibraryDirectoryAbsolute "${DebugLibraryDirectoryAbsolute}/Tubes")
-set(TubesReleaseLibraryDirectoryAbsolute "${ReleaseLibraryDirectoryAbsolute}/Tubes")
-message("[${PROJECT_NAME}] - Assuming Tubes includes are located at path ${TubesIncludes}")
-message("[${PROJECT_NAME}] - Assuming Tubes debug libs are located at path ${TubesDebugLibraryDirectoryAbsolute}")
-message("[${PROJECT_NAME}] - Assuming Tubes release libs are located at path ${TubesReleaseLibraryDirectoryAbsolute}")
+# Find MEngine
+set(MEngineLocalIncludePath ${IncludeDirectoryAbsolute}/MEngine)
+set(MEngineLocalDebugLibPath "${DebugLibraryDirectoryAbsolute}/MEngine")
+set(MEngineLocalReleaseLibPath "${ReleaseLibraryDirectoryAbsolute}/MEngine")
 
-find_library(TubesDebugLibrary NAMES Tubes PATHS ${TubesDebugLibraryDirectoryAbsolute})
-find_library(TubesReleaseLibrary NAMES Tubes PATHS ${TubesReleaseLibraryDirectoryAbsolute})
+if(MengineRootPath)
+	message("[${PROJECT_NAME}] - Found MEngine project at path ${MengineRootPath}")
+	set(MEngineCMakePath "${MengineRootPath}/project")
+	set(MEngineIncludePath "${MengineRootPath}/source/interface")
+	set(MEngineDebugLibPath "${MengineRootPath}/output/Debug")
+	set(MEngineReleaseLibPath "${MengineRootPath}/output/Release")
+
+	set(MEngineIncludes ${MEngineIncludePath})
+	set(MEngineDebugLibs ${MEngineDebugLibPath})
+	set(MEngineReleaseLibs ${MEngineReleaseLibPath})
+else(MengineRootPath)
+	set(MEngineIncludes ${MEngineLocalIncludePath})
+	set(MEngineDebugLibs ${MEngineLocalDebugLibPath})
+	set(MEngineReleaseLibs ${MEngineLocalReleaseLibPath})
+endif(MengineRootPath)
+
+find_library(MEngineDebugLibrary NAMES MEngine PATHS ${MEngineDebugLibs})
+message("[${PROJECT_NAME}] - Found MEngine debug libs at path ${MEngineDebugLibrary}")
+find_library(MEngineReleaseLibrary NAMES MEngine PATHS ${MEngineReleaseLibs})
+message("[${PROJECT_NAME}] - Found MEngine release libs at path ${MEngineReleaseLibrary}")
+
+# Find Tubes
+set(TubesLocalIncludePath ${IncludeDirectoryAbsolute}/Tubes)
+set(TubesLocalDebugLibPath "${DebugLibraryDirectoryAbsolute}/Tubes")
+set(TubesLocalReleaseLibPath "${ReleaseLibraryDirectoryAbsolute}/Tubes")
+
+if(TubesRootPath)
+	message("[${PROJECT_NAME}] - Found Tubes project at path ${TubesRootPath}")
+	set(TubesCMakePath "${TubesRootPath}/project")
+	set(TubesIncludePath "${TubesRootPath}/source/interface")
+	set(TubesDebugLibPath "${TubesRootPath}/output/Debug")
+	set(TubesReleaseLibPath "${TubesRootPath}/output/Release")
+
+	set(TubesIncludes ${TubesIncludePath})
+	set(TubesDebugLibs ${TubesDebugLibPath})
+	set(TubesReleaseLibs ${TubesReleaseLibPath})
+else(TubesRootPath)
+	set(TubesIncludes ${TubesLocalIncludePath})
+	set(TubesDebugLibs ${TubesLocalDebugLibPath})
+	set(TubesReleaseLibs ${TubesLocalReleaseLibPath})
+endif(TubesRootPath)
+
+find_library(TubesDebugLibrary NAMES Tubes PATHS ${TubesDebugLibs})
 message("[${PROJECT_NAME}] - Found Tubes debug libs at path ${TubesDebugLibrary}")
+find_library(TubesReleaseLibrary NAMES Tubes PATHS ${TubesReleaseLibs})
 message("[${PROJECT_NAME}] - Found Tubes release libs at path ${TubesReleaseLibrary}")
 
 # List include directories
 set(IncludeDirectoryList
-	${MEngineIncludes}
 	${MUtilityIncludes}
+	${MEngineIncludes}
 	${TubesIncludes}
 )
+message("[${PROJECT_NAME}] - Include directories are:")
+foreach(IncludeDir ${IncludeDirectoryList})
+	message("	${IncludeDir}")
+endforeach(IncludeDir)
 
 # List source file directories
 file(GLOB_RECURSE SOURCE_DIRECTORIES
@@ -133,10 +176,10 @@ get_filename_component(OutputDirectoryAbsolute ${OutputDirectoryRelative} ABSOLU
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 # Link debug libraries to the executable
-target_link_libraries(${PROJECT_NAME} debug ${MEngineDebugLibrary} debug ${SDL2Libraries} debug ${SDL_FontCacheDebugLibrary} debug ${MUtilityDebugLibrary} debug ${TubesDebugLibrary})
+target_link_libraries(${PROJECT_NAME} debug ${SDL2Libraries} debug ${SDL_FontCacheDebugLibrary} debug ${MUtilityDebugLibrary} debug ${MEngineDebugLibrary} debug ${TubesDebugLibrary})
 
 # Link release libraries to the executable
-target_link_libraries(${PROJECT_NAME} optimized ${MEngineReleaseLibrary} optimized ${SDL2Libraries} optimized ${SDL_FontCacheReleaseLibrary} optimized ${MUtilityReleaseLibrary} optimized ${TubesReleaseLibrary})
+target_link_libraries(${PROJECT_NAME} optimized ${SDL2Libraries} optimized ${SDL_FontCacheReleaseLibrary} optimized ${MUtilityReleaseLibrary} optimized ${MEngineReleaseLibrary} optimized ${TubesReleaseLibrary})
 
 # Add postbuild scripts that moves DLL files to the directory of the executable
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${ConfigurationBasedExternalPathAbsolute} ${OutputDirectoryAbsolute}/$<CONFIGURATION>)
@@ -145,48 +188,28 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E
 # Add postbuild scripts that moves resources to the directory of the executable
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${ResourcePathAbsolute} ${OutputDirectoryAbsolute}/$<CONFIGURATION>/resources)
 
-# ---------- Dependencies ----------
-
-# Get local(non versioned) paths to dependencies (Note: These values will be inherited to subdirectories if the subdirectories do not specify their own paths)
-include("${CMAKE_CURRENT_LIST_DIR}/CMakeLocalDependenciesPaths.txt" OPTIONAL)
-
-if(MengineRootPath)
-	message("[${PROJECT_NAME}] - Found MEngine project at path ${MengineRootPath}")
-	set(MEngineCMakePath "${MengineRootPath}/project")
-	set(MEngineIncludeCopyPath "${MengineRootPath}/source/interface")
-	set(MEngineDebugLibCopyPath "${MengineRootPath}/output/Debug")
-	set(MEngineReleaseLibCopyPath "${MengineRootPath}/output/Release")
-	add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${MEngineIncludeCopyPath} ${MEngineIncludes})
-   	add_custom_command(TARGET ${PROJECT_NAME} PRE_LINK COMMAND ${CMAKE_COMMAND} -E copy_directory ${MEngineDebugLibCopyPath} ${MEngineDebugLibraryDirectoryAbsolute})
-	add_custom_command(TARGET ${PROJECT_NAME} PRE_LINK COMMAND ${CMAKE_COMMAND} -E copy_directory ${MEngineReleaseLibCopyPath} ${MEngineReleaseLibraryDirectoryAbsolute})
-	if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-		add_subdirectory(${MEngineCMakePath} ${MEngineCMakePath})
-	endif(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-endif(MengineRootPath)
-
 if(MUtilityRootPath)
-	message("[${PROJECT_NAME}] - Found MUtility project at path ${MUtilityRootPath}")
-	set(MUtilityCMakePath "${MUtilityRootPath}/project")
-	set(MUtilityIncludeCopyPath "${MUtilityRootPath}/source/interface")
-	set(MUtilityDebugLibCopyPath "${MUtilityRootPath}/output/Debug")
-	set(MUtilityReleaseLibCopyPath "${MUtilityRootPath}/output/Release")
-	add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${MUtilityIncludeCopyPath} ${MUtilityIncludes})
-	add_custom_command(TARGET ${PROJECT_NAME} PRE_LINK COMMAND ${CMAKE_COMMAND} -E copy_directory ${MUtilityDebugLibCopyPath} ${MUtilityDebugLibraryDirectoryAbsolute})
-	add_custom_command(TARGET ${PROJECT_NAME} PRE_LINK COMMAND ${CMAKE_COMMAND} -E copy_directory ${MUtilityReleaseLibCopyPath} ${MUtilityReleaseLibraryDirectoryAbsolute})
+	add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${MUtilityIncludePath} ${MUtilityLocalIncludePath})
+	add_custom_command(TARGET ${PROJECT_NAME} PRE_LINK COMMAND ${CMAKE_COMMAND} -E copy_directory ${MUtilityDebugLibPath} ${MUtilityLocalDebugLibPath})
+	add_custom_command(TARGET ${PROJECT_NAME} PRE_LINK COMMAND ${CMAKE_COMMAND} -E copy_directory ${MUtilityReleaseLibPath} ${MUtilityLocalReleaseLibPath})
 	if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 		add_subdirectory(${MUtilityCMakePath} ${MUtilityCMakePath})
 	endif(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 endif(MUtilityRootPath)
 
+if(MengineRootPath)
+	add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${MEngineIncludePath} ${MEngineLocalIncludePath})
+   	add_custom_command(TARGET ${PROJECT_NAME} PRE_LINK COMMAND ${CMAKE_COMMAND} -E copy_directory ${MEngineDebugLibPath} ${MEngineLocalDebugLibPath})
+	add_custom_command(TARGET ${PROJECT_NAME} PRE_LINK COMMAND ${CMAKE_COMMAND} -E copy_directory ${MEngineReleaseLibPath} ${MEngineLocalReleaseLibPath})
+	if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+		add_subdirectory(${MEngineCMakePath} ${MEngineCMakePath})
+	endif(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+endif(MengineRootPath)
+
 if(TubesRootPath)	
-	message("[${PROJECT_NAME}] - Found Tubes project at path ${TubesRootPath}")
-	set(TubesCMakePath "${TubesRootPath}/project")
-	set(TubesIncludeCopyPath "${TubesRootPath}/source/interface")
-	set(TubesDebugLibCopyPath "${TubesRootPath}/output/Debug")
-	set(TubesReleaseLibCopyPath "${TubesRootPath}/output/Release")
-	add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${TubesIncludeCopyPath} ${TubesIncludes})
-	add_custom_command(TARGET ${PROJECT_NAME} PRE_LINK COMMAND ${CMAKE_COMMAND} -E copy_directory ${TubesDebugLibCopyPath} ${TubesDebugLibraryDirectoryAbsolute})
-    add_custom_command(TARGET ${PROJECT_NAME} PRE_LINK COMMAND ${CMAKE_COMMAND} -E copy_directory ${TubesReleaseLibCopyPath} ${TubesReleaseLibraryDirectoryAbsolute})
+	add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${TubesIncludePath} ${TubesLocalIncludePath})
+	add_custom_command(TARGET ${PROJECT_NAME} PRE_LINK COMMAND ${CMAKE_COMMAND} -E copy_directory ${TubesDebugLibPath} ${TubesLocalDebugLibPath})
+    add_custom_command(TARGET ${PROJECT_NAME} PRE_LINK COMMAND ${CMAKE_COMMAND} -E copy_directory ${TubesReleaseLibPath} ${TubesLocalReleaseLibPath})
     if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     	add_subdirectory(${TubesCMakePath} ${TubesCMakePath})
     endif(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
