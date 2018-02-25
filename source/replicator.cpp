@@ -10,6 +10,8 @@ using namespace MUtilitySerialization;
 using namespace TeamSyncMessages;
 using namespace DataSizes;
 
+using MUtility::Byte;
+
 #define LOGGING_CATEGORY_REPLICATOR "Replicator"
 
 Byte* Replicator::SerializeMessage(const Message* message, MessageSize* outMessageSize, Byte* optionalWritingBuffer)

@@ -34,7 +34,7 @@ private:
 
 	void PrimeCycledScreenshot();
 
-#ifdef _DEBUG
+#if COMPILE_MODE == COMPILE_MODE_DEBUG
 	void RunDebugCode();
 #endif
 

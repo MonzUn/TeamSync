@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <iostream>
 
+#include "MUtilityByte.h"
 #define LOG_CATEGORY_TEAMSYNC "TeamSyncApp"
 
 bool TeamSync::Initialize()
