@@ -1,5 +1,7 @@
 #pragma once
-#include <mengineObject.h>
+#include <mengineEntityManager.h>
+#include <mengineInternalComponents.h>
+#include <mengineTypes.h>
 #include <TubesTypes.h>
 
 #define UNASSIGNED_PLAYER_ID -1
@@ -31,17 +33,58 @@ namespace PlayerImageSlot
 		Body,
 		BackpackStat,
 		Weapon,
+		Fullscreen, // Should stay at the bottom of the valid slots
 
-		Fullscreen, // Should stay at the bottom
 		Count,
 		None
 	};
 }
 
-class ImageObject : public MEngineObject
+class Image
 {
 public:
-	ImageObject(int32_t posX, int32_t posY, int32_t width, int32_t height) { PosX = posX; PosY = posY, Width = width; Height = height; };
+	Image(int32_t posX, int32_t posY, int32_t width, int32_t height)
+	{
+		m_EntityID = MEngineEntityManager::CreateEntity();
+		MEngineEntityManager::AddComponentsToEntity(MEngine::TextureRenderingComponent::GetComponentMask(), m_EntityID);
+		MEngine::TextureRenderingComponent* textureComponent = static_cast<MEngine::TextureRenderingComponent*>(MEngineEntityManager::GetComponentForEntity(MEngine::TextureRenderingComponent::GetComponentMask(), m_EntityID));
+		textureComponent->PosX		= posX;
+		textureComponent->PosY		= posY;
+		textureComponent->Width		= width;
+		textureComponent->Height	= height;
+	};
+
+	~Image()
+	{
+		MEngineEntityManager::DestroyEntity(m_EntityID);
+	}
+
+	MEngineTextureID GetTextureID() const
+	{
+		MEngine::TextureRenderingComponent* textureComponent = static_cast<MEngine::TextureRenderingComponent*>(MEngineEntityManager::GetComponentForEntity(MEngine::TextureRenderingComponent::GetComponentMask(), m_EntityID));
+		return textureComponent->TextureID;
+	}
+
+	void SetTextureID(MEngineTextureID textureID)
+	{
+		MEngine::TextureRenderingComponent* textureComponent = static_cast<MEngine::TextureRenderingComponent*>(MEngineEntityManager::GetComponentForEntity(MEngine::TextureRenderingComponent::GetComponentMask(), m_EntityID));
+		textureComponent->TextureID = textureID;
+	}
+
+	bool GetRenderIgnore() const
+	{
+		MEngine::TextureRenderingComponent* textureComponent = static_cast<MEngine::TextureRenderingComponent*>(MEngineEntityManager::GetComponentForEntity(MEngine::TextureRenderingComponent::GetComponentMask(), m_EntityID));
+		return textureComponent->RenderIgnore;
+	}
+
+	void SetRenderIgnore(bool shouldIgnore)
+	{
+		MEngine::TextureRenderingComponent* textureComponent = static_cast<MEngine::TextureRenderingComponent*>(MEngineEntityManager::GetComponentForEntity(MEngine::TextureRenderingComponent::GetComponentMask(), m_EntityID));
+		textureComponent->RenderIgnore = shouldIgnore;
+	}
+
+private:
+	MEngineEntityID m_EntityID = INVALID_MENGINE_ENTITY_ID;
 };
 
 class Player
@@ -53,8 +96,8 @@ public:
 	void Activate(PlayerID playerID, PlayerConnectionType::PlayerConnectionType connectionType, Tubes::ConnectionID connectionID);
 	void Deactivate();
 
-	MEngineGraphics::MEngineTextureID GetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImage) const;
-	void SetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImage, MEngineGraphics::MEngineTextureID textureID);
+	MEngineTextureID GetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImage) const;
+	void SetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImage, MEngineTextureID textureID);
 
 	PlayerID GetPlayerID() const;
 	Tubes::ConnectionID GetPlayerConnectionID() const;
@@ -74,18 +117,17 @@ private:
 	int32_t Width		= -1;
 	int32_t Height		= -1;
 
-	Player::ImageObject* images[PlayerImageSlot::Count] = { nullptr };
-	Player::ImageObject* imageFrame		= nullptr;
-	Player::ImageObject* primeImage		= nullptr;
-	Player::ImageObject* defaultImage	= nullptr;
-	Player::ImageObject* statusImage	= nullptr;
+	Player::Image* images[PlayerImageSlot::Count] = { nullptr };
+	Player::Image* imageFrame		= nullptr;
+	Player::Image* primeImage		= nullptr;
+	Player::Image* defaultImage	= nullptr;
+	Player::Image* statusImage	= nullptr;
 
-	MEngineGraphics::MEngineTextureID statusActiveTextureID		= INVALID_MENGINE_TEXTURE_ID;
-	MEngineGraphics::MEngineTextureID statusInactiveTextureID	= INVALID_MENGINE_TEXTURE_ID;
-
+	MEngineTextureID statusActiveTextureID		= INVALID_MENGINE_TEXTURE_ID;
+	MEngineTextureID statusInactiveTextureID	= INVALID_MENGINE_TEXTURE_ID;
 	
 	// Default values for these variables are set in the Reset() function
-	PlayerID m_PlayerID;									// TODODB: Switch to hungarian notation for members for the whole project
+	PlayerID m_PlayerID; // TODODB: Switch to hungarian notation for members for the whole project
 	Tubes::ConnectionID m_ConnectionID;
 	PlayerConnectionType::PlayerConnectionType m_ConnectionType;
 	bool isActive;

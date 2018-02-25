@@ -1,6 +1,7 @@
 #include "player.h"
 #include "uiLayout.h"
 #include "MUtilityLog.h"
+#include <mengineGraphics.h>
 
 #define LOG_CATEGORY_PLAYER "Player"
 
@@ -9,27 +10,22 @@ Player::Player(int32_t posX, int32_t posY, int32_t width, int32_t height) :
 {
 	for (int i = 0; i < PlayerImageSlot::Count; ++i)
 	{
-		images[i] = new ImageObject(PositionX + UILayout::ImagePosAndDimensions[i][0], PositionY + UILayout::ImagePosAndDimensions[i][1], UILayout::ImagePosAndDimensions[i][2], UILayout::ImagePosAndDimensions[i][3]);
-		MEngineEntityManager::RegisterNewEntity(images[i]);
+		images[i] = new Image(PositionX + UILayout::ImagePosAndDimensions[i][0], PositionY + UILayout::ImagePosAndDimensions[i][1], UILayout::ImagePosAndDimensions[i][2], UILayout::ImagePosAndDimensions[i][3]);
 	}
-
+	
 	statusActiveTextureID	= MEngineGraphics::GetTextureFromPath("resources/graphics/Check.png");
 	statusInactiveTextureID = MEngineGraphics::GetTextureFromPath("resources/graphics/Cross.png");
-
-	imageFrame = new ImageObject(PositionX + UILayout::PLAYER_FRAME_RELATIVE_POS_X, PositionY + UILayout::PLAYER_FRAME_RELATIVE_POS_Y, UILayout::PLAYER_FRAME_WIDTH, UILayout::PLAYER_FRAME_HEIGHT);
-	MEngineEntityManager::RegisterNewEntity(imageFrame);
-	imageFrame->TextureID = MEngineGraphics::GetTextureFromPath("resources/graphics/PlayerFrame.png");
-
-	primeImage = new ImageObject(PositionX + UILayout::PLAYER_PRIME_INDICATOR_RELATIVE_POS_X, PositionY + UILayout::PLAYER_PRIME_INDICATOR_RELATIVE_POS_Y, UILayout::PLAYER_PRIME_INDICATOR_WIDTH, UILayout::PLAYER_PRIME_INDICATOR_HEIGHT);
-	MEngineEntityManager::RegisterNewEntity(primeImage);
-	primeImage->TextureID = MEngineGraphics::GetTextureFromPath("resources/graphics/RedDot.png"); // TODODB: Unload all the textures loaded here when there is a proper system for this in MEngine
-
-	defaultImage = new ImageObject(PositionX + UILayout::PLAYER_DEFAULT_IMAGE_RELATIVE_POS_X, PositionY + UILayout::PLAYER_DEFAULT_IMAGE_RELATIVE_POS_Y, UILayout::PLAYER_DEFAULT_IMAGE_WIDTH, UILayout::PLAYER_DEFAULT_IMAGE_HEIGHT);
-	MEngineEntityManager::RegisterNewEntity(defaultImage);
-	defaultImage->TextureID = MEngineGraphics::GetTextureFromPath("resources/graphics/Computer.png");
-
-	statusImage = new ImageObject(PositionX + UILayout::PLAYER_STATUS_IMAGE_RELATIVE_POS_X, PositionY + UILayout::PLAYER_STATUS_IMAGE_RELATIVE_POS_Y, UILayout::PLAYER_STATUS_IMAGE_WIDTH, UILayout::PLAYER_STATUS_IMAGE_HEIGHT);
-	MEngineEntityManager::RegisterNewEntity(statusImage);
+	
+	imageFrame = new Image(PositionX + UILayout::PLAYER_FRAME_RELATIVE_POS_X, PositionY + UILayout::PLAYER_FRAME_RELATIVE_POS_Y, UILayout::PLAYER_FRAME_WIDTH, UILayout::PLAYER_FRAME_HEIGHT);
+	imageFrame->SetTextureID(MEngineGraphics::GetTextureFromPath("resources/graphics/PlayerFrame.png"));
+	
+	primeImage = new Image(PositionX + UILayout::PLAYER_PRIME_INDICATOR_RELATIVE_POS_X, PositionY + UILayout::PLAYER_PRIME_INDICATOR_RELATIVE_POS_Y, UILayout::PLAYER_PRIME_INDICATOR_WIDTH, UILayout::PLAYER_PRIME_INDICATOR_HEIGHT);
+	primeImage->SetTextureID(MEngineGraphics::GetTextureFromPath("resources/graphics/RedDot.png")); // TODODB: Unload all the textures loaded here when there is a proper system for this in MEngine
+	
+	defaultImage = new Image(PositionX + UILayout::PLAYER_DEFAULT_IMAGE_RELATIVE_POS_X, PositionY + UILayout::PLAYER_DEFAULT_IMAGE_RELATIVE_POS_Y, UILayout::PLAYER_DEFAULT_IMAGE_WIDTH, UILayout::PLAYER_DEFAULT_IMAGE_HEIGHT);
+	defaultImage->SetTextureID (MEngineGraphics::GetTextureFromPath("resources/graphics/Computer.png"));
+	
+	statusImage = new Image(PositionX + UILayout::PLAYER_STATUS_IMAGE_RELATIVE_POS_X, PositionY + UILayout::PLAYER_STATUS_IMAGE_RELATIVE_POS_Y, UILayout::PLAYER_STATUS_IMAGE_WIDTH, UILayout::PLAYER_STATUS_IMAGE_HEIGHT);
 
 	Reset();
 }
@@ -40,21 +36,12 @@ Player::~Player()
 
 	for (int i = 0; i < PlayerImageSlot::Count; ++i)
 	{
-		MEngineEntityManager::DestroyEntity(images[i]->EntityID);
-		images[i] = nullptr;
+		delete images[i];
 	}
-
-	MEngineEntityManager::DestroyEntity(imageFrame->EntityID);
-	imageFrame = nullptr;
-
-	MEngineEntityManager::DestroyEntity(primeImage->EntityID);
-	primeImage = nullptr;
-
-	MEngineEntityManager::DestroyEntity(defaultImage->EntityID);
-	defaultImage = nullptr;
-
-	MEngineEntityManager::DestroyEntity(statusImage->EntityID);
-	statusImage = nullptr;
+	delete imageFrame;
+	delete primeImage;
+	delete defaultImage;
+	delete statusImage;
 }
 
 void Player::Activate(PlayerID playerID, PlayerConnectionType::PlayerConnectionType connectionType, Tubes::ConnectionID connectionID)
@@ -69,7 +56,7 @@ void Player::Activate(PlayerID playerID, PlayerConnectionType::PlayerConnectionT
 	m_ConnectionType	= connectionType;
 	m_ConnectionID		= connectionID;
 	SetCycledScreenshotPrimed(true);
-	statusImage->TextureID = statusActiveTextureID;
+	statusImage->SetTextureID(statusActiveTextureID);
 
 	isActive = true;
 }
@@ -86,15 +73,15 @@ void Player::Deactivate()
 	UnloadScreenshotTextures();
 }
 
-MEngineGraphics::MEngineTextureID Player::GetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImage) const
+MEngineTextureID Player::GetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImage) const
 {
 	if (!isActive)
 		return INVALID_MENGINE_TEXTURE_ID;
 
-	return images[playerImage]->TextureID;
+	return images[playerImage]->GetTextureID();
 }
 
-void Player::SetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImageSlot, MEngineGraphics::MEngineTextureID textureID)
+void Player::SetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImageSlot, MEngineTextureID textureID)
 {
 	if (!isActive)
 		return;
@@ -103,18 +90,18 @@ void Player::SetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImageSlot,
 	{
 		UnloadScreenshotTextures();
 	}
-	else if (images[PlayerImageSlot::Fullscreen]->TextureID != INVALID_MENGINE_TEXTURE_ID)
+	else if (images[PlayerImageSlot::Fullscreen]->GetTextureID() != INVALID_MENGINE_TEXTURE_ID)
 	{
-		MEngineGraphics::UnloadTexture(images[PlayerImageSlot::Fullscreen]->TextureID);
-		images[PlayerImageSlot::Fullscreen]->TextureID = INVALID_MENGINE_TEXTURE_ID;
+		MEngineGraphics::UnloadTexture(images[PlayerImageSlot::Fullscreen]->GetTextureID());
+		images[PlayerImageSlot::Fullscreen]->SetTextureID(INVALID_MENGINE_TEXTURE_ID);
 	}
 		
 
-	if (images[playerImageSlot]->TextureID != INVALID_MENGINE_TEXTURE_ID)
-		MEngineGraphics::UnloadTexture(images[playerImageSlot]->TextureID);
-	images[playerImageSlot]->TextureID = textureID;
-	defaultImage->RenderIgnore = true;
-	statusImage->RenderIgnore = true;
+	if (images[playerImageSlot]->GetTextureID() != INVALID_MENGINE_TEXTURE_ID)
+		MEngineGraphics::UnloadTexture(images[playerImageSlot]->GetTextureID());
+	images[playerImageSlot]->SetTextureID(textureID);
+	defaultImage->SetRenderIgnore(true);
+	statusImage->SetRenderIgnore(true);
 }
 
 PlayerID Player::GetPlayerID() const
@@ -145,18 +132,19 @@ bool Player::GetCycledScreenshotPrimed() const
 void Player::SetCycledScreenshotPrimed(bool primed)
 {
 	cycledScreenshotPrimed = primed;
-	primeImage->RenderIgnore = !primed;
+	primeImage->SetRenderIgnore(!primed);
 }
 
 void Player::Reset()
 {
-	m_PlayerID					= UNASSIGNED_PLAYER_ID;
-	m_ConnectionID				= INVALID_CONNECTION_ID;
-	m_ConnectionType			= PlayerConnectionType::Invalid;
-	isActive					= false;
-	defaultImage->RenderIgnore	= false;
-	statusImage->RenderIgnore	= false;
-	statusImage->TextureID		= statusInactiveTextureID;
+	m_PlayerID			= UNASSIGNED_PLAYER_ID;
+	m_ConnectionID		= INVALID_CONNECTION_ID;
+	m_ConnectionType	= PlayerConnectionType::Invalid;
+	isActive			= false;
+
+	defaultImage->SetRenderIgnore(false);
+	statusImage->SetRenderIgnore(false);
+	statusImage->SetTextureID(statusInactiveTextureID);
 
 	SetCycledScreenshotPrimed(false);
 }
@@ -165,10 +153,10 @@ void Player::UnloadScreenshotTextures()
 {
 	for (int i = 0; i < PlayerImageSlot::Count; ++i)
 	{
-		if (images[i]->TextureID != INVALID_MENGINE_TEXTURE_ID)
+		if (images[i]->GetTextureID() != INVALID_MENGINE_TEXTURE_ID)
 		{
-			MEngineGraphics::UnloadTexture(images[i]->TextureID);
-			images[i]->TextureID = INVALID_MENGINE_TEXTURE_ID;
+			MEngineGraphics::UnloadTexture(images[i]->GetTextureID());
+			images[i]->SetTextureID(INVALID_MENGINE_TEXTURE_ID);
 		}
 	}
 }
