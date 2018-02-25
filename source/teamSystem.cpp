@@ -13,7 +13,6 @@
 #include <iostream>
 
 using namespace MEngineInput;
-using MEngineGraphics::MEngineTextureID;
 
 #define LOG_CATEGORY_TEAM "Team"
 #define DELAYED_SCREENSHOT_WAIT_TIME_MILLISECONDS 150

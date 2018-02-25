@@ -27,6 +27,6 @@ struct ImageJob
 	int64_t			DelayedScreenShotCounter = -1;
 	void*			Pixels = nullptr;
 
-	PlayerImageSlot::PlayerImageSlot	ImageSlot = PlayerImageSlot::None;
-	MEngineGraphics::MEngineTextureID	ResultTextureID = INVALID_MENGINE_TEXTURE_ID;
+	PlayerImageSlot::PlayerImageSlot ImageSlot	= PlayerImageSlot::None;
+	MEngineTextureID ResultTextureID			= INVALID_MENGINE_TEXTURE_ID;
 };
