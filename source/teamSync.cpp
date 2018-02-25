@@ -22,7 +22,7 @@
 bool TeamSync::Initialize()
 {
 	std::string applicationName = "TeamSync";
-#ifdef _DEBUG
+#if COMPILE_MODE == COMPILE_MODE_DEBUG
 	applicationName += " (PID=" + std::to_string(MUtility::GetPid()) + ")";
 #endif
 	if (!MEngine::Initialize(applicationName.c_str(), UILayout::ApplicationWindowWidth, UILayout::ApplicationWindowHeight))

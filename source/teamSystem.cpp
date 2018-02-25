@@ -69,7 +69,7 @@ void TeamSystem::UpdatePresentationLayer(float deltaTime)
 {
 	HandleCommands();
 	HandleLogging();
-#ifdef _DEBUG
+#if COMPILE_MODE == COMPILE_MODE_DEBUG
 	RunDebugCode();
 #endif
 	HandleInput();
@@ -670,7 +670,7 @@ void TeamSystem::PrimeCycledScreenshot()
 	message.Destroy();
 }
 
-#ifdef _DEBUG
+#if COMPILE_MODE == COMPILE_MODE_DEBUG
 void TeamSystem::RunDebugCode()
 {
 	bool ContinuousScreenshots = false;
