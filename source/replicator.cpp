@@ -12,7 +12,7 @@ using namespace DataSizes;
 
 using MUtility::Byte;
 
-#define LOGGING_CATEGORY_REPLICATOR "Replicator"
+#define LOG_CATEGORY_REPLICATOR "Replicator"
 
 Byte* Replicator::SerializeMessage(const Message* message, MessageSize* outMessageSize, Byte* optionalWritingBuffer)
 {
@@ -81,7 +81,7 @@ Byte* Replicator::SerializeMessage(const Message* message, MessageSize* outMessa
 
 		default:
 		{
-			MLOG_WARNING("Failed to find serialization logic for message of type " << message->Type, LOGGING_CATEGORY_REPLICATOR);
+			MLOG_WARNING("Failed to find serialization logic for message of type " << message->Type, LOG_CATEGORY_REPLICATOR);
 			if (optionalWritingBuffer == nullptr) // Only free the memory buffer if it wasn't supplied as a parameter
 				free(serializedMessage);
 
@@ -93,7 +93,7 @@ Byte* Replicator::SerializeMessage(const Message* message, MessageSize* outMessa
 	uint64_t differance = m_WritingWalker - serializedMessage;
 	if (differance != messageSize)
 	{
-		MLOG_WARNING("SerializeMessage didn't write the expected amount of bytes", LOGGING_CATEGORY_REPLICATOR);
+		MLOG_WARNING("SerializeMessage didn't write the expected amount of bytes", LOG_CATEGORY_REPLICATOR);
 		assert(false);
 	}
 #endif
@@ -174,7 +174,7 @@ Message* Replicator::DeserializeMessage(const Byte* const buffer)
 
 		default:
 		{
-			MLOG_WARNING("Failed to find deserialization logic for message of type " << deserializedMessage->Type, LOGGING_CATEGORY_REPLICATOR);
+			MLOG_WARNING("Failed to find deserialization logic for message of type " << deserializedMessage->Type, LOG_CATEGORY_REPLICATOR);
 			deserializedMessage = nullptr;
 		} break;
 	}
@@ -183,7 +183,7 @@ Message* Replicator::DeserializeMessage(const Byte* const buffer)
 	uint64_t differance = m_ReadingWalker - buffer;
 	if (differance != messageSize)
 	{
-		MLOG_WARNING("DeserializeMessage didn't read the expected amount of bytes", LOGGING_CATEGORY_REPLICATOR);
+		MLOG_WARNING("DeserializeMessage didn't read the expected amount of bytes", LOG_CATEGORY_REPLICATOR);
 		assert(false);
 	}
 #endif
@@ -241,7 +241,7 @@ int32_t Replicator::CalculateMessageSize(const Message& message) const
 
 		default:
 		{
-			MLOG_WARNING("Failed to find size calculation logic for message of type " << message.Type, LOGGING_CATEGORY_REPLICATOR);
+			MLOG_WARNING("Failed to find size calculation logic for message of type " << message.Type, LOG_CATEGORY_REPLICATOR);
 			messageSize = 0;
 		} break;
 	}
