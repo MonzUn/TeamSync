@@ -6,9 +6,9 @@
 #include <MUtilitySerialization.h>
 #include <cassert>
 
-using namespace MUtilitySerialization;
+using namespace MUtility::Serialization;
 using namespace TeamSyncMessages;
-using namespace DataSizes;
+using namespace MUtility::DataSizes;
 
 using MUtility::Byte;
 
@@ -36,7 +36,7 @@ Byte* Replicator::SerializeMessage(const Message* message, MessageSize* outMessa
 	CopyAndIncrementDestination(m_WritingWalker, &message->Replicator_ID, sizeof(ReplicatorID));
 
 	// Write the message type variable
-	MUtilitySerialization::CopyAndIncrementDestination(m_WritingWalker, &message->Type, sizeof(MESSAGE_TYPE_ENUM_UNDELYING_TYPE));
+	CopyAndIncrementDestination(m_WritingWalker, &message->Type, sizeof(MESSAGE_TYPE_ENUM_UNDELYING_TYPE));
 
 	// Perform serialization specific to each message type (Use same order as in the type enums here)
 	switch (message->Type)

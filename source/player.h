@@ -45,9 +45,9 @@ class Image
 public:
 	Image(int32_t posX, int32_t posY, int32_t width, int32_t height)
 	{
-		m_EntityID = MEngineEntityManager::CreateEntity();
-		MEngineEntityManager::AddComponentsToEntity(MEngine::TextureRenderingComponent::GetComponentMask(), m_EntityID);
-		MEngine::TextureRenderingComponent* textureComponent = static_cast<MEngine::TextureRenderingComponent*>(MEngineEntityManager::GetComponentForEntity(MEngine::TextureRenderingComponent::GetComponentMask(), m_EntityID));
+		m_EntityID = MEngine::CreateEntity();
+		MEngine::AddComponentsToEntity(MEngine::TextureRenderingComponent::GetComponentMask(), m_EntityID);
+		MEngine::TextureRenderingComponent* textureComponent = static_cast<MEngine::TextureRenderingComponent*>(MEngine::GetComponentForEntity(MEngine::TextureRenderingComponent::GetComponentMask(), m_EntityID));
 		textureComponent->PosX		= posX;
 		textureComponent->PosY		= posY;
 		textureComponent->Width		= width;
@@ -56,35 +56,35 @@ public:
 
 	~Image()
 	{
-		MEngineEntityManager::DestroyEntity(m_EntityID);
+		MEngine::DestroyEntity(m_EntityID);
 	}
 
-	MEngineTextureID GetTextureID() const
+	MEngine::TextureID GetTextureID() const
 	{
-		MEngine::TextureRenderingComponent* textureComponent = static_cast<MEngine::TextureRenderingComponent*>(MEngineEntityManager::GetComponentForEntity(MEngine::TextureRenderingComponent::GetComponentMask(), m_EntityID));
+		MEngine::TextureRenderingComponent* textureComponent = static_cast<MEngine::TextureRenderingComponent*>(MEngine::GetComponentForEntity(MEngine::TextureRenderingComponent::GetComponentMask(), m_EntityID));
 		return textureComponent->TextureID;
 	}
 
-	void SetTextureID(MEngineTextureID textureID)
+	void SetTextureID(MEngine::TextureID textureID)
 	{
-		MEngine::TextureRenderingComponent* textureComponent = static_cast<MEngine::TextureRenderingComponent*>(MEngineEntityManager::GetComponentForEntity(MEngine::TextureRenderingComponent::GetComponentMask(), m_EntityID));
+		MEngine::TextureRenderingComponent* textureComponent = static_cast<MEngine::TextureRenderingComponent*>(MEngine::GetComponentForEntity(MEngine::TextureRenderingComponent::GetComponentMask(), m_EntityID));
 		textureComponent->TextureID = textureID;
 	}
 
 	bool GetRenderIgnore() const
 	{
-		MEngine::TextureRenderingComponent* textureComponent = static_cast<MEngine::TextureRenderingComponent*>(MEngineEntityManager::GetComponentForEntity(MEngine::TextureRenderingComponent::GetComponentMask(), m_EntityID));
+		MEngine::TextureRenderingComponent* textureComponent = static_cast<MEngine::TextureRenderingComponent*>(MEngine::GetComponentForEntity(MEngine::TextureRenderingComponent::GetComponentMask(), m_EntityID));
 		return textureComponent->RenderIgnore;
 	}
 
 	void SetRenderIgnore(bool shouldIgnore)
 	{
-		MEngine::TextureRenderingComponent* textureComponent = static_cast<MEngine::TextureRenderingComponent*>(MEngineEntityManager::GetComponentForEntity(MEngine::TextureRenderingComponent::GetComponentMask(), m_EntityID));
+		MEngine::TextureRenderingComponent* textureComponent = static_cast<MEngine::TextureRenderingComponent*>(MEngine::GetComponentForEntity(MEngine::TextureRenderingComponent::GetComponentMask(), m_EntityID));
 		textureComponent->RenderIgnore = shouldIgnore;
 	}
 
 private:
-	MEngineEntityID m_EntityID = INVALID_MENGINE_ENTITY_ID;
+	MEngine::EntityID m_EntityID = INVALID_MENGINE_ENTITY_ID;
 };
 
 class Player
@@ -96,8 +96,8 @@ public:
 	void Activate(PlayerID playerID, PlayerConnectionType::PlayerConnectionType connectionType, Tubes::ConnectionID connectionID);
 	void Deactivate();
 
-	MEngineTextureID GetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImage) const;
-	void SetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImage, MEngineTextureID textureID);
+	MEngine::TextureID GetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImage) const;
+	void SetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImage, MEngine::TextureID textureID);
 
 	PlayerID GetPlayerID() const;
 	Tubes::ConnectionID GetPlayerConnectionID() const;
@@ -123,8 +123,8 @@ private:
 	Player::Image* defaultImage	= nullptr;
 	Player::Image* statusImage	= nullptr;
 
-	MEngineTextureID statusActiveTextureID		= INVALID_MENGINE_TEXTURE_ID;
-	MEngineTextureID statusInactiveTextureID	= INVALID_MENGINE_TEXTURE_ID;
+	MEngine::TextureID statusActiveTextureID		= INVALID_MENGINE_TEXTURE_ID;
+	MEngine::TextureID statusInactiveTextureID	= INVALID_MENGINE_TEXTURE_ID;
 	
 	// Default values for these variables are set in the Reset() function
 	PlayerID m_PlayerID;

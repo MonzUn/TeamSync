@@ -56,7 +56,7 @@ struct PlayerUpdateMessage : TeamSyncMessage
 		ImageByteSize = Width * Height * MENGINE_BYTES_PER_PIXEL; // * 4 bytes per pixel due to RGBA format
 	}
 
-	PlayerUpdateMessage(int32_t playerID, int32_t imageSlot, const MEngineGraphics::MEngineTextureData& textureData) : TeamSyncMessage(TeamSyncMessages::PLAYER_UPDATE), PlayerID(playerID), ImageSlot(imageSlot)
+	PlayerUpdateMessage(int32_t playerID, int32_t imageSlot, const MEngine::TextureData& textureData) : TeamSyncMessage(TeamSyncMessages::PLAYER_UPDATE), PlayerID(playerID), ImageSlot(imageSlot)
 	{
 		Width = textureData.Width;
 		Height = textureData.Height;

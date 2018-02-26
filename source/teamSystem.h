@@ -9,7 +9,7 @@
 enum class ImageJobType;
 struct ImageJob;
 
-class TeamSystem : public MEngineSystem::System
+class TeamSystem : public MEngine::System
 {
 public:
 	TeamSystem();

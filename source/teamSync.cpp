@@ -30,14 +30,14 @@ bool TeamSync::Initialize()
 	if (!Tubes::Initialize())
 		MLOG_ERROR("Failed to initialize Tubes", LOG_CATEGORY_TEAMSYNC);
 
-	MEngineInput::SetFocusRequired(false);
-	MEngineText::SetFont("resources/fonts/OpenSans-Regular.ttf");
+	MEngine::SetFocusRequired(false);
+	MEngine::SetFont("resources/fonts/OpenSans-Regular.ttf");
 
 	Tubes::RegisterReplicator(new Replicator());
 
 	m_TextInputThread = std::thread(&TeamSync::HandleTextInputOutput, this);
 
-	MEngineSystem::RegisterSystem(new TeamSystem());
+	MEngine::RegisterSystem(new TeamSystem());
 
 	return true;
 }

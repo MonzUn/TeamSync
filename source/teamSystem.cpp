@@ -12,16 +12,16 @@
 #include <Tubes.h>
 #include <iostream>
 
-using namespace MEngineInput;
-
 #define LOG_CATEGORY_TEAM "Team"
 #define DELAYED_SCREENSHOT_WAIT_TIME_MILLISECONDS 150
 
 constexpr uint16_t DefaultPort = 19200;
 
+using namespace MEngine;
+
 // ---------- PUBLIC ----------
 
-TeamSystem::TeamSystem() : MEngineSystem::System(0U)
+TeamSystem::TeamSystem() : System::System(0U)
 { }
 
 void TeamSystem::Initialize()
@@ -63,7 +63,7 @@ void TeamSystem::Shutdown()
 		delete players[i];
 	}
 
-	MEngineInput::StopTextInput();
+	MEngine::StopTextInput();
 }
 
 void TeamSystem::UpdatePresentationLayer(float deltaTime)
@@ -132,7 +132,7 @@ void TeamSystem::ConnectionCallback(Tubes::ConnectionID connectionID)
 
 						if (players[playerID]->GetImageTextureID(PlayerImageSlot::Fullscreen) != INVALID_MENGINE_TEXTURE_ID)
 						{
-							PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, PlayerImageSlot::Fullscreen, MEngineGraphics::GetTextureData(players[playerID]->GetImageTextureID(PlayerImageSlot::Fullscreen)));
+							PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, PlayerImageSlot::Fullscreen, MEngine::GetTextureData(players[playerID]->GetImageTextureID(PlayerImageSlot::Fullscreen)));
 							Tubes::SendToConnection(&updateMessage, connectionID);
 							updateMessage.Destroy();
 						}
@@ -140,10 +140,10 @@ void TeamSystem::ConnectionCallback(Tubes::ConnectionID connectionID)
 						{
 							for (int i = 0; i < PlayerImageSlot::Count - 1; ++i)
 							{
-								MEngineTextureID textureID = players[playerID]->GetImageTextureID(static_cast<PlayerImageSlot::PlayerImageSlot>(i));
+								TextureID textureID = players[playerID]->GetImageTextureID(static_cast<PlayerImageSlot::PlayerImageSlot>(i));
 								if (textureID != INVALID_MENGINE_TEXTURE_ID)
 								{
-									PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, static_cast<PlayerImageSlot::PlayerImageSlot>(i), MEngineGraphics::GetTextureData(textureID));
+									PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, static_cast<PlayerImageSlot::PlayerImageSlot>(i), MEngine::GetTextureData(textureID));
 									Tubes::SendToConnection(&updateMessage, connectionID);
 									updateMessage.Destroy();
 								}
@@ -212,13 +212,13 @@ void TeamSystem::ProcessImageJobs()
 			case ImageJobType::TakeScreenshot:
 			case ImageJobType::TakeCycledScreenshot:
 			{
-				job->ResultTextureID = MEngineGraphics::CaptureScreenToTexture(true);
+				job->ResultTextureID = MEngine::CaptureScreenToTexture(true);
 				m_ImageJobResultQueue.Produce(job);
 			} break;
 
 			case ImageJobType::CreateImageFromData:
 			{
-				job->ResultTextureID = MEngineGraphics::CreateTextureFromTextureData(MEngineGraphics::MEngineTextureData(job->ImageWidth, job->ImageHeight, job->Pixels), true);
+				job->ResultTextureID = MEngine::CreateTextureFromTextureData(MEngine::TextureData(job->ImageWidth, job->ImageHeight, job->Pixels), true);
 				m_ImageJobResultQueue.Produce(job);
 			} break;
 
@@ -233,7 +233,7 @@ void TeamSystem::ProcessImageJobs()
 					MLOG_WARNING("Attempted to split image of unsupported size (" << job->ImageWidth << ", " << job->ImageHeight << ')', LOG_CATEGORY_TEAM);
 
 				if (cutPositionArray != nullptr)
-					job->ResultTextureID = MEngineGraphics::CreateSubTextureFromTextureData(MEngineGraphics::MEngineTextureData(job->ImageWidth, job->ImageHeight, job->Pixels), (*cutPositionArray)[job->ImageSlot][0], (*cutPositionArray)[job->ImageSlot][1], (*cutPositionArray)[job->ImageSlot][2], (*cutPositionArray)[job->ImageSlot][3], true);
+					job->ResultTextureID = MEngine::CreateSubTextureFromTextureData(MEngine::TextureData(job->ImageWidth, job->ImageHeight, job->Pixels), (*cutPositionArray)[job->ImageSlot][0], (*cutPositionArray)[job->ImageSlot][1], (*cutPositionArray)[job->ImageSlot][2], (*cutPositionArray)[job->ImageSlot][3], true);
 
 				m_ImageJobResultQueue.Produce(job);
 			} break;
@@ -259,7 +259,7 @@ void TeamSystem::HandleCommands()
 			if (!isHost)
 			{
 				isHost = true;
-				Tubes::StartListener(static_cast<uint16_t>(MEngineConfig::GetInt("DefaultHostPort", DefaultPort)));
+				Tubes::StartListener(static_cast<uint16_t>(MEngine::Config::GetInt("DefaultHostPort", DefaultPort)));
 
 				localPlayerID = 0;
 				players[localPlayerID]->Activate(localPlayerID, PlayerConnectionType::Local, INVALID_CONNECTION_ID);
@@ -351,17 +351,17 @@ void TeamSystem::HandleCommands()
 					ipv4String = command.substr(spacePos + 1);
 					if (Tubes::IsValidIPv4Address(ipv4String.c_str()))
 					{
-						Tubes::RequestConnection(ipv4String, static_cast<uint16_t>(MEngineConfig::GetInt("DefaultConnectionPort", DefaultPort)));
-						MEngineConfig::SetString("DefaultConnectionIP", ipv4String);
+						Tubes::RequestConnection(ipv4String, static_cast<uint16_t>(MEngine::Config::GetInt("DefaultConnectionPort", DefaultPort)));
+						MEngine::Config::SetString("DefaultConnectionIP", ipv4String);
 					}
 					else
 						response = "The supplied IP address was invalid";
 				}
 				else
 				{
-					ipv4String = MEngineConfig::GetString("DefaultConnectionIP", "127.0.0.1");
+					ipv4String = MEngine::Config::GetString("DefaultConnectionIP", "127.0.0.1");
 					if (Tubes::IsValidIPv4Address(ipv4String.c_str()))
-						Tubes::RequestConnection(ipv4String, static_cast<uint16_t>(MEngineConfig::GetInt("DefaultConnectionPort", DefaultPort)));
+						Tubes::RequestConnection(ipv4String, static_cast<uint16_t>(MEngine::Config::GetInt("DefaultConnectionPort", DefaultPort)));
 					else
 						response = "The IP address stored in the config was invalid";
 				}
@@ -435,12 +435,12 @@ void TeamSystem::HandleLogging()
 
 void TeamSystem::HandleInput()
 {
-	if (KeyReleased(MKEY_ANGLED_BRACKET) && localPlayerID != UNASSIGNED_PLAYER_ID) // Reset screenshot cycling
+	if (MEngine::KeyReleased(MKEY_ANGLED_BRACKET) && localPlayerID != UNASSIGNED_PLAYER_ID) // Reset screenshot cycling
 	{
 		PrimeCycledScreenshot();
 	}
 
-	if (KeyReleased(MKEY_TAB) && !KeyDown(MKEY_LEFT_ALT) && !KeyDown(MKEY_RIGHT_ALT) && localPlayerID != UNASSIGNED_PLAYER_ID) // Take delayed screenshot
+	if (MEngine::KeyReleased(MKEY_TAB) && !MEngine::KeyDown(MKEY_LEFT_ALT) && !MEngine::KeyDown(MKEY_RIGHT_ALT) && localPlayerID != UNASSIGNED_PLAYER_ID) // Take delayed screenshot
 	{
 		if (!awaitingDelayedScreenshot)
 		{
@@ -463,7 +463,7 @@ void TeamSystem::HandleInput()
 		}
 	}
 
-	if (KeyReleased(MKEY_GRAVE) && localPlayerID != UNASSIGNED_PLAYER_ID && !awaitingDelayedScreenshot) // Take direct screenshot
+	if (MEngine::KeyReleased(MKEY_GRAVE) && localPlayerID != UNASSIGNED_PLAYER_ID && !awaitingDelayedScreenshot) // Take direct screenshot
 	{
 		ImageJob* screenshotJob = new ImageJob(ImageJobType::TakeScreenshot, localPlayerID);
 		m_ImageJobQueue.Produce(screenshotJob);
@@ -492,7 +492,7 @@ void TeamSystem::HandleImageJobResults()
 		{
 			players[finishedJob->ImageOwnerPlayerID]->SetImageTextureID(PlayerImageSlot::Fullscreen, finishedJob->ResultTextureID);
 
-			PlayerUpdateMessage message = PlayerUpdateMessage(finishedJob->ImageOwnerPlayerID, PlayerImageSlot::Fullscreen, MEngineGraphics::GetTextureData(finishedJob->ResultTextureID));
+			PlayerUpdateMessage message = PlayerUpdateMessage(finishedJob->ImageOwnerPlayerID, PlayerImageSlot::Fullscreen, MEngine::GetTextureData(finishedJob->ResultTextureID));
 			Tubes::SendToAll(&message);
 			message.Destroy();
 		} break;
@@ -501,7 +501,7 @@ void TeamSystem::HandleImageJobResults()
 		{
 			if (delayedScreenshotcounter == finishedJob->DelayedScreenShotCounter) // Discard the screenshot if the cycle was inversed again while the screenshot was being taken
 			{
-				const MEngineGraphics::MEngineTextureData& textureData = MEngineGraphics::GetTextureData(finishedJob->ResultTextureID);
+				const MEngine::TextureData& textureData = MEngine::GetTextureData(finishedJob->ResultTextureID);
 				for (int i = 0; i < PlayerImageSlot::Count - 1; ++i)
 				{
 					void* pixelsCopy = malloc(textureData.Width * textureData.Height * MENGINE_BYTES_PER_PIXEL);
@@ -509,11 +509,11 @@ void TeamSystem::HandleImageJobResults()
 					ImageJob* splitJob = new ImageJob(ImageJobType::SplitImage, finishedJob->ImageOwnerPlayerID, static_cast<PlayerImageSlot::PlayerImageSlot>(i), textureData.Width, textureData.Height, pixelsCopy);
 					m_ImageJobQueue.Produce(splitJob);
 				}
-				MEngineGraphics::UnloadTexture(finishedJob->ResultTextureID);
+				MEngine::UnloadTexture(finishedJob->ResultTextureID);
 				m_ImageJobLockCondition.notify_one();
 			}
 			else
-				MEngineGraphics::UnloadTexture(finishedJob->ResultTextureID);
+				MEngine::UnloadTexture(finishedJob->ResultTextureID);
 		} break;
 
 		case ImageJobType::CreateImageFromData:
@@ -530,7 +530,7 @@ void TeamSystem::HandleImageJobResults()
 			{
 				players[finishedJob->ImageOwnerPlayerID]->SetImageTextureID(finishedJob->ImageSlot, finishedJob->ResultTextureID);
 
-				PlayerUpdateMessage message = PlayerUpdateMessage(finishedJob->ImageOwnerPlayerID, finishedJob->ImageSlot, MEngineGraphics::GetTextureData(finishedJob->ResultTextureID));
+				PlayerUpdateMessage message = PlayerUpdateMessage(finishedJob->ImageOwnerPlayerID, finishedJob->ImageSlot, MEngine::GetTextureData(finishedJob->ResultTextureID));
 				Tubes::SendToAll(&message);
 				message.Destroy();
 			}
