@@ -10,6 +10,6 @@ public:
 
 private:
 	void HandleTextInputOutput();
-	std::atomic<bool> quit = false;
-	std::thread textInputThread;
+	std::atomic<bool> m_Quit = false;
+	std::thread m_TextInputThread;
 };

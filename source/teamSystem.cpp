@@ -26,10 +26,10 @@ TeamSystem::TeamSystem() : MEngineSystem::System(0U)
 
 void TeamSystem::Initialize()
 {
-	connectionCallbackHandle = Tubes::RegisterConnectionCallback(Tubes::ConnectionCallbackFunction(std::bind(&TeamSystem::ConnectionCallback, this, std::placeholders::_1)));
-	disconnectionCallbackHandle = Tubes::RegisterDisconnectionCallback(Tubes::DisconnectionCallbackFunction(std::bind(&TeamSystem::DisconnectionCallback, this, std::placeholders::_1)));
+	m_ConnectionCallbackHandle = Tubes::RegisterConnectionCallback(Tubes::ConnectionCallbackFunction(std::bind(&TeamSystem::ConnectionCallback, this, std::placeholders::_1)));
+	m_DisconnectionCallbackHandle = Tubes::RegisterDisconnectionCallback(Tubes::DisconnectionCallbackFunction(std::bind(&TeamSystem::DisconnectionCallback, this, std::placeholders::_1)));
 
-	imageJobThread = std::thread(&TeamSystem::ProcessImageJobs, this);
+	m_ImageJobThread = std::thread(&TeamSystem::ProcessImageJobs, this);
 
 	for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
 	{
@@ -39,29 +39,31 @@ void TeamSystem::Initialize()
 
 void TeamSystem::Shutdown()
 {
-	if (connectionCallbackHandle != Tubes::ConnectionCallbackHandle::invalid())
-		Tubes::UnregisterConnectionCallback(connectionCallbackHandle);
-	if (disconnectionCallbackHandle != Tubes::DisconnectionCallbackHandle::invalid())
-		Tubes::UnregisterDisconnectionCallback(disconnectionCallbackHandle);
+	if (m_ConnectionCallbackHandle != Tubes::ConnectionCallbackHandle::invalid())
+		Tubes::UnregisterConnectionCallback(m_ConnectionCallbackHandle);
+	if (m_DisconnectionCallbackHandle != Tubes::DisconnectionCallbackHandle::invalid())
+		Tubes::UnregisterDisconnectionCallback(m_DisconnectionCallbackHandle);
 
-	runImageJobThread = false;
-	imageJobLockCondition.notify_one();
-	MUtilityThreading::JoinThread(imageJobThread);
+	m_RunImageJobThread = false;
+	m_ImageJobLockCondition.notify_one();
+	MUtilityThreading::JoinThread(m_ImageJobThread);
 
 	ImageJob* imageJob = nullptr;
-	while (imageJobQueue.Consume(imageJob))
+	while (m_ImageJobQueue.Consume(imageJob))
 	{
 		if (imageJob->Pixels != nullptr)
 			free(imageJob->Pixels);
 	}
 
-	imageJobQueue.Clear();
-	imageJobResultQueue.Clear();
+	m_ImageJobQueue.Clear();
+	m_ImageJobResultQueue.Clear();
 
 	for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
 	{
 		delete players[i];
 	}
+
+	MEngineInput::StopTextInput();
 }
 
 void TeamSystem::UpdatePresentationLayer(float deltaTime)
@@ -198,12 +200,12 @@ void TeamSystem::DisconnectionCallback(Tubes::ConnectionID connectionID)
 
 void TeamSystem::ProcessImageJobs()
 {
-	imageJobLock = std::unique_lock<std::mutex>(imageJobLockMutex);
+	m_ImageJobLock = std::unique_lock<std::mutex>(m_ImageJobLockMutex);
 
 	ImageJob* job = nullptr;
-	while (runImageJobThread)
+	while (m_RunImageJobThread)
 	{
-		if (imageJobQueue.Consume(job))
+		if (m_ImageJobQueue.Consume(job))
 		{
 			switch (job->JobType)
 			{
@@ -211,13 +213,13 @@ void TeamSystem::ProcessImageJobs()
 			case ImageJobType::TakeCycledScreenshot:
 			{
 				job->ResultTextureID = MEngineGraphics::CaptureScreenToTexture(true);
-				imageJobResultQueue.Produce(job);
+				m_ImageJobResultQueue.Produce(job);
 			} break;
 
 			case ImageJobType::CreateImageFromData:
 			{
 				job->ResultTextureID = MEngineGraphics::CreateTextureFromTextureData(MEngineGraphics::MEngineTextureData(job->ImageWidth, job->ImageHeight, job->Pixels), true);
-				imageJobResultQueue.Produce(job);
+				m_ImageJobResultQueue.Produce(job);
 			} break;
 
 			case ImageJobType::SplitImage:
@@ -233,7 +235,7 @@ void TeamSystem::ProcessImageJobs()
 				if (cutPositionArray != nullptr)
 					job->ResultTextureID = MEngineGraphics::CreateSubTextureFromTextureData(MEngineGraphics::MEngineTextureData(job->ImageWidth, job->ImageHeight, job->Pixels), (*cutPositionArray)[job->ImageSlot][0], (*cutPositionArray)[job->ImageSlot][1], (*cutPositionArray)[job->ImageSlot][2], (*cutPositionArray)[job->ImageSlot][3], true);
 
-				imageJobResultQueue.Produce(job);
+				m_ImageJobResultQueue.Produce(job);
 			} break;
 
 			default:
@@ -241,9 +243,9 @@ void TeamSystem::ProcessImageJobs()
 			}
 		}
 		else
-			imageJobLockCondition.wait(imageJobLock);
+			m_ImageJobLockCondition.wait(m_ImageJobLock);
 	}
-	imageJobLock.unlock();
+	m_ImageJobLock.unlock();
 }
 
 void TeamSystem::HandleCommands()
@@ -464,16 +466,16 @@ void TeamSystem::HandleInput()
 	if (KeyReleased(MKEY_GRAVE) && localPlayerID != UNASSIGNED_PLAYER_ID && !awaitingDelayedScreenshot) // Take direct screenshot
 	{
 		ImageJob* screenshotJob = new ImageJob(ImageJobType::TakeScreenshot, localPlayerID);
-		imageJobQueue.Produce(screenshotJob);
-		imageJobLockCondition.notify_one();
+		m_ImageJobQueue.Produce(screenshotJob);
+		m_ImageJobLockCondition.notify_one();
 	}
 
 	// Handle delayed screenshot
 	if (awaitingDelayedScreenshot && std::chrono::high_resolution_clock::now() >= screenshotTime)
 	{
 		ImageJob* screenshotJob = new ImageJob(ImageJobType::TakeCycledScreenshot, localPlayerID, delayedScreenshotcounter);
-		imageJobQueue.Produce(screenshotJob);
-		imageJobLockCondition.notify_one();
+		m_ImageJobQueue.Produce(screenshotJob);
+		m_ImageJobLockCondition.notify_one();
 
 		awaitingDelayedScreenshot = false;
 	}
@@ -482,7 +484,7 @@ void TeamSystem::HandleInput()
 void TeamSystem::HandleImageJobResults()
 {
 	ImageJob* finishedJob = nullptr;
-	while (imageJobResultQueue.Consume(finishedJob))
+	while (m_ImageJobResultQueue.Consume(finishedJob))
 	{
 		switch (finishedJob->JobType)
 		{
@@ -505,10 +507,10 @@ void TeamSystem::HandleImageJobResults()
 					void* pixelsCopy = malloc(textureData.Width * textureData.Height * MENGINE_BYTES_PER_PIXEL);
 					memcpy(pixelsCopy, textureData.Pixels, textureData.Width * textureData.Height * MENGINE_BYTES_PER_PIXEL); // Job will get destroyed; make a copy of the pixel data for the asynchronous job
 					ImageJob* splitJob = new ImageJob(ImageJobType::SplitImage, finishedJob->ImageOwnerPlayerID, static_cast<PlayerImageSlot::PlayerImageSlot>(i), textureData.Width, textureData.Height, pixelsCopy);
-					imageJobQueue.Produce(splitJob);
+					m_ImageJobQueue.Produce(splitJob);
 				}
 				MEngineGraphics::UnloadTexture(finishedJob->ResultTextureID);
-				imageJobLockCondition.notify_one();
+				m_ImageJobLockCondition.notify_one();
 			}
 			else
 				MEngineGraphics::UnloadTexture(finishedJob->ResultTextureID);
@@ -628,8 +630,8 @@ void TeamSystem::HandleNetworkCommunication()
 			void* pixelsCopy = malloc(playerUpdateMessage->ImageByteSize);
 			memcpy(pixelsCopy, playerUpdateMessage->Pixels, playerUpdateMessage->ImageByteSize); // Message will get destroyed; make a copy of the pixel data for the asynchronous job
 			ImageJob* imageFromDataJob = new ImageJob(ImageJobType::CreateImageFromData, playerUpdateMessage->PlayerID, static_cast<PlayerImageSlot::PlayerImageSlot>(playerUpdateMessage->ImageSlot), playerUpdateMessage->Width, playerUpdateMessage->Height, pixelsCopy);
-			imageJobQueue.Produce(imageFromDataJob);
-			imageJobLockCondition.notify_one();
+			m_ImageJobQueue.Produce(imageFromDataJob);
+			m_ImageJobLockCondition.notify_one();
 		} break;
 
 		case TeamSyncMessages::PLAYER_DISCONNECT:

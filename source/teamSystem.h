@@ -46,14 +46,14 @@ private:
 	bool awaitingDelayedScreenshot = false;
 	std::chrono::time_point<std::chrono::steady_clock> screenshotTime;
 
-	std::atomic<bool>					runImageJobThread = true;
-	std::thread							imageJobThread;
-	std::unique_lock<std::mutex>		imageJobLock;
-	std::mutex							imageJobLockMutex;
-	std::condition_variable				imageJobLockCondition;
-	MUtility::LocklessQueue<ImageJob*>	imageJobQueue;
-	MUtility::LocklessQueue<ImageJob*>	imageJobResultQueue;
+	std::atomic<bool>					m_RunImageJobThread = true;
+	std::thread							m_ImageJobThread;
+	std::unique_lock<std::mutex>		m_ImageJobLock;
+	std::mutex							m_ImageJobLockMutex;
+	std::condition_variable				m_ImageJobLockCondition;
+	MUtility::LocklessQueue<ImageJob*>	m_ImageJobQueue;
+	MUtility::LocklessQueue<ImageJob*>	m_ImageJobResultQueue;
 
-	Tubes::ConnectionCallbackHandle		connectionCallbackHandle;
-	Tubes::DisconnectionCallbackHandle	disconnectionCallbackHandle;
+	Tubes::ConnectionCallbackHandle		m_ConnectionCallbackHandle;
+	Tubes::DisconnectionCallbackHandle	m_DisconnectionCallbackHandle;
 };

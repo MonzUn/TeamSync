@@ -127,9 +127,9 @@ private:
 	MEngineTextureID statusInactiveTextureID	= INVALID_MENGINE_TEXTURE_ID;
 	
 	// Default values for these variables are set in the Reset() function
-	PlayerID m_PlayerID; // TODODB: Switch to hungarian notation for members for the whole project
+	PlayerID m_PlayerID;
 	Tubes::ConnectionID m_ConnectionID;
 	PlayerConnectionType::PlayerConnectionType m_ConnectionType;
-	bool isActive;
-	bool cycledScreenshotPrimed;
+	bool m_IsActive;
+	bool m_CycledScreenshotPrimed;
 };

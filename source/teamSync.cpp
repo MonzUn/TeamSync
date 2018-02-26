@@ -35,7 +35,7 @@ bool TeamSync::Initialize()
 
 	Tubes::RegisterReplicator(new Replicator());
 
-	textInputThread = std::thread(&TeamSync::HandleTextInputOutput, this);
+	m_TextInputThread = std::thread(&TeamSync::HandleTextInputOutput, this);
 
 	MEngineSystem::RegisterSystem(new TeamSystem());
 
@@ -44,7 +44,7 @@ bool TeamSync::Initialize()
 
 void TeamSync::Run()
 {
-	while (!MEngine::ShouldQuit() && !quit)
+	while (!MEngine::ShouldQuit() && !m_Quit)
 	{
 		Tubes::Update();
 		MEngine::Update();
@@ -53,13 +53,13 @@ void TeamSync::Run()
 
 	CommandBlackboard::Destroy();
 
-	quit = true;
+	m_Quit = true;
 	MUtility::UnblockSTDIn();
 
 	Tubes::Shutdown();
 	MEngine::Shutdown();
 
-	textInputThread.join();
+	m_TextInputThread.join();
 }
 
 void TeamSync::HandleTextInputOutput() // TODODB: Create a command handler to avoid spreading input and output all over code and threads
@@ -70,14 +70,14 @@ void TeamSync::HandleTextInputOutput() // TODODB: Create a command handler to av
 	std::cout << "*************************************************\n";
 
 	std::string input, returnMessage;
-	while (!quit)
+	while (!m_Quit)
 	{
 		getline(std::cin, input);
-		if (!quit)
+		if (!m_Quit)
 		{
 			std::transform(input.begin(), input.end(), input.begin(), ::tolower);
 			if (input == "quit")
-				quit = true;
+				m_Quit = true;
 			else
 				CommandBlackboard::GetInstance()->EnqueueCommand(input);
 		}

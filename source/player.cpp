@@ -46,7 +46,7 @@ Player::~Player()
 
 void Player::Activate(PlayerID playerID, PlayerConnectionType::PlayerConnectionType connectionType, Tubes::ConnectionID connectionID)
 {
-	if (isActive)
+	if (m_IsActive)
 	{
 		MLOG_WARNING("Attempted to activate an already active player; PlayerID = " << playerID, LOG_CATEGORY_PLAYER);
 		return;
@@ -58,12 +58,12 @@ void Player::Activate(PlayerID playerID, PlayerConnectionType::PlayerConnectionT
 	SetCycledScreenshotPrimed(true);
 	statusImage->SetTextureID(statusActiveTextureID);
 
-	isActive = true;
+	m_IsActive = true;
 }
 
 void Player::Deactivate()
 {
-	if (!isActive)
+	if (!m_IsActive)
 	{
 		MLOG_WARNING("Attempted to deactivate an already inactive player", LOG_CATEGORY_PLAYER);
 		return;
@@ -75,7 +75,7 @@ void Player::Deactivate()
 
 MEngineTextureID Player::GetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImage) const
 {
-	if (!isActive)
+	if (!m_IsActive)
 		return INVALID_MENGINE_TEXTURE_ID;
 
 	return images[playerImage]->GetTextureID();
@@ -83,7 +83,7 @@ MEngineTextureID Player::GetImageTextureID(PlayerImageSlot::PlayerImageSlot play
 
 void Player::SetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImageSlot, MEngineTextureID textureID)
 {
-	if (!isActive)
+	if (!m_IsActive)
 		return;
 
 	if (playerImageSlot == PlayerImageSlot::Fullscreen)
@@ -121,17 +121,17 @@ PlayerConnectionType::PlayerConnectionType Player::GetPlayerConnectionType() con
 
 bool Player::IsActive() const
 {
-	return isActive;
+	return m_IsActive;
 }
 
 bool Player::GetCycledScreenshotPrimed() const
 {
-	return cycledScreenshotPrimed;
+	return m_CycledScreenshotPrimed;
 }
 
 void Player::SetCycledScreenshotPrimed(bool primed)
 {
-	cycledScreenshotPrimed = primed;
+	m_CycledScreenshotPrimed = primed;
 	primeImage->SetRenderIgnore(!primed);
 }
 
@@ -140,7 +140,7 @@ void Player::Reset()
 	m_PlayerID			= UNASSIGNED_PLAYER_ID;
 	m_ConnectionID		= INVALID_CONNECTION_ID;
 	m_ConnectionType	= PlayerConnectionType::Invalid;
-	isActive			= false;
+	m_IsActive			= false;
 
 	defaultImage->SetRenderIgnore(false);
 	statusImage->SetRenderIgnore(false);
