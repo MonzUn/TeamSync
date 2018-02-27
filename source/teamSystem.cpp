@@ -33,7 +33,7 @@ void TeamSystem::Initialize()
 
 	for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
 	{
-		players[i] = new Player(UILayout::PlayerPositions[i][0], UILayout::PlayerPositions[i][1], UILayout::PLAYER_IMAGE_WIDTH, UILayout::PLAYER_IMAGE_HEIGHT);
+		players[i] = new Player(UILayout::PlayerPositions[i][0], UILayout::PlayerPositions[i][1], UILayout::PLAYER_WIDTH, UILayout::PLAYER_HEIGHT);
 	}
 }
 
