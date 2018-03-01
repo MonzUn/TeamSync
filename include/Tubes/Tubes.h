@@ -16,8 +16,9 @@ namespace Tubes
 	void Receive( std::vector<Message*>& outMessages, std::vector<ConnectionID>* outSenderIDs = nullptr );
 
 	void RequestConnection( const std::string& address, uint16_t port );
-	void StartListener( uint16_t port );
-	void StopAllListeners();
+	bool StartListener(uint16_t port);
+	bool StopListener(uint16_t port);
+	bool StopAllListeners();
 	void Disconnect( ConnectionID connectionID );
 	void DisconnectAll();
 
