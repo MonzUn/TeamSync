@@ -12,8 +12,6 @@ struct ImageJob;
 class TeamSystem : public MEngine::System
 {
 public:
-	TeamSystem();
-
 	void Initialize() override;
 	void Shutdown() override;
 	void UpdatePresentationLayer(float deltaTime) override;

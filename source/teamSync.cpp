@@ -5,7 +5,7 @@
 #include "uiLayout.h"
 #include <mengine.h>
 #include <mengineInput.h>
-#include <mengineSystem.h>
+#include <mengineSystemManager.h>
 #include <mengineText.h>
 #include <Tubes.h>
 #include <TubesTypes.h>
@@ -37,7 +37,10 @@ bool TeamSync::Initialize()
 
 	m_TextInputThread = std::thread(&TeamSync::HandleTextInputOutput, this);
 
-	MEngine::RegisterSystem(new TeamSystem());
+	MEngine::SystemID teamSystemID = MEngine::RegisterSystem(new TeamSystem());
+	MEngine::GameModeID multiplayerGameModeID = MEngine::CreateGameMode();
+	MEngine::AddSystemToGameMode(multiplayerGameModeID, teamSystemID, 0);
+	MEngine::ChangeGameMode(multiplayerGameModeID);
 
 	return true;
 }

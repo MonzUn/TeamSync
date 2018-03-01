@@ -21,9 +21,6 @@ using namespace MEngine;
 
 // ---------- PUBLIC ----------
 
-TeamSystem::TeamSystem() : System::System(0U)
-{ }
-
 void TeamSystem::Initialize()
 {
 	m_ConnectionCallbackHandle = Tubes::RegisterConnectionCallback(Tubes::ConnectionCallbackFunction(std::bind(&TeamSystem::ConnectionCallback, this, std::placeholders::_1)));
