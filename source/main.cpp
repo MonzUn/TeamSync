@@ -21,9 +21,5 @@ int main(int argc, char* argv[])
 
 	teamSync.Run();
 
-#ifdef WINDOWS_DEBUG
-	_CrtDumpMemoryLeaks();
-#endif
-
 	return 0;
 }
