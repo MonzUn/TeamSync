@@ -1,13 +1,37 @@
 #pragma once
 #include "player.h"
-#include "globals.h"
+#include "globalsBlackboard.h"
 #include <stdint.h>
 
 namespace UILayout
 {
-	constexpr int32_t ApplicationWindowWidth					= 1920;
-	constexpr int32_t ApplicationWindowHeight					= 1000;
+	// ---------- Generic ----------
+	constexpr int32_t ApplicationWindowWidth	= 1920; // TODODB: Fix casing so that it is consistent
+	constexpr int32_t ApplicationWindowHeight	= 1000;
 
+	// ---------- MainMenu ----------
+	constexpr int32_t MAIN_MENU_NUM_BUTTONS		= 2;
+	constexpr int32_t MAIN_MENU_BUTTON_SPACING	= 10;
+
+	// Sizes
+	constexpr int32_t HOST_BUTTON_WIDTH		= 200;
+	constexpr int32_t HOST_BUTTON_HEIGHT	= 100;
+	constexpr int32_t CONNECT_BUTTON_WIDTH	= HOST_BUTTON_WIDTH;
+	constexpr int32_t CONNECT_BUTTON_HEIGHT = HOST_BUTTON_HEIGHT;
+	constexpr int32_t IP_TEXT_BOX_WIDTH		= 150;
+	constexpr int32_t IP_TEXT_BOX_HEIGHT	= 50; // TODODB: This size is at least double what it needs to be but the text ends up outside the box if it's made smaller
+
+	constexpr int32_t TOTAL_MENU_HEIGHT = HOST_BUTTON_HEIGHT + CONNECT_BUTTON_HEIGHT + (MAIN_MENU_BUTTON_SPACING * (MAIN_MENU_NUM_BUTTONS - 1));
+
+	// Positions
+	constexpr int32_t HOST_BUTTON_POS_X		= ApplicationWindowWidth / 2 - HOST_BUTTON_WIDTH / 2;
+	constexpr int32_t HOST_BUTTON_POS_Y		= ApplicationWindowHeight / 2 - TOTAL_MENU_HEIGHT / 2;
+	constexpr int32_t CONNECT_BUTTON_POS_X	= HOST_BUTTON_POS_X;
+	constexpr int32_t CONNECT_BUTTON_POS_Y	= HOST_BUTTON_POS_Y + HOST_BUTTON_HEIGHT + MAIN_MENU_BUTTON_SPACING;
+	constexpr int32_t IP_TEXT_BOX_POS_X		= HOST_BUTTON_POS_X + CONNECT_BUTTON_WIDTH + MAIN_MENU_BUTTON_SPACING;
+	constexpr int32_t IP_TEXT_BOX_POS_Y		= CONNECT_BUTTON_POS_Y + IP_TEXT_BOX_HEIGHT / 2;
+
+	// ---------- Multiplayer ----------
 	// PlayerPositions
 	constexpr int32_t PLAYER_WIDTH								= 945;
 	constexpr int32_t PLAYER_HEIGHT								= 485;

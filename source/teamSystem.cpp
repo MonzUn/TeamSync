@@ -1,6 +1,6 @@
 #include "teamSystem.h"
 #include "commandBlackboard.h"
-#include "globals.h"
+#include "globalsBlackboard.h"
 #include "imageJob.h"
 #include "teamSyncMessages.h"
 #include "uiLayout.h"

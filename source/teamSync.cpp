@@ -1,5 +1,7 @@
 #include "teamSync.h"
 #include "commandBlackboard.h"
+#include "globalsBlackboard.h"
+#include "mainMenuSystem.h"
 #include "replicator.h"
 #include "teamSystem.h"
 #include "uiLayout.h"
@@ -37,10 +39,16 @@ bool TeamSync::Initialize()
 
 	m_TextInputThread = std::thread(&TeamSync::HandleTextInputOutput, this);
 
+	GlobalsBlackboard::GetInstance()->MainMenuID = MEngine::CreateGameMode();
+	GlobalsBlackboard::GetInstance()->MultiplayerID = MEngine::CreateGameMode();
+
+	MEngine::SystemID mainMenuSystemID = MEngine::RegisterSystem(new MainMenuSystem());
+	MEngine::AddSystemToGameMode(GlobalsBlackboard::GetInstance()->MainMenuID, mainMenuSystemID, 100);
+
 	MEngine::SystemID teamSystemID = MEngine::RegisterSystem(new TeamSystem());
-	MEngine::GameModeID multiplayerGameModeID = MEngine::CreateGameMode();
-	MEngine::AddSystemToGameMode(multiplayerGameModeID, teamSystemID, 0);
-	MEngine::ChangeGameMode(multiplayerGameModeID);
+	MEngine::AddSystemToGameMode(GlobalsBlackboard::GetInstance()->MultiplayerID, teamSystemID, 100);
+
+	MEngine::ChangeGameMode(GlobalsBlackboard::GetInstance()->MainMenuID);
 
 	return true;
 }
@@ -55,6 +63,7 @@ void TeamSync::Run()
 	}
 
 	CommandBlackboard::Destroy();
+	GlobalsBlackboard::Destroy();
 
 	m_Quit = true;
 	MUtility::UnblockSTDIn();

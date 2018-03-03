@@ -1,6 +1,6 @@
 #pragma once
 #include "player.h"
-#include "globals.h"
+#include "globalsBlackboard.h"
 #include "MUtilityLocklessQueue.h"
 #include <mengineSystem.h>
 #include <thread>
