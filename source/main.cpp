@@ -7,6 +7,8 @@
 #include <crtdbg.h>  
 #endif
 
+// TODODB: Fix memory leak that occurs after a client exits the program while connected to a host
+
 int main(int argc, char* argv[])
 {
 #ifdef WINDOWS_DEBUG

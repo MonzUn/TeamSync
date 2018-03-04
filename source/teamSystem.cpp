@@ -5,6 +5,7 @@
 #include "teamSyncMessages.h"
 #include "uiLayout.h"
 #include <mengineConfig.h>
+#include <mengineConsole.h>
 #include <mengineInput.h>
 #include <MUtilityLog.h>
 #include "MUtilityString.h"
@@ -14,8 +15,6 @@
 
 #define LOG_CATEGORY_TEAM "Team"
 #define DELAYED_SCREENSHOT_WAIT_TIME_MILLISECONDS 150
-
-constexpr uint16_t DefaultPort = 19200;
 
 using namespace MEngine;
 
@@ -32,6 +31,14 @@ void TeamSystem::Initialize()
 	{
 		players[i] = new Player(UILayout::PlayerPositions[i][0], UILayout::PlayerPositions[i][1], UILayout::PLAYER_WIDTH, UILayout::PLAYER_HEIGHT);
 	}
+
+	if (GlobalsBlackboard::GetInstance()->IsHost)
+	{
+		localPlayerID = 0;
+		players[localPlayerID]->Activate(localPlayerID, PlayerConnectionType::Local, INVALID_CONNECTION_ID);
+	}
+
+	RegisterCommands();
 }
 
 void TeamSystem::Shutdown()
@@ -61,6 +68,7 @@ void TeamSystem::Shutdown()
 	}
 
 	MEngine::StopTextInput();
+	UnregisterAllCommands();
 }
 
 void TeamSystem::UpdatePresentationLayer(float deltaTime)
@@ -97,7 +105,7 @@ void TeamSystem::RemovePlayer(Player* player)
 
 void TeamSystem::ConnectionCallback(Tubes::ConnectionID connectionID)
 {
-	if (isHost)
+	if (GlobalsBlackboard::GetInstance()->IsHost)
 	{
 		PlayerID newPlayerID = FindFreePlayerSlot();
 		if (newPlayerID >= 0)
@@ -173,7 +181,7 @@ void TeamSystem::DisconnectionCallback(Tubes::ConnectionID connectionID)
 
 	if (disconnectingPlayer != nullptr)
 	{
-		if (isHost)
+		if (GlobalsBlackboard::GetInstance()->IsHost)
 		{
 			PlayerDisconnectMessage disconnectMessage = PlayerDisconnectMessage(disconnectingPlayer->GetPlayerID());
 			Tubes::SendToAll(&disconnectMessage);
@@ -247,179 +255,14 @@ void TeamSystem::ProcessImageJobs()
 
 void TeamSystem::HandleCommands()
 {
+	// TODODB: Remove when MEngine can handle command input automatically
 	std::string command;
 	while (CommandBlackboard::GetInstance()->CommandQueue.Consume(command))
 	{
-		std::string response = "";
-		if (command == "host")
-		{
-			if (!isHost)
-			{
-				isHost = true;
-				Tubes::StartListener(static_cast<uint16_t>(MEngine::Config::GetInt("DefaultHostPort", DefaultPort)));
-
-				localPlayerID = 0;
-				players[localPlayerID]->Activate(localPlayerID, PlayerConnectionType::Local, INVALID_CONNECTION_ID);
-			}
-			else
-				response = "Hosting failed; already hosting";
-		}
-		else if (command.find("disconnect") != std::string::npos)
-		{
-			bool disconnectSelf = false;
-			size_t spacePos = command.find(' ');
-			if (spacePos != std::string::npos && command.back() != ' ')
-			{
-				std::string playerIDString = command.substr(spacePos + 1);
-				if (MUtilityString::IsStringNumber(playerIDString))
-				{
-					int32_t playerID = std::stoi(playerIDString) - 1;
-					if (playerID >= 0 && playerID < TEAMSYNC_MAX_PLAYERS)
-					{
-						if (playerID != localPlayerID)
-						{
-							if (players[playerID]->IsActive())
-							{
-								if (players[playerID]->GetPlayerConnectionType() == PlayerConnectionType::Direct)
-								{
-									Tubes::Disconnect(players[playerID]->GetPlayerConnectionID());
-								}
-								else
-									response = "Only directly connected players may be disconnected";
-							}
-							else
-								response = "There was no player with id " + std::to_string(playerID + 1);
-						}
-						else
-							disconnectSelf = true;
-					}
-					else
-						response = "The supplied playerID was not valid";
-				}
-				else
-					response = "The supplied playerID was not a number";
-			}
-			else
-				disconnectSelf = true;
-
-			if (disconnectSelf)
-			{
-				if (isHost)
-				{
-					isHost = false;
-					Tubes::StopAllListeners();
-					Tubes::DisconnectAll();
-
-					localPlayerID = UNASSIGNED_PLAYER_ID;
-					for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
-					{
-						if (players[i]->IsActive())
-							RemovePlayer(players[i]);
-					}
-
-					response = "Hosted session has been closed";
-				}
-				else
-				{
-					Tubes::DisconnectAll();
-
-					localPlayerID = UNASSIGNED_PLAYER_ID;
-					for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
-					{
-						if (players[i]->IsActive())
-							RemovePlayer(players[i]);
-					}
-
-					response = "All connected clients have been disconnected";
-				}
-
-				delayedScreenshotcounter = 0;
-				awaitingDelayedScreenshot = false;
-			}
-		}
-		else if (command.find("connect") != std::string::npos && command.find("disconnect") == std::string::npos)
-		{
-			if (!isHost)
-			{
-				size_t spacePos = command.find(' ');
-				std::string ipv4String = "";
-				if (spacePos != std::string::npos && command.back() != ' ')
-				{
-					ipv4String = command.substr(spacePos + 1);
-					if (Tubes::IsValidIPv4Address(ipv4String.c_str()))
-					{
-						Tubes::RequestConnection(ipv4String, static_cast<uint16_t>(MEngine::Config::GetInt("DefaultConnectionPort", DefaultPort)));
-						MEngine::Config::SetString("DefaultConnectionIP", ipv4String);
-					}
-					else
-						response = "The supplied IP address was invalid";
-				}
-				else
-				{
-					ipv4String = MEngine::Config::GetString("DefaultConnectionIP", "127.0.0.1");
-					if (Tubes::IsValidIPv4Address(ipv4String.c_str()))
-						Tubes::RequestConnection(ipv4String, static_cast<uint16_t>(MEngine::Config::GetInt("DefaultConnectionPort", DefaultPort)));
-					else
-						response = "The IP address stored in the config was invalid";
-				}
-			}
-			else
-				response = "Connecting to remote clients is not allowed while hosting";
-		}
-		else if (command.find("prime") != std::string::npos)
-		{
-			size_t spacePos = command.find(' ');
-			if (spacePos != std::string::npos && command.back() != ' ')
-			{
-				std::string playerIDString = command.substr(spacePos + 1);
-				if (MUtilityString::IsStringNumber(playerIDString))
-				{
-					int32_t playerID = std::stoi(playerIDString) - 1;
-					if (playerID >= 0 && playerID < TEAMSYNC_MAX_PLAYERS)
-					{
-						if (playerID != localPlayerID)
-						{
-							if (players[playerID]->IsActive())
-							{
-								SignalMessage primeSignalMessage = SignalMessage(TeamSyncSignals::PRIME);
-								Tubes::SendToConnection(&primeSignalMessage, players[playerID]->GetPlayerConnectionID());
-								primeSignalMessage.Destroy();
-
-								response = "The cycled screenshot of Player " + playerIDString + " has been primed";
-							}
-							else
-								response = "There was no player with id " + playerIDString;
-						}
-						else
-						{
-							PrimeCycledScreenshot();
-							response = "The cycled screenshot of the local player has been primed";
-						}
-					}
-					else
-						response = "The supplied playerID was not valid";
-				}
-				else
-					response = "The supplied playerID was not a number";
-			}
-			else
-			{
-				SignalMessage primeSignalMessage = SignalMessage(TeamSyncSignals::PRIME);
-				Tubes::SendToAll(&primeSignalMessage);
-				primeSignalMessage.Destroy();
-
-				PrimeCycledScreenshot();
-
-				response = "The cycled screenshot of all players has been primed";
-			}
-		}
-		else
-			response = "Unknown or malformed command";
-
-		if (response != "")
-			std::cout << "- " << response << '\n';
-
-		std::cout << '\n';
+		std::string commandResponse = "";
+		MEngine::ExecuteCommand(command, &commandResponse);
+		if (commandResponse != "")
+			std::cout << "- " << commandResponse << "\n\n";
 	}
 }
 
@@ -434,7 +277,7 @@ void TeamSystem::HandleInput()
 {
 	if (MEngine::KeyReleased(MKEY_ANGLED_BRACKET) && localPlayerID != UNASSIGNED_PLAYER_ID) // Reset screenshot cycling
 	{
-		PrimeCycledScreenshot();
+		PrimeCycledScreenshotForPlayer(localPlayerID);
 	}
 
 	if (MEngine::KeyReleased(MKEY_TAB) && !MEngine::KeyDown(MKEY_LEFT_ALT) && !MEngine::KeyDown(MKEY_RIGHT_ALT) && localPlayerID != UNASSIGNED_PLAYER_ID) // Take delayed screenshot
@@ -456,7 +299,7 @@ void TeamSystem::HandleInput()
 		else // Abort delayed screenshot
 		{
 			awaitingDelayedScreenshot = false;
-			PrimeCycledScreenshot();
+			PrimeCycledScreenshotForPlayer(localPlayerID);
 		}
 	}
 
@@ -551,21 +394,6 @@ void TeamSystem::HandleNetworkCommunication()
 	{
 		switch (receivedMessages[i]->Type)
 		{
-		case TeamSyncMessages::SIGNAL:
-		{
-			const SignalMessage* signalMessage = static_cast<const SignalMessage*>(receivedMessages[i]);
-			switch (signalMessage->Signal)
-			{
-			case TeamSyncSignals::PRIME:
-			{
-				PrimeCycledScreenshot();
-			} break;
-
-			default:
-				break;
-			}
-		} break;
-
 		case TeamSyncMessages::SIGNAL_FLAG:
 		{
 			const SignalFlagMessage* signalFlagMessage = static_cast<const SignalFlagMessage*>(receivedMessages[i]);
@@ -576,8 +404,16 @@ void TeamSystem::HandleNetworkCommunication()
 				if (players[signalFlagMessage->PlayerID]->IsActive())
 					players[signalFlagMessage->PlayerID]->SetCycledScreenshotPrimed(signalFlagMessage->Flag);
 
+				if (signalFlagMessage->PlayerID == localPlayerID)
+				{
+					if (signalFlagMessage->Flag && delayedScreenshotcounter % 2 != 0)
+						++delayedScreenshotcounter;
+					else if(!signalFlagMessage->Flag && delayedScreenshotcounter % 2 == 0)
+						++delayedScreenshotcounter;
+				}
+
 				// Relay
-				if (isHost)
+				if (GlobalsBlackboard::GetInstance()->IsHost)
 					Tubes::SendToAll(receivedMessages[i], messageSenders[i]);
 			} break;
 
@@ -588,7 +424,7 @@ void TeamSystem::HandleNetworkCommunication()
 
 		case TeamSyncMessages::PLAYER_ID:
 		{
-			if (!isHost)
+			if (!GlobalsBlackboard::GetInstance()->IsHost)
 			{
 				const PlayerIDMessage* playerIDMessage = static_cast<const PlayerIDMessage*>(receivedMessages[i]);
 				PlayerID playerID = playerIDMessage->PlayerID;
@@ -621,7 +457,7 @@ void TeamSystem::HandleNetworkCommunication()
 			const PlayerUpdateMessage* playerUpdateMessage = static_cast<const PlayerUpdateMessage*>(receivedMessages[i]);
 
 			// Relay
-			if (isHost)
+			if (GlobalsBlackboard::GetInstance()->IsHost)
 				Tubes::SendToAll(receivedMessages[i], messageSenders[i]);
 
 			void* pixelsCopy = malloc(playerUpdateMessage->ImageByteSize);
@@ -633,7 +469,7 @@ void TeamSystem::HandleNetworkCommunication()
 
 		case TeamSyncMessages::PLAYER_DISCONNECT:
 		{
-			if (!isHost)
+			if (!GlobalsBlackboard::GetInstance()->IsHost)
 			{
 				const PlayerDisconnectMessage* playerDisconnectMessage = static_cast<const PlayerDisconnectMessage*>(receivedMessages[i]);
 				for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
@@ -657,15 +493,204 @@ void TeamSystem::HandleNetworkCommunication()
 	}
 }
 
-void TeamSystem::PrimeCycledScreenshot()
+void TeamSystem::RegisterCommands()
 {
-	if (delayedScreenshotcounter % 2 != 0)
-		++delayedScreenshotcounter;
+	MEngine::RegisterCommand("prime", std::bind(&TeamSystem::ExecutePrimeCycledScreenshotCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	MEngine::RegisterCommand("disconnect", std::bind(&TeamSystem::ExecuteDisconnectCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+}
 
-	players[localPlayerID]->SetCycledScreenshotPrimed(true);
-	SignalFlagMessage message = SignalFlagMessage(TeamSyncSignals::PRIME, true, localPlayerID);
+bool TeamSystem::ExecutePrimeCycledScreenshotCommand(const std::string* parameters, int32_t parameterCount, std::string* outResponse)
+{
+	bool result = false;
+	if (parameterCount == 1) // Prime inputed player id
+	{
+		std::string playerIDString = parameters[0];
+		if (!MUtilityString::IsStringNumber(playerIDString))
+		{
+			if (outResponse != nullptr)
+				*outResponse = "The supplied playerID was not a number";
+			return false;
+		}
+		
+		int32_t playerID = std::stoi(playerIDString) - 1; // -1 to get index
+		if (playerID < 0 || playerID >= TEAMSYNC_MAX_PLAYERS)
+		{
+			if (outResponse != nullptr)
+				*outResponse = "The supplied playerID was not valid";
+			return false;
+		}
+
+		if (playerID != localPlayerID)
+		{
+			if (players[playerID]->IsActive())
+			{
+				if (outResponse != nullptr)
+					*outResponse = "There was no player with id " + playerIDString;
+				return false;
+			}
+
+			PrimeCycledScreenshotForPlayer(playerID);
+			result = true;
+			if (outResponse != nullptr)
+				*outResponse = "The cycled screenshot of Player " + playerIDString + " has been primed";
+		}
+		else
+		{
+			PrimeCycledScreenshotForPlayer(localPlayerID);
+			result = true;
+			if (outResponse != nullptr)
+				*outResponse = "The cycled screenshot of the local player has been primed";
+		}
+	}
+	else if (parameterCount == 0) // Prime all players
+	{
+		for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
+		{
+			if(players[i]->IsActive())
+				PrimeCycledScreenshotForPlayer(i);
+		}
+		result = true;
+		if (outResponse != nullptr)
+			*outResponse = "The cycled screenshot of all players has been primed";
+	}
+	else if (outResponse != nullptr)
+		*outResponse = "Wrong number of parameters supplied";
+
+	return result;
+}
+
+bool TeamSystem::ExecuteDisconnectCommand(const std::string* parameters, int32_t parameterCount, std::string* outResponse)
+{
+	bool result = false;
+	bool disconnectSelf = true;
+	if (parameterCount == 1)
+	{
+		std::string playerIDString = parameters[0];
+		if (!MUtilityString::IsStringNumber(playerIDString))
+		{
+			if(outResponse != nullptr)
+				*outResponse = "The supplied playerID was not a number";
+			return false;
+		}
+
+		int32_t playerIndex = std::stoi(playerIDString) - 1;
+		if (playerIndex < 0 || playerIndex >= TEAMSYNC_MAX_PLAYERS)
+		{
+			if(outResponse != nullptr)
+				*outResponse = "The supplied playerID was not valid";
+			return false;
+		}
+
+		if (playerIndex != localPlayerID)
+		{
+			disconnectSelf = false;
+			if (!players[playerIndex]->IsActive())
+			{
+				if(outResponse != nullptr)
+					*outResponse = "There was no player with id " + std::to_string(playerIndex + 1);
+				return false;
+			}
+
+			if (players[playerIndex]->GetPlayerConnectionType() != PlayerConnectionType::Direct)
+			{
+				if (outResponse != nullptr)
+					*outResponse = "Only directly connected players may be disconnected";
+				return false;
+			}
+
+			result = DisconnectPlayer(playerIndex);
+			if (result)
+			{
+				if(outResponse != nullptr)
+					*outResponse = "Disconnected player with ID " + playerIDString;
+			}
+			else
+			{
+				if (outResponse != nullptr)
+					*outResponse = "Failed to disconnect player with ID " + playerIDString;
+				result = false;
+			}
+		}
+	}
+	else if (parameterCount != 0)
+	{
+		disconnectSelf = false;
+		if(outResponse != nullptr)
+			*outResponse = "Wrong number of parameters supplied";
+	}
+	
+	if (disconnectSelf)
+	{
+		if (GlobalsBlackboard::GetInstance()->IsHost)
+		{
+			StopHosting();
+			if(outResponse != nullptr)
+				*outResponse = "Hosted session has been closed";
+		}
+		else
+		{
+			DisconnectAll();
+			if (outResponse != nullptr)
+				*outResponse = "All connected clients have been disconnected";
+		}
+	}
+
+	return result;
+}
+
+void TeamSystem::PrimeCycledScreenshotForPlayer(PlayerID playerID)
+{
+	if (playerID == localPlayerID)
+	{
+		if (delayedScreenshotcounter % 2 != 0)
+			++delayedScreenshotcounter;
+	}
+	players[playerID]->SetCycledScreenshotPrimed(true);
+	SignalFlagMessage message = SignalFlagMessage(TeamSyncSignals::PRIME, true, playerID);
 	Tubes::SendToAll(&message);
 	message.Destroy();
+}
+
+bool TeamSystem::DisconnectPlayer(PlayerID playerID)
+{
+	bool result = false;
+	if (playerID != localPlayerID)
+	{
+		Tubes::Disconnect(players[playerID]->GetPlayerConnectionID()); // TODODB: Check result when it is availble
+		result = true;
+	}
+	return result;
+}
+
+void TeamSystem::DisconnectAll()
+{
+	Tubes::DisconnectAll();
+	
+	localPlayerID = UNASSIGNED_PLAYER_ID;
+	for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
+	{
+		if (players[i]->IsActive())
+			RemovePlayer(players[i]);
+	}
+
+	delayedScreenshotcounter = 0;
+	awaitingDelayedScreenshot = false;
+}
+
+void TeamSystem::StopHosting()
+{
+	// TODODB: Check results when it's available
+	GlobalsBlackboard::GetInstance()->IsHost = false;
+	Tubes::StopAllListeners(); 
+	Tubes::DisconnectAll();
+
+	localPlayerID = UNASSIGNED_PLAYER_ID;
+	for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
+	{
+		if (players[i]->IsActive())
+			RemovePlayer(players[i]);
+	}
+	// TODODB: Change back to main menu game mode when it is being delayed until end of frame
 }
 
 #if COMPILE_MODE == COMPILE_MODE_DEBUG

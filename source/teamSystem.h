@@ -30,7 +30,14 @@ private:
 	void HandleImageJobResults();
 	void HandleNetworkCommunication();
 
-	void PrimeCycledScreenshot();
+	void RegisterCommands();
+	bool ExecutePrimeCycledScreenshotCommand(const std::string* parameters, int32_t parameterCount, std::string* outResponse);
+	bool ExecuteDisconnectCommand(const std::string* parameters, int32_t parameterCount, std::string* outResponse);
+
+	void PrimeCycledScreenshotForPlayer(PlayerID playerID);
+	bool DisconnectPlayer(PlayerID playerID);
+	void DisconnectAll();
+	void StopHosting();
 
 #if COMPILE_MODE == COMPILE_MODE_DEBUG
 	void RunDebugCode();
@@ -38,7 +45,6 @@ private:
 
 	Player* players[TEAMSYNC_MAX_PLAYERS] = { nullptr };
 	PlayerID localPlayerID = UNASSIGNED_PLAYER_ID;
-	bool isHost = false;
 
 	uint64_t delayedScreenshotcounter = 0;
 	bool awaitingDelayedScreenshot = false;
