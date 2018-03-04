@@ -19,4 +19,5 @@ project/CMakeLocalDependenciesPaths.txt
 # Generated
 bin/
 */logs/*
-TODO.txt
+local/*
+!local/Dummy.txt
