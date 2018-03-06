@@ -19,7 +19,7 @@ namespace UILayout
 	constexpr int32_t CONNECT_BUTTON_WIDTH	= HOST_BUTTON_WIDTH;
 	constexpr int32_t CONNECT_BUTTON_HEIGHT = HOST_BUTTON_HEIGHT;
 	constexpr int32_t IP_TEXT_BOX_WIDTH		= 150;
-	constexpr int32_t IP_TEXT_BOX_HEIGHT	= 50; // TODODB: This size is at least double what it needs to be but the text ends up outside the box if it's made smaller
+	constexpr int32_t IP_TEXT_BOX_HEIGHT	= 25;
 
 	constexpr int32_t TOTAL_MENU_HEIGHT = HOST_BUTTON_HEIGHT + CONNECT_BUTTON_HEIGHT + (MAIN_MENU_BUTTON_SPACING * (MAIN_MENU_NUM_BUTTONS - 1));
 
@@ -29,7 +29,7 @@ namespace UILayout
 	constexpr int32_t CONNECT_BUTTON_POS_X	= HOST_BUTTON_POS_X;
 	constexpr int32_t CONNECT_BUTTON_POS_Y	= HOST_BUTTON_POS_Y + HOST_BUTTON_HEIGHT + MAIN_MENU_BUTTON_SPACING;
 	constexpr int32_t IP_TEXT_BOX_POS_X		= HOST_BUTTON_POS_X + CONNECT_BUTTON_WIDTH + MAIN_MENU_BUTTON_SPACING;
-	constexpr int32_t IP_TEXT_BOX_POS_Y		= CONNECT_BUTTON_POS_Y + IP_TEXT_BOX_HEIGHT / 2;
+	constexpr int32_t IP_TEXT_BOX_POS_Y		= CONNECT_BUTTON_POS_Y + (CONNECT_BUTTON_HEIGHT / 2) - (IP_TEXT_BOX_HEIGHT / 2);
 
 	// ---------- Multiplayer ----------
 	// PlayerPositions
