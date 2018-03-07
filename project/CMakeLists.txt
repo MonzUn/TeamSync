@@ -162,7 +162,11 @@ file(GLOB_RECURSE SOURCE_DIRECTORIES
 )
 
 # Create executable
-add_executable(${PROJECT_NAME} ${SOURCE_DIRECTORIES})
+if(MSVC) # TODODB: Check for windows platform instead
+	add_executable(${PROJECT_NAME} WIN32 ${SOURCE_DIRECTORIES})
+else(MSVC)
+	add_executable(${PROJECT_NAME} ${SOURCE_DIRECTORIES})
+endif(MSVC)
 
 # Set include directories
 set_property(TARGET ${PROJECT_NAME} PROPERTY INCLUDE_DIRECTORIES ${IncludeDirectoryList})

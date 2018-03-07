@@ -37,8 +37,6 @@ bool TeamSync::Initialize()
 
 	Tubes::RegisterReplicator(new Replicator());
 
-	m_TextInputThread = std::thread(&TeamSync::HandleTextInputOutput, this);
-
 	GlobalsBlackboard::GetInstance()->MainMenuID = MEngine::CreateGameMode();
 	GlobalsBlackboard::GetInstance()->MultiplayerID = MEngine::CreateGameMode();
 
@@ -55,7 +53,7 @@ bool TeamSync::Initialize()
 
 void TeamSync::Run()
 {
-	while (!MEngine::ShouldQuit() && !m_Quit)
+	while (!MEngine::ShouldQuit())
 	{
 		Tubes::Update();
 		MEngine::Update();
@@ -65,33 +63,6 @@ void TeamSync::Run()
 	CommandBlackboard::Destroy();
 	GlobalsBlackboard::Destroy();
 
-	m_Quit = true;
-	MUtility::UnblockSTDIn();
-
 	Tubes::Shutdown();
 	MEngine::Shutdown();
-
-	m_TextInputThread.join();
-}
-
-void TeamSync::HandleTextInputOutput() // TODODB: Create a command handler to avoid spreading input and output all over code and threads
-{
-	std::cout << "*************************************************\n";
-	std::cout << "Available commands:\nHost - Hosts a new session\nConnect <HostIPv4> - Requests a connection to a host on the input IP\nDisconnect <PlayerID (1-4)> - Disconnect the player with the supplied ID and closes the session if hosting\nPrime <PlayerID (1-4)> - Primes the screenshot cycle of the player with the supplied ID\nQuit - Closes the application\n";
-	std::cout << "\nControls:\nGrave - Synchronizes a screenshot\nTab - Synchronizes a screenshot every other time it is pressed\nAngled brackets (Left of Z; right of Shift) - Primes screenshot cycle\n\n";
-	std::cout << "*************************************************\n";
-
-	std::string input, returnMessage;
-	while (!m_Quit)
-	{
-		getline(std::cin, input);
-		if (!m_Quit)
-		{
-			std::transform(input.begin(), input.end(), input.begin(), ::tolower);
-			if (input == "quit") // TODODB: Make sure to add this as a command to MEngine when removing this input source
-				m_Quit = true;
-			else
-				CommandBlackboard::GetInstance()->EnqueueCommand(input);
-		}
-	}
 }

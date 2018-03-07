@@ -74,7 +74,6 @@ void TeamSystem::Shutdown()
 void TeamSystem::UpdatePresentationLayer(float deltaTime)
 {
 	HandleCommands();
-	HandleLogging();
 #if COMPILE_MODE == COMPILE_MODE_DEBUG
 	RunDebugCode();
 #endif
@@ -264,13 +263,6 @@ void TeamSystem::HandleCommands()
 		if (commandResponse != "")
 			std::cout << "- " << commandResponse << "\n\n";
 	}
-}
-
-void TeamSystem::HandleLogging()
-{
-	std::string newMessages;
-	if (MUtilityLog::FetchUnreadMessages(newMessages))
-		std::cout << newMessages;
 }
 
 void TeamSystem::HandleInput()
