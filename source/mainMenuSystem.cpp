@@ -20,9 +20,9 @@ void MainMenuSystem::Initialize()
 {
 	MEngine::TextureID ButtonTextureID = MEngine::GetTextureFromPath("resources/graphics/Button.png");
 
-	m_HostButtonID		= MEngine::CreateButton(HOST_BUTTON_POS_X, HOST_BUTTON_POS_Y, HOST_BUTTON_WIDTH, HOST_BUTTON_HEIGHT, std::bind(&MainMenuSystem::Host, this), ButtonTextureID, "Host");
-	m_ConnectButtonID	= MEngine::CreateButton(CONNECT_BUTTON_POS_X, CONNECT_BUTTON_POS_Y, CONNECT_BUTTON_WIDTH, CONNECT_BUTTON_HEIGHT, std::bind(&MainMenuSystem::Connect, this), ButtonTextureID, "Connect");
-	m_ConnectTextBoxID	= MEngine::CreateTextBox(IP_TEXT_BOX_POS_X, IP_TEXT_BOX_POS_Y, IP_TEXT_BOX_WIDTH, IP_TEXT_BOX_HEIGHT, true, Config::GetString("DefaultConnectionIP", "127.0.0.1"), Colors[WHITE], Colors[RED]);
+	m_HostButtonID		= MEngine::CreateButton(HOST_BUTTON_POS_X, HOST_BUTTON_POS_Y, HOST_BUTTON_WIDTH, HOST_BUTTON_HEIGHT, std::bind(&MainMenuSystem::Host, this), MENGINE_DEFAULT_UI_BUTTON_DEPTH, ButtonTextureID, "Host");
+	m_ConnectButtonID	= MEngine::CreateButton(CONNECT_BUTTON_POS_X, CONNECT_BUTTON_POS_Y, CONNECT_BUTTON_WIDTH, CONNECT_BUTTON_HEIGHT, std::bind(&MainMenuSystem::Connect, this), MENGINE_DEFAULT_UI_BUTTON_DEPTH, ButtonTextureID, "Connect");
+	m_ConnectTextBoxID	= MEngine::CreateTextBox(IP_TEXT_BOX_POS_X, IP_TEXT_BOX_POS_Y, IP_TEXT_BOX_WIDTH, IP_TEXT_BOX_HEIGHT, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, true, Config::GetString("DefaultConnectionIP", "127.0.0.1"), Colors[WHITE], Colors[RED]);
 
 	RegisterCommands();
 }
@@ -141,7 +141,7 @@ bool MainMenuSystem::Host()
 	if (result)
 	{
 		GlobalsBlackboard::GetInstance()->IsHost = true;
-		MEngine::ChangeGameMode(GlobalsBlackboard::GetInstance()->MultiplayerID);
+		MEngine::RequestGameModeChange(GlobalsBlackboard::GetInstance()->MultiplayerID);
 	}
 
 	return result;
@@ -149,7 +149,7 @@ bool MainMenuSystem::Host()
 
 void MainMenuSystem::Connect()
 {
-	const std::string& IP = *static_cast<const MEngine::TextBoxComponent*>(MEngine::GetComponentForEntity(MEngine::TextBoxComponent::GetComponentMask(), m_ConnectTextBoxID))->Text;
+	const std::string& IP = *static_cast<const MEngine::TextComponent*>(MEngine::GetComponentForEntity(MEngine::TextComponent::GetComponentMask(), m_ConnectTextBoxID))->Text;
 	uint16_t port = static_cast<uint16_t>(MEngine::Config::GetInt("DefaultConnectionPort", DefaultPort));
 	ConnectTo(IP, port);
 }
@@ -157,5 +157,5 @@ void MainMenuSystem::Connect()
 void MainMenuSystem::ConnectTo(const std::string& IP, uint16_t port)
 {
 	Tubes::RequestConnection(IP, port);
-	MEngine::ChangeGameMode(GlobalsBlackboard::GetInstance()->MultiplayerID); // TODODB: Put this in outgoing connection callback instead
+	MEngine::RequestGameModeChange(GlobalsBlackboard::GetInstance()->MultiplayerID); // TODODB: Put this in outgoing connection callback instead
 }

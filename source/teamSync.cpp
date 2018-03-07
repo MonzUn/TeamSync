@@ -48,7 +48,7 @@ bool TeamSync::Initialize()
 	MEngine::SystemID teamSystemID = MEngine::RegisterSystem(new TeamSystem());
 	MEngine::AddSystemToGameMode(GlobalsBlackboard::GetInstance()->MultiplayerID, teamSystemID, 100);
 
-	MEngine::ChangeGameMode(GlobalsBlackboard::GetInstance()->MainMenuID);
+	MEngine::RequestGameModeChange(GlobalsBlackboard::GetInstance()->MainMenuID);
 
 	return true;
 }
@@ -88,7 +88,7 @@ void TeamSync::HandleTextInputOutput() // TODODB: Create a command handler to av
 		if (!m_Quit)
 		{
 			std::transform(input.begin(), input.end(), input.begin(), ::tolower);
-			if (input == "quit")
+			if (input == "quit") // TODODB: Make sure to add this as a command to MEngine when removing this input source
 				m_Quit = true;
 			else
 				CommandBlackboard::GetInstance()->EnqueueCommand(input);

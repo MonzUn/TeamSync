@@ -46,12 +46,12 @@ public:
 	Image(int32_t posX, int32_t posY, int32_t width, int32_t height)
 	{
 		m_EntityID = MEngine::CreateEntity();
-		MEngine::AddComponentsToEntity(MEngine::TextureRenderingComponent::GetComponentMask(), m_EntityID);
-		MEngine::TextureRenderingComponent* textureComponent = static_cast<MEngine::TextureRenderingComponent*>(MEngine::GetComponentForEntity(MEngine::TextureRenderingComponent::GetComponentMask(), m_EntityID));
-		textureComponent->PosX		= posX;
-		textureComponent->PosY		= posY;
-		textureComponent->Width		= width;
-		textureComponent->Height	= height;
+		MEngine::AddComponentsToEntity(MEngine::PosSizeComponent::GetComponentMask() | MEngine::TextureRenderingComponent::GetComponentMask(), m_EntityID);
+		MEngine::PosSizeComponent* posSizeComponent = static_cast<MEngine::PosSizeComponent*>(MEngine::GetComponentForEntity(MEngine::PosSizeComponent::GetComponentMask(), m_EntityID));
+		posSizeComponent->PosX		= posX;
+		posSizeComponent->PosY		= posY;
+		posSizeComponent->Width		= width;
+		posSizeComponent->Height	= height;
 	};
 
 	~Image()
