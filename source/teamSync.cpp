@@ -6,6 +6,7 @@
 #include "teamSystem.h"
 #include "uiLayout.h"
 #include <mengine.h>
+#include <mengineConsole.h>
 #include <mengineInput.h>
 #include <mengineSystemManager.h>
 #include <mengineText.h>
@@ -33,7 +34,12 @@ bool TeamSync::Initialize()
 		MLOG_ERROR("Failed to initialize Tubes", LOG_CATEGORY_TEAMSYNC);
 
 	MEngine::SetFocusRequired(false);
-	MEngine::SetFont("resources/fonts/OpenSans-Regular.ttf");
+	GlobalsBlackboard::GetInstance()->ConsoleInputFontID	= MEngine::CreateFont("resources/fonts/OpenSans-Regular.ttf", 20);
+	GlobalsBlackboard::GetInstance()->ConsoleOutputFontID	= MEngine::CreateFont("resources/fonts/OpenSans-Regular.ttf", 15);
+	GlobalsBlackboard::GetInstance()->ButtonFontID			= MEngine::CreateFont("resources/fonts/OpenSans-Regular.ttf", 30);
+	GlobalsBlackboard::GetInstance()->InputTextBoxFontID	= MEngine::CreateFont("resources/fonts/OpenSans-Regular.ttf", 20);
+
+	MEngine::InitializeConsole(GlobalsBlackboard::GetInstance()->ConsoleInputFontID, GlobalsBlackboard::GetInstance()->ConsoleOutputFontID);
 
 	Tubes::RegisterReplicator(new Replicator());
 

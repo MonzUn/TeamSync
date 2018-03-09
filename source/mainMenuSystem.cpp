@@ -20,9 +20,9 @@ void MainMenuSystem::Initialize()
 {
 	MEngine::TextureID ButtonTextureID = MEngine::GetTextureFromPath("resources/graphics/Button.png");
 
-	m_HostButtonID		= MEngine::CreateButton(HOST_BUTTON_POS_X, HOST_BUTTON_POS_Y, HOST_BUTTON_WIDTH, HOST_BUTTON_HEIGHT, std::bind(&MainMenuSystem::Host, this), MENGINE_DEFAULT_UI_BUTTON_DEPTH, ButtonTextureID, "Host");
-	m_ConnectButtonID	= MEngine::CreateButton(CONNECT_BUTTON_POS_X, CONNECT_BUTTON_POS_Y, CONNECT_BUTTON_WIDTH, CONNECT_BUTTON_HEIGHT, std::bind(&MainMenuSystem::Connect, this), MENGINE_DEFAULT_UI_BUTTON_DEPTH, ButtonTextureID, "Connect");
-	m_ConnectTextBoxID	= MEngine::CreateTextBox(IP_TEXT_BOX_POS_X, IP_TEXT_BOX_POS_Y, IP_TEXT_BOX_WIDTH, IP_TEXT_BOX_HEIGHT, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, true, Config::GetString("DefaultConnectionIP", "127.0.0.1"), Colors[WHITE], Colors[RED]);
+	m_HostButtonID		= MEngine::CreateButton(HOST_BUTTON_POS_X, HOST_BUTTON_POS_Y, HOST_BUTTON_WIDTH, HOST_BUTTON_HEIGHT, std::bind(&MainMenuSystem::Host, this), MENGINE_DEFAULT_UI_BUTTON_DEPTH, ButtonTextureID, GlobalsBlackboard::GetInstance()->ButtonFontID, "Host");
+	m_ConnectButtonID	= MEngine::CreateButton(CONNECT_BUTTON_POS_X, CONNECT_BUTTON_POS_Y, CONNECT_BUTTON_WIDTH, CONNECT_BUTTON_HEIGHT, std::bind(&MainMenuSystem::Connect, this), MENGINE_DEFAULT_UI_BUTTON_DEPTH, ButtonTextureID, GlobalsBlackboard::GetInstance()->ButtonFontID, "Connect");
+	m_ConnectInputTextBoxID	= MEngine::CreateTextBox(IP_TEXT_BOX_POS_X, IP_TEXT_BOX_POS_Y, IP_TEXT_BOX_WIDTH, IP_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->InputTextBoxFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, true, Config::GetString("DefaultConnectionIP", "127.0.0.1"), Colors[WHITE], Colors[RED]);
 
 	RegisterCommands();
 }
@@ -31,7 +31,7 @@ void MainMenuSystem::Shutdown()
 {
 	MEngine::DestroyEntity(m_HostButtonID);
 	MEngine::DestroyEntity(m_ConnectButtonID);
-	MEngine::DestroyEntity(m_ConnectTextBoxID);
+	MEngine::DestroyEntity(m_ConnectInputTextBoxID);
 
 	MEngine::UnregisterAllCommands();
 }
@@ -149,7 +149,7 @@ bool MainMenuSystem::Host()
 
 void MainMenuSystem::Connect()
 {
-	const std::string& IP = *static_cast<const MEngine::TextComponent*>(MEngine::GetComponentForEntity(MEngine::TextComponent::GetComponentMask(), m_ConnectTextBoxID))->Text;
+	const std::string& IP = *static_cast<const MEngine::TextComponent*>(MEngine::GetComponentForEntity(MEngine::TextComponent::GetComponentMask(), m_ConnectInputTextBoxID))->Text;
 	uint16_t port = static_cast<uint16_t>(MEngine::Config::GetInt("DefaultConnectionPort", DefaultPort));
 	ConnectTo(IP, port);
 }

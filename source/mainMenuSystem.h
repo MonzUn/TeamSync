@@ -20,5 +20,5 @@ private:
 
 	MEngine::EntityID m_HostButtonID;
 	MEngine::EntityID m_ConnectButtonID;
-	MEngine::EntityID m_ConnectTextBoxID;
+	MEngine::EntityID m_ConnectInputTextBoxID;
 };
