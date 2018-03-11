@@ -7,6 +7,7 @@
 #include <mengineConfig.h>
 #include <mengineConsole.h>
 #include <mengineInput.h>
+#include <mengineSystemManager.h>
 #include <MUtilityLog.h>
 #include "MUtilityString.h"
 #include <MUtilityThreading.h>
@@ -193,7 +194,7 @@ void TeamSystem::DisconnectionCallback(Tubes::ConnectionID connectionID)
 
 			RemovePlayer(disconnectingPlayer);
 		}
-		else
+		else // Disconnect from host
 		{
 			for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
 			{
@@ -203,6 +204,7 @@ void TeamSystem::DisconnectionCallback(Tubes::ConnectionID connectionID)
 
 			delayedScreenshotcounter = 0;
 			awaitingDelayedScreenshot = false;
+			RequestGameModeChange(GlobalsBlackboard::GetInstance()->MainMenuGameModeID);
 		}
 	}
 }
@@ -687,7 +689,7 @@ void TeamSystem::StopHosting()
 		if (players[i]->IsActive())
 			RemovePlayer(players[i]);
 	}
-	// TODODB: Change back to main menu game mode when it is being delayed until end of frame
+	RequestGameModeChange(GlobalsBlackboard::GetInstance()->MainMenuGameModeID);
 }
 
 #if COMPILE_MODE == COMPILE_MODE_DEBUG
