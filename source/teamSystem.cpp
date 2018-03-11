@@ -23,8 +23,8 @@ using namespace MEngine;
 
 void TeamSystem::Initialize()
 {
-	m_ConnectionCallbackHandle = Tubes::RegisterConnectionCallback(std::bind(&TeamSystem::ConnectionCallback, this, std::placeholders::_1));
-	m_DisconnectionCallbackHandle = Tubes::RegisterDisconnectionCallback(std::bind(&TeamSystem::DisconnectionCallback, this, std::placeholders::_1));
+	m_OnConnectionHandle = Tubes::RegisterConnectionCallback(std::bind(&TeamSystem::OnConnection, this, std::placeholders::_1));
+	m_OnDisconnectionHandle = Tubes::RegisterDisconnectionCallback(std::bind(&TeamSystem::OnDisconnection, this, std::placeholders::_1));
 
 	m_ImageJobThread = std::thread(&TeamSystem::ProcessImageJobs, this);
 
@@ -44,10 +44,10 @@ void TeamSystem::Initialize()
 
 void TeamSystem::Shutdown()
 {
-	if (m_ConnectionCallbackHandle != Tubes::ConnectionCallbackHandle::invalid())
-		Tubes::UnregisterConnectionCallback(m_ConnectionCallbackHandle);
-	if (m_DisconnectionCallbackHandle != Tubes::DisconnectionCallbackHandle::invalid())
-		Tubes::UnregisterDisconnectionCallback(m_DisconnectionCallbackHandle);
+	if (m_OnConnectionHandle != Tubes::ConnectionCallbackHandle::invalid())
+		Tubes::UnregisterConnectionCallback(m_OnConnectionHandle);
+	if (m_OnDisconnectionHandle != Tubes::DisconnectionCallbackHandle::invalid())
+		Tubes::UnregisterDisconnectionCallback(m_OnDisconnectionHandle);
 
 	GlobalsBlackboard::GetInstance()->ConnectionID = INVALID_CONNECTION_ID;
 
@@ -105,7 +105,7 @@ void TeamSystem::RemovePlayer(Player* player)
 		localPlayerID = UNASSIGNED_PLAYER_ID;
 }
 
-void TeamSystem::ConnectionCallback(Tubes::ConnectionID connectionID)
+void TeamSystem::OnConnection(Tubes::ConnectionID connectionID)
 {
 	if (!GlobalsBlackboard::GetInstance()->IsHost)
 	{
@@ -172,7 +172,7 @@ void TeamSystem::ConnectionCallback(Tubes::ConnectionID connectionID)
 		Tubes::Disconnect(connectionID); // TODODB: Make these players observers instead
 }
 
-void TeamSystem::DisconnectionCallback(Tubes::ConnectionID connectionID)
+void TeamSystem::OnDisconnection(Tubes::ConnectionID connectionID)
 {
 	Player* disconnectingPlayer = nullptr;
 	for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)

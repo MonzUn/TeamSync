@@ -20,8 +20,9 @@ private:
 	PlayerID FindFreePlayerSlot() const;
 	void RemovePlayer(Player* player);
 
-	void ConnectionCallback(Tubes::ConnectionID connectionID);
-	void DisconnectionCallback(Tubes::ConnectionID connectionID);
+	// TODODB: Rename with "on" callback prefix instead
+	void OnConnection(Tubes::ConnectionID connectionID);
+	void OnDisconnection(Tubes::ConnectionID connectionID);
 
 	void ProcessImageJobs();
 	void HandleCommands();
@@ -57,6 +58,6 @@ private:
 	MUtility::LocklessQueue<ImageJob*>	m_ImageJobQueue;
 	MUtility::LocklessQueue<ImageJob*>	m_ImageJobResultQueue;
 
-	Tubes::ConnectionCallbackHandle		m_ConnectionCallbackHandle;
-	Tubes::DisconnectionCallbackHandle	m_DisconnectionCallbackHandle;
+	Tubes::ConnectionCallbackHandle		m_OnConnectionHandle;
+	Tubes::DisconnectionCallbackHandle	m_OnDisconnectionHandle;
 };
