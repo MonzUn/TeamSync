@@ -1,6 +1,10 @@
 #pragma once
-#include "messaging/MessagingTypes.h"
+#include "Messaging/MessagingTypes.h"
 #include "TubesTypes.h" // Exposes the relevant types to the external application
+
+// TODODB: Add pinging and latency measurements
+// TODODB: Standardize ordering of include statements
+// TODODB: Standardize code (Remove whitespaces in paramter lists and whatnot)
 
 class	MessageReplicator;
 struct	Message;
@@ -12,7 +16,7 @@ namespace Tubes
 	void Update();
 
 	void SendToConnection( const Message* message, ConnectionID destinationConnectionID );
-	void SendToAll( const Message* message, ConnectionID exception = INVALID_CONNECTION_ID );
+	void SendToAll( const Message* message, ConnectionID exception = INVALID_TUBES_CONNECTION_ID );
 	void Receive( std::vector<Message*>& outMessages, std::vector<ConnectionID>* outSenderIDs = nullptr );
 
 	void RequestConnection( const std::string& address, uint16_t port );

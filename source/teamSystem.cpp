@@ -36,7 +36,7 @@ void TeamSystem::Initialize()
 	if (GlobalsBlackboard::GetInstance()->IsHost)
 	{
 		localPlayerID = 0;
-		players[localPlayerID]->Activate(localPlayerID, PlayerConnectionType::Local, INVALID_CONNECTION_ID);
+		players[localPlayerID]->Activate(localPlayerID, PlayerConnectionType::Local, INVALID_TUBES_CONNECTION_ID);
 	}
 
 	RegisterCommands();
@@ -49,7 +49,7 @@ void TeamSystem::Shutdown()
 	if (m_OnDisconnectionHandle != Tubes::DisconnectionCallbackHandle::invalid())
 		Tubes::UnregisterDisconnectionCallback(m_OnDisconnectionHandle);
 
-	GlobalsBlackboard::GetInstance()->ConnectionID = INVALID_CONNECTION_ID;
+	GlobalsBlackboard::GetInstance()->ConnectionID = INVALID_TUBES_CONNECTION_ID;
 
 	m_RunImageJobThread = false;
 	m_ImageJobLockCondition.notify_one();
@@ -428,7 +428,7 @@ void TeamSystem::HandleNetworkCommunication()
 				const PlayerIDMessage* playerIDMessage = static_cast<const PlayerIDMessage*>(receivedMessages[i]);
 				PlayerID playerID = playerIDMessage->PlayerID;
 				PlayerConnectionType::PlayerConnectionType connectionType = static_cast<PlayerConnectionType::PlayerConnectionType>(playerIDMessage->PlayerConnectionType);
-				Tubes::ConnectionID connectionID = INVALID_CONNECTION_ID;
+				Tubes::ConnectionID connectionID = INVALID_TUBES_CONNECTION_ID;
 
 				if (playerIDMessage->PlayerConnectionType == PlayerConnectionType::Local)
 				{

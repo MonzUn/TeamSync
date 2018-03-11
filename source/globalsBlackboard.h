@@ -1,6 +1,6 @@
 #pragma once
 #include "MUtilitySingleton.h"
-#include <mengineTypes.h>
+#include <MEngineTypes.h>
 #include <TubesTypes.h>
 #include <stdint.h>
 
@@ -11,7 +11,7 @@ class GlobalsBlackboard : public MUtility::Singleton<GlobalsBlackboard>
 {
 public:
 	bool IsHost = false;
-	Tubes::ConnectionID ConnectionID = INVALID_CONNECTION_ID;
+	Tubes::ConnectionID ConnectionID = INVALID_TUBES_CONNECTION_ID;
 
 	// GameModes
 	MEngine::GameModeID		MainMenuGameModeID		= INVALID_MENGINE_GAME_MODE_ID;

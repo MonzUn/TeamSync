@@ -138,7 +138,7 @@ void Player::SetCycledScreenshotPrimed(bool primed)
 void Player::Reset()
 {
 	m_PlayerID			= UNASSIGNED_PLAYER_ID;
-	m_ConnectionID		= INVALID_CONNECTION_ID;
+	m_ConnectionID		= INVALID_TUBES_CONNECTION_ID;
 	m_ConnectionType	= PlayerConnectionType::Invalid;
 	m_IsActive			= false;
 
