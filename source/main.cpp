@@ -10,7 +10,7 @@
 
 // TODODB: Fix memory leak that occurs after a client exits the program while connected to a host
 // TODODB: Fix memory leak that occurs after a host exits the program before any clients connect
-// TODODB: Make the application scalable
+// TODODB: Make the application UI scalable
 // TODODB: Make clipping and destination rects customizable from file
 // TODODB: Make clipping/destination rect setups selectable from main menu
 // TODODB: Remove window border and make it possible to move the app between screens via UI/Console

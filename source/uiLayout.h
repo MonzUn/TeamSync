@@ -6,8 +6,8 @@
 namespace UILayout
 {
 	// ---------- Generic ----------
-	constexpr int32_t ApplicationWindowWidth	= 1920; // TODODB: Fix casing so that it is consistent
-	constexpr int32_t ApplicationWindowHeight	= 1000;
+	constexpr int32_t APPLICATION_WINDOW_WIDTH	= 1920;
+	constexpr int32_t APPLICATION_WINDOW_HEIGHT	= 1000;
 
 	// ---------- MainMenu ----------
 	constexpr int32_t MAIN_MENU_NUM_BUTTONS		= 2;
@@ -24,8 +24,8 @@ namespace UILayout
 	constexpr int32_t TOTAL_MENU_HEIGHT = HOST_BUTTON_HEIGHT + CONNECT_BUTTON_HEIGHT + (MAIN_MENU_BUTTON_SPACING * (MAIN_MENU_NUM_BUTTONS - 1));
 
 	// Positions
-	constexpr int32_t HOST_BUTTON_POS_X		= ApplicationWindowWidth / 2 - HOST_BUTTON_WIDTH / 2;
-	constexpr int32_t HOST_BUTTON_POS_Y		= ApplicationWindowHeight / 2 - TOTAL_MENU_HEIGHT / 2;
+	constexpr int32_t HOST_BUTTON_POS_X		= APPLICATION_WINDOW_WIDTH / 2 - HOST_BUTTON_WIDTH / 2;
+	constexpr int32_t HOST_BUTTON_POS_Y		= APPLICATION_WINDOW_HEIGHT / 2 - TOTAL_MENU_HEIGHT / 2;
 	constexpr int32_t CONNECT_BUTTON_POS_X	= HOST_BUTTON_POS_X;
 	constexpr int32_t CONNECT_BUTTON_POS_Y	= HOST_BUTTON_POS_Y + HOST_BUTTON_HEIGHT + MAIN_MENU_BUTTON_SPACING;
 	constexpr int32_t IP_TEXT_BOX_POS_X		= HOST_BUTTON_POS_X + CONNECT_BUTTON_WIDTH + MAIN_MENU_BUTTON_SPACING;

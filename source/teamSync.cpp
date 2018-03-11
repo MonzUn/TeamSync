@@ -26,7 +26,7 @@ bool TeamSync::Initialize()
 #if COMPILE_MODE == COMPILE_MODE_DEBUG
 	applicationName += " (PID=" + std::to_string(MUtility::GetPid()) + ")";
 #endif
-	if (!MEngine::Initialize(applicationName.c_str(), UILayout::ApplicationWindowWidth, UILayout::ApplicationWindowHeight))
+	if (!MEngine::Initialize(applicationName.c_str(), UILayout::APPLICATION_WINDOW_WIDTH, UILayout::APPLICATION_WINDOW_HEIGHT))
 		return false;
 
 	if (!Tubes::Initialize())
