@@ -2,13 +2,13 @@
 #include "commandBlackboard.h"
 #include "globalsBlackboard.h"
 #include "uiLayout.h"
-#include <mengineColor.h>
-#include <mengineConfig.h>
-#include <mengineConsole.h>
-#include <mengineEntityFactory.h>
-#include <mengineEntityManager.h>
-#include <mengineSystemManager.h>
-#include <mengineGraphics.h>
+#include <MEngineColor.h>
+#include <MEngineConfig.h>
+#include <MEngineConsole.h>
+#include <MEngineEntityFactory.h>
+#include <MEngineEntityManager.h>
+#include <MEngineSystemManager.h>
+#include <MEngineGraphics.h>
 #include <Tubes.h>
 #include <iostream>
 

@@ -1,6 +1,6 @@
 #pragma once
-#include "mengineTypes.h"
-#include "mengineColor.h"
+#include "MengineTypes.h"
+#include "MengineColor.h"
 #include <string>
 
 namespace MEngine // TODODB: Create a way to draw text without using the component system (for easy access to text rendering)

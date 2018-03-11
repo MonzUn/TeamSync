@@ -4,10 +4,10 @@
 #include "imageJob.h"
 #include "teamSyncMessages.h"
 #include "uiLayout.h"
-#include <mengineConfig.h>
-#include <mengineConsole.h>
-#include <mengineInput.h>
-#include <mengineSystemManager.h>
+#include <MEngineConfig.h>
+#include <MEngineConsole.h>
+#include <MEngineInput.h>
+#include <MEngineSystemManager.h>
 #include <MUtilityLog.h>
 #include "MUtilityString.h"
 #include <MUtilityThreading.h>

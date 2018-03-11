@@ -1,6 +1,6 @@
 #pragma once
-#include "mengineTypes.h"
-#include "mengineComponent.h"
+#include "MEngineTypes.h"
+#include "MEngineComponent.h"
 #include <MUtilityTypes.h>
 #include <stdint.h>
 #include <vector>

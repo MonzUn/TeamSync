@@ -5,11 +5,11 @@
 #include "replicator.h"
 #include "teamSystem.h"
 #include "uiLayout.h"
-#include <mengine.h>
-#include <mengineConsole.h>
-#include <mengineInput.h>
-#include <mengineSystemManager.h>
-#include <mengineText.h>
+#include <MEngine.h>
+#include <MEngineConsole.h>
+#include <MEngineInput.h>
+#include <MEngineSystemManager.h>
+#include <MEngineText.h>
 #include <Tubes.h>
 #include <TubesTypes.h>
 #include <MUtilityThreading.h>

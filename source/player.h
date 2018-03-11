@@ -1,7 +1,7 @@
 #pragma once
-#include <mengineEntityManager.h>
-#include <mengineInternalComponents.h>
-#include <mengineTypes.h>
+#include <MEngineEntityManager.h>
+#include <MEngineInternalComponents.h>
+#include <MEngineTypes.h>
 #include <TubesTypes.h>
 
 #define UNASSIGNED_PLAYER_ID -1

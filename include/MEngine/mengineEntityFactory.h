@@ -1,7 +1,7 @@
 #pragma once
-#include "mengineColor.h"
-#include "mengineTypes.h"
-#include "mengineInternalComponents.h"
+#include "MEngineColor.h"
+#include "MEngineTypes.h"
+#include "MEngineInternalComponents.h"
 
 #define BUTTON_ENTITY_MASK PosSizeComponent::GetComponentMask() | TextureRenderingComponent::GetComponentMask() | ButtonComponent::GetComponentMask() | TextComponent::GetComponentMask()
 #define TEXT_BOX_ENTITY_MASK PosSizeComponent::GetComponentMask() | RectangleRenderingComponent::GetComponentMask() | ButtonComponent::GetComponentMask() | TextComponent::GetComponentMask()
