@@ -1,5 +1,4 @@
 #include "teamSystem.h"
-#include "commandBlackboard.h"
 #include "globalsBlackboard.h"
 #include "imageJob.h"
 #include "teamSyncMessages.h"
@@ -76,7 +75,6 @@ void TeamSystem::Shutdown()
 
 void TeamSystem::UpdatePresentationLayer(float deltaTime)
 {
-	HandleCommands();
 #if COMPILE_MODE == COMPILE_MODE_DEBUG
 	RunDebugCode();
 #endif
@@ -257,19 +255,6 @@ void TeamSystem::ProcessImageJobs()
 			m_ImageJobLockCondition.wait(m_ImageJobLock);
 	}
 	m_ImageJobLock.unlock();
-}
-
-void TeamSystem::HandleCommands()
-{
-	// TODODB: Remove when MEngine can handle command input automatically
-	std::string command;
-	while (CommandBlackboard::GetInstance()->CommandQueue.Consume(command))
-	{
-		std::string commandResponse = "";
-		MEngine::ExecuteCommand(command, &commandResponse);
-		if (commandResponse != "")
-			std::cout << "- " << commandResponse << "\n\n";
-	}
 }
 
 void TeamSystem::HandleInput()

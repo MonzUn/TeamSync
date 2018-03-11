@@ -1,5 +1,4 @@
 #include "teamSync.h"
-#include "commandBlackboard.h"
 #include "globalsBlackboard.h"
 #include "mainMenuSystem.h"
 #include "replicator.h"
@@ -66,7 +65,6 @@ void TeamSync::Run()
 		MEngine::Render();
 	}
 
-	CommandBlackboard::Destroy();
 	GlobalsBlackboard::Destroy();
 
 	Tubes::Shutdown();

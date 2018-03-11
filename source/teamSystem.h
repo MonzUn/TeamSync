@@ -24,7 +24,6 @@ private:
 	void OnDisconnection(Tubes::ConnectionID connectionID);
 
 	void ProcessImageJobs();
-	void HandleCommands();
 	void HandleInput();
 	void HandleImageJobResults();
 	void HandleNetworkCommunication();

@@ -1,5 +1,4 @@
 #include "mainMenuSystem.h"
-#include "commandBlackboard.h"
 #include "globalsBlackboard.h"
 #include "uiLayout.h"
 #include <MEngineColor.h>
@@ -40,19 +39,6 @@ void MainMenuSystem::Shutdown()
 	MEngine::UnregisterAllCommands();
 
 	Tubes::UnregisterConnectionCallback(m_OnConnectionHandle);
-}
-
-void MainMenuSystem::UpdatePresentationLayer(float deltaTime)
-{
-	// TODODB: Remove when MEngine can handle command input automatically
-	std::string command;
-	while (CommandBlackboard::GetInstance()->CommandQueue.Consume(command))
-	{
-		std::string commandResponse = "";
-		MEngine::ExecuteCommand(command, &commandResponse);
-		if (commandResponse != "")
-			std::cout << "- " << commandResponse << "\n\n";
-	}
 }
 
 // ---------- PRIVATE ----------

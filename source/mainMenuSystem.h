@@ -8,7 +8,6 @@ class MainMenuSystem : public MEngine::System
 public:
 	void Initialize() override;
 	void Shutdown() override;
-	void UpdatePresentationLayer(float deltaTime) override;
 
 private:
 	void RegisterCommands();
