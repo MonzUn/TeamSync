@@ -20,7 +20,6 @@ private:
 	PlayerID FindFreePlayerSlot() const;
 	void RemovePlayer(Player* player);
 
-	// TODODB: Rename with "on" callback prefix instead
 	void OnConnection(Tubes::ConnectionID connectionID);
 	void OnDisconnection(Tubes::ConnectionID connectionID);
 
