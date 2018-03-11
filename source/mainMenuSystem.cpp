@@ -114,7 +114,6 @@ bool MainMenuSystem::ExecuteConnectCommand(const std::string* parameters, int32_
 
 		uint16_t port = static_cast<uint16_t>(MEngine::Config::GetInt("DefaultConnectionPort", DefaultPort));
 		ConnectTo(ipv4String, port);
-		MEngine::Config::SetString("DefaultConnectionIP", ipv4String); // TODODB: Do this on outgoing connection callback instead
 
 		if (outResponse != nullptr)
 			*outResponse = "Requested connection to " + ipv4String + "on port " + std::to_string(port);
@@ -169,6 +168,10 @@ void MainMenuSystem::ConnectTo(const std::string& IP, uint16_t port)
 
 void MainMenuSystem::OnConnection(Tubes::ConnectionID connectionID)
 {
+	MEngine::Config::SetString("DefaultConnectionIP", Tubes::GetAddressOfConnection(connectionID));
+	MEngine::Config::SetInt("DefaultConnectionPort", Tubes::GetPortOfConnection(connectionID));
+
 	GlobalsBlackboard::GetInstance()->ConnectionID = connectionID;
+
 	MEngine::RequestGameModeChange(GlobalsBlackboard::GetInstance()->MultiplayerGameModeID);
 }
