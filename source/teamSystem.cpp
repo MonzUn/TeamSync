@@ -22,8 +22,8 @@ using namespace MEngine;
 
 void TeamSystem::Initialize()
 {
-	m_ConnectionCallbackHandle = Tubes::RegisterConnectionCallback(Tubes::ConnectionCallbackFunction(std::bind(&TeamSystem::ConnectionCallback, this, std::placeholders::_1)));
-	m_DisconnectionCallbackHandle = Tubes::RegisterDisconnectionCallback(Tubes::DisconnectionCallbackFunction(std::bind(&TeamSystem::DisconnectionCallback, this, std::placeholders::_1)));
+	m_ConnectionCallbackHandle = Tubes::RegisterConnectionCallback(std::bind(&TeamSystem::ConnectionCallback, this, std::placeholders::_1));
+	m_DisconnectionCallbackHandle = Tubes::RegisterDisconnectionCallback(std::bind(&TeamSystem::DisconnectionCallback, this, std::placeholders::_1));
 
 	m_ImageJobThread = std::thread(&TeamSystem::ProcessImageJobs, this);
 
@@ -47,6 +47,8 @@ void TeamSystem::Shutdown()
 		Tubes::UnregisterConnectionCallback(m_ConnectionCallbackHandle);
 	if (m_DisconnectionCallbackHandle != Tubes::DisconnectionCallbackHandle::invalid())
 		Tubes::UnregisterDisconnectionCallback(m_DisconnectionCallbackHandle);
+
+	GlobalsBlackboard::GetInstance()->ConnectionID = INVALID_CONNECTION_ID;
 
 	m_RunImageJobThread = false;
 	m_ImageJobLockCondition.notify_one();
@@ -104,66 +106,69 @@ void TeamSystem::RemovePlayer(Player* player)
 
 void TeamSystem::ConnectionCallback(Tubes::ConnectionID connectionID)
 {
-	if (GlobalsBlackboard::GetInstance()->IsHost)
+	if (!GlobalsBlackboard::GetInstance()->IsHost)
 	{
-		PlayerID newPlayerID = FindFreePlayerSlot();
-		if (newPlayerID >= 0)
+		MLOG_WARNING("Connection callback triggered in client mode", LOG_CATEGORY_TEAM);
+		return;
+	}
+
+	PlayerID newPlayerID = FindFreePlayerSlot();
+	if (newPlayerID >= 0)
+	{
+		players[newPlayerID]->Activate(newPlayerID, PlayerConnectionType::Direct, connectionID);
+
+		// Send the new player ID to all clients
+		PlayerIDMessage idMessage = PlayerIDMessage(newPlayerID, PlayerConnectionType::Local);
+		Tubes::SendToConnection(&idMessage, connectionID); // Tell the new client its ID
+
+		idMessage.PlayerConnectionType = PlayerConnectionType::Relayed;
+		Tubes::SendToAll(&idMessage, connectionID); // Tell all other clients about the new client
+
+		idMessage.Destroy();
+
+		// Make the new client aware of the relayed clients and update the new clients view of the relayed clients 
+		for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
 		{
-			players[newPlayerID]->Activate(newPlayerID, PlayerConnectionType::Direct, connectionID);
-
-			// Send the new player ID to all clients
-			PlayerIDMessage idMessage = PlayerIDMessage(newPlayerID, PlayerConnectionType::Local);
-			Tubes::SendToConnection(&idMessage, connectionID); // Tell the new client its ID
-
-			idMessage.PlayerConnectionType = PlayerConnectionType::Relayed;
-			Tubes::SendToAll(&idMessage, connectionID); // Tell all other clients about the new client
-
-			idMessage.Destroy();
-
-			// Make the new client aware of the relayed clients and update the new clients view of the relayed clients 
-			for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
+			if (players[i]->IsActive())
 			{
-				if (players[i]->IsActive())
+				PlayerID playerID = players[i]->GetPlayerID();
+				if (playerID != newPlayerID)
 				{
-					PlayerID playerID = players[i]->GetPlayerID();
-					if (playerID != newPlayerID)
+					PlayerConnectionType::PlayerConnectionType connectionType = (playerID == localPlayerID ? PlayerConnectionType::Direct : PlayerConnectionType::Relayed);
+					PlayerIDMessage idMessage = PlayerIDMessage(playerID, connectionType);
+					Tubes::SendToConnection(&idMessage, connectionID);
+					idMessage.Destroy();
+
+
+					if (players[playerID]->GetImageTextureID(PlayerImageSlot::Fullscreen) != INVALID_MENGINE_TEXTURE_ID)
 					{
-						PlayerConnectionType::PlayerConnectionType connectionType = (playerID == localPlayerID ? PlayerConnectionType::Direct : PlayerConnectionType::Relayed);
-						PlayerIDMessage idMessage = PlayerIDMessage(playerID, connectionType);
-						Tubes::SendToConnection(&idMessage, connectionID);
-						idMessage.Destroy();
-
-
-						if (players[playerID]->GetImageTextureID(PlayerImageSlot::Fullscreen) != INVALID_MENGINE_TEXTURE_ID)
+						PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, PlayerImageSlot::Fullscreen, MEngine::GetTextureData(players[playerID]->GetImageTextureID(PlayerImageSlot::Fullscreen)));
+						Tubes::SendToConnection(&updateMessage, connectionID);
+						updateMessage.Destroy();
+					}
+					else
+					{
+						for (int i = 0; i < PlayerImageSlot::Count - 1; ++i)
 						{
-							PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, PlayerImageSlot::Fullscreen, MEngine::GetTextureData(players[playerID]->GetImageTextureID(PlayerImageSlot::Fullscreen)));
-							Tubes::SendToConnection(&updateMessage, connectionID);
-							updateMessage.Destroy();
-						}
-						else
-						{
-							for (int i = 0; i < PlayerImageSlot::Count - 1; ++i)
+							TextureID textureID = players[playerID]->GetImageTextureID(static_cast<PlayerImageSlot::PlayerImageSlot>(i));
+							if (textureID != INVALID_MENGINE_TEXTURE_ID)
 							{
-								TextureID textureID = players[playerID]->GetImageTextureID(static_cast<PlayerImageSlot::PlayerImageSlot>(i));
-								if (textureID != INVALID_MENGINE_TEXTURE_ID)
-								{
-									PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, static_cast<PlayerImageSlot::PlayerImageSlot>(i), MEngine::GetTextureData(textureID));
-									Tubes::SendToConnection(&updateMessage, connectionID);
-									updateMessage.Destroy();
-								}
+								PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, static_cast<PlayerImageSlot::PlayerImageSlot>(i), MEngine::GetTextureData(textureID));
+								Tubes::SendToConnection(&updateMessage, connectionID);
+								updateMessage.Destroy();
 							}
 						}
-
-						SignalFlagMessage primeFlagMessage = SignalFlagMessage(TeamSyncSignals::PRIME, players[playerID]->GetCycledScreenshotPrimed(), playerID);
-						Tubes::SendToConnection(&primeFlagMessage, connectionID);
-						primeFlagMessage.Destroy();
 					}
+
+					SignalFlagMessage primeFlagMessage = SignalFlagMessage(TeamSyncSignals::PRIME, players[playerID]->GetCycledScreenshotPrimed(), playerID);
+					Tubes::SendToConnection(&primeFlagMessage, connectionID);
+					primeFlagMessage.Destroy();
 				}
 			}
 		}
-		else
-			Tubes::Disconnect(connectionID);
 	}
+	else
+		Tubes::Disconnect(connectionID); // TODODB: Make these players observers instead
 }
 
 void TeamSystem::DisconnectionCallback(Tubes::ConnectionID connectionID)

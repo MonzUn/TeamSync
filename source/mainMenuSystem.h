@@ -1,6 +1,7 @@
 #pragma once
 #include <mengineSystem.h>
 #include <mengineTypes.h>
+#include <TubesTypes.h>
 
 class MainMenuSystem : public MEngine::System
 {
@@ -18,7 +19,11 @@ private:
 	void Connect();
 	void ConnectTo(const std::string& IP, uint16_t port);
 
-	MEngine::EntityID m_HostButtonID;
-	MEngine::EntityID m_ConnectButtonID;
-	MEngine::EntityID m_ConnectInputTextBoxID;
+	void OnConnected(Tubes::ConnectionID connectionID);
+
+	MEngine::EntityID m_HostButtonID			= INVALID_MENGINE_ENTITY_ID;
+	MEngine::EntityID m_ConnectButtonID			= INVALID_MENGINE_ENTITY_ID;;
+	MEngine::EntityID m_ConnectInputTextBoxID	= INVALID_MENGINE_ENTITY_ID;;
+
+	Tubes::ConnectionCallbackHandle m_OnConnectedHandle;
 };

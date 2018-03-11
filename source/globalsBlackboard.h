@@ -1,6 +1,7 @@
 #pragma once
 #include "MUtilitySingleton.h"
 #include <mengineTypes.h>
+#include <TubesTypes.h>
 #include <stdint.h>
 
 constexpr int32_t TEAMSYNC_MAX_PLAYERS	= 4;
@@ -10,9 +11,13 @@ class GlobalsBlackboard : public MUtility::Singleton<GlobalsBlackboard>
 {
 public:
 	bool IsHost = false;
+	Tubes::ConnectionID ConnectionID = INVALID_CONNECTION_ID;
 
-	MEngine::GameModeID		MainMenuID				= INVALID_MENGINE_GAME_MODE_ID;
-	MEngine::GameModeID		MultiplayerID			= INVALID_MENGINE_GAME_MODE_ID;
+	// GameModes
+	MEngine::GameModeID		MainMenuGameModeID		= INVALID_MENGINE_GAME_MODE_ID;
+	MEngine::GameModeID		MultiplayerGameModeID	= INVALID_MENGINE_GAME_MODE_ID;
+
+	// Fonts
 	MEngine::MEngineFontID	ConsoleInputFontID		= INVALID_MENGINE_FONT_ID;
 	MEngine::MEngineFontID	ConsoleOutputFontID		= INVALID_MENGINE_FONT_ID;
 	MEngine::MEngineFontID	ButtonFontID			= INVALID_MENGINE_FONT_ID;

@@ -43,16 +43,16 @@ bool TeamSync::Initialize()
 
 	Tubes::RegisterReplicator(new Replicator());
 
-	GlobalsBlackboard::GetInstance()->MainMenuID = MEngine::CreateGameMode();
-	GlobalsBlackboard::GetInstance()->MultiplayerID = MEngine::CreateGameMode();
+	GlobalsBlackboard::GetInstance()->MainMenuGameModeID	= MEngine::CreateGameMode();
+	GlobalsBlackboard::GetInstance()->MultiplayerGameModeID = MEngine::CreateGameMode();
 
 	MEngine::SystemID mainMenuSystemID = MEngine::RegisterSystem(new MainMenuSystem());
-	MEngine::AddSystemToGameMode(GlobalsBlackboard::GetInstance()->MainMenuID, mainMenuSystemID, 100);
+	MEngine::AddSystemToGameMode(GlobalsBlackboard::GetInstance()->MainMenuGameModeID, mainMenuSystemID, 100);
 
 	MEngine::SystemID teamSystemID = MEngine::RegisterSystem(new TeamSystem());
-	MEngine::AddSystemToGameMode(GlobalsBlackboard::GetInstance()->MultiplayerID, teamSystemID, 100);
+	MEngine::AddSystemToGameMode(GlobalsBlackboard::GetInstance()->MultiplayerGameModeID, teamSystemID, 100);
 
-	MEngine::RequestGameModeChange(GlobalsBlackboard::GetInstance()->MainMenuID);
+	MEngine::RequestGameModeChange(GlobalsBlackboard::GetInstance()->MainMenuGameModeID);
 
 	return true;
 }
