@@ -20,6 +20,8 @@
 
 #define LOG_CATEGORY_TEAMSYNC "TeamSyncApp"
 
+using namespace MEngine::PredefinedColors;
+
 bool TeamSync::Initialize()
 {
 	std::string applicationName = "TeamSync";
@@ -37,6 +39,7 @@ bool TeamSync::Initialize()
 	GlobalsBlackboard::GetInstance()->ConsoleOutputFontID	= MEngine::CreateFont("resources/fonts/OpenSans-Regular.ttf", 15);
 	GlobalsBlackboard::GetInstance()->ButtonFontID			= MEngine::CreateFont("resources/fonts/OpenSans-Regular.ttf", 30);
 	GlobalsBlackboard::GetInstance()->InputTextBoxFontID	= MEngine::CreateFont("resources/fonts/OpenSans-Regular.ttf", 20);
+	GlobalsBlackboard::GetInstance()->DescriptionFontID		= MEngine::CreateFont("resources/fonts/OpenSans-Regular.ttf", 20, Colors[WHITE]);
 
 	MEngine::InitializeConsole(GlobalsBlackboard::GetInstance()->ConsoleInputFontID, GlobalsBlackboard::GetInstance()->ConsoleOutputFontID);
 

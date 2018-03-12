@@ -13,6 +13,7 @@ namespace UILayout
 	constexpr int32_t MAIN_MENU_NUM_BUTTONS			= 2;
 	constexpr int32_t MAIN_MENU_BUTTON_SPACING		= 10;
 	constexpr int32_t MAIN_MENU_IP_TO_PORT_SPACING	= 10;
+	constexpr int32_t MAIN_MENU_INPUT_TEXT_BOX_TO_DESCRIPTION_SPACING = 3;
 
 	// Sizes
 	constexpr int32_t HOST_BUTTON_WIDTH		= 200;

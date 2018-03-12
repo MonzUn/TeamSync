@@ -22,4 +22,5 @@ public:
 	MEngine::MEngineFontID	ConsoleOutputFontID		= INVALID_MENGINE_FONT_ID;
 	MEngine::MEngineFontID	ButtonFontID			= INVALID_MENGINE_FONT_ID;
 	MEngine::MEngineFontID	InputTextBoxFontID		= INVALID_MENGINE_FONT_ID;
+	MEngine::MEngineFontID	DescriptionFontID		= INVALID_MENGINE_FONT_ID;
 };

@@ -27,6 +27,12 @@ void MainMenuSystem::Initialize()
 	m_ConnectIPInputTextBoxID	= MEngine::CreateTextBox(IP_TEXT_BOX_POS_X, IP_TEXT_BOX_POS_Y, IP_TEXT_BOX_WIDTH, IP_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->InputTextBoxFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, true, Config::GetString("DefaultConnectionIP", "127.0.0.1"), MEngine::TextAlignment::BottomLeft, Colors[WHITE], Colors[RED]);
 	m_ConnectPortInputTextBoxID	= MEngine::CreateTextBox(PORT_TEXT_BOX_POS_X, PORT_TEXT_BOX_POS_Y, PORT_TEXT_BOX_WIDTH, PORT_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->InputTextBoxFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, true, std::to_string(Config::GetInt("DefaultConnectionPort", DefaultPort)), MEngine::TextAlignment::BottomLeft, Colors[WHITE], Colors[RED]);
 
+	m_ConnectIPInputTextBoxDescriptionID	= MEngine::CreateTextBox(IP_TEXT_BOX_POS_X, IP_TEXT_BOX_POS_Y - IP_TEXT_BOX_HEIGHT - MAIN_MENU_INPUT_TEXT_BOX_TO_DESCRIPTION_SPACING, IP_TEXT_BOX_WIDTH, IP_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->DescriptionFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, false, "IP address");
+	m_ConnectPortInputTextBoxDescriptionID	= MEngine::CreateTextBox(PORT_TEXT_BOX_POS_X, PORT_TEXT_BOX_POS_Y - PORT_TEXT_BOX_HEIGHT - MAIN_MENU_INPUT_TEXT_BOX_TO_DESCRIPTION_SPACING, PORT_TEXT_BOX_WIDTH, PORT_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->DescriptionFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, false, "Port");
+
+	MEngine::EntityID m_ConnectIPInputTextBoxDescriptionID = INVALID_MENGINE_ENTITY_ID;;
+	MEngine::EntityID m_ConnectPortInputTextBoxDescriptionID = INVALID_MENGINE_ENTITY_ID;;
+
 	m_OnConnectionHandle = Tubes::RegisterConnectionCallback(std::bind(&MainMenuSystem::OnConnection, this, std::placeholders::_1));
 
 	RegisterCommands();
@@ -38,6 +44,8 @@ void MainMenuSystem::Shutdown()
 	MEngine::DestroyEntity(m_ConnectButtonID);
 	MEngine::DestroyEntity(m_ConnectIPInputTextBoxID);
 	MEngine::DestroyEntity(m_ConnectPortInputTextBoxID);
+	MEngine::DestroyEntity(m_ConnectIPInputTextBoxDescriptionID);
+	MEngine::DestroyEntity(m_ConnectPortInputTextBoxDescriptionID);
 
 	MEngine::UnregisterAllCommands();
 
