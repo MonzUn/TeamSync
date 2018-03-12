@@ -10,8 +10,9 @@ namespace UILayout
 	constexpr int32_t APPLICATION_WINDOW_HEIGHT	= 1000;
 
 	// ---------- MainMenu ----------
-	constexpr int32_t MAIN_MENU_NUM_BUTTONS		= 2;
-	constexpr int32_t MAIN_MENU_BUTTON_SPACING	= 10;
+	constexpr int32_t MAIN_MENU_NUM_BUTTONS			= 2;
+	constexpr int32_t MAIN_MENU_BUTTON_SPACING		= 10;
+	constexpr int32_t MAIN_MENU_IP_TO_PORT_SPACING	= 10;
 
 	// Sizes
 	constexpr int32_t HOST_BUTTON_WIDTH		= 200;
@@ -20,6 +21,8 @@ namespace UILayout
 	constexpr int32_t CONNECT_BUTTON_HEIGHT = HOST_BUTTON_HEIGHT;
 	constexpr int32_t IP_TEXT_BOX_WIDTH		= 150;
 	constexpr int32_t IP_TEXT_BOX_HEIGHT	= 25;
+	constexpr int32_t PORT_TEXT_BOX_WIDTH	= 100;
+	constexpr int32_t PORT_TEXT_BOX_HEIGHT	= IP_TEXT_BOX_HEIGHT;
 
 	constexpr int32_t TOTAL_MENU_HEIGHT = HOST_BUTTON_HEIGHT + CONNECT_BUTTON_HEIGHT + (MAIN_MENU_BUTTON_SPACING * (MAIN_MENU_NUM_BUTTONS - 1));
 
@@ -30,6 +33,8 @@ namespace UILayout
 	constexpr int32_t CONNECT_BUTTON_POS_Y	= HOST_BUTTON_POS_Y + HOST_BUTTON_HEIGHT + MAIN_MENU_BUTTON_SPACING;
 	constexpr int32_t IP_TEXT_BOX_POS_X		= HOST_BUTTON_POS_X + CONNECT_BUTTON_WIDTH + MAIN_MENU_BUTTON_SPACING;
 	constexpr int32_t IP_TEXT_BOX_POS_Y		= CONNECT_BUTTON_POS_Y + (CONNECT_BUTTON_HEIGHT / 2) - (IP_TEXT_BOX_HEIGHT / 2);
+	constexpr int32_t PORT_TEXT_BOX_POS_X	= IP_TEXT_BOX_POS_X + IP_TEXT_BOX_WIDTH + MAIN_MENU_IP_TO_PORT_SPACING;
+	constexpr int32_t PORT_TEXT_BOX_POS_Y	= IP_TEXT_BOX_POS_Y;
 
 	// ---------- Multiplayer ----------
 	// PlayerPositions

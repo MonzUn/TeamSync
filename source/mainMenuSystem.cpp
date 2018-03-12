@@ -10,6 +10,7 @@
 #include <MEngineGraphics.h>
 #include <Tubes.h>
 #include <iostream>
+#include <stdlib.h>
 
 using namespace MEngine;
 using namespace PredefinedColors;
@@ -21,9 +22,10 @@ void MainMenuSystem::Initialize()
 {
 	MEngine::TextureID ButtonTextureID = MEngine::GetTextureFromPath("resources/graphics/Button.png");
 
-	m_HostButtonID			= MEngine::CreateButton(HOST_BUTTON_POS_X, HOST_BUTTON_POS_Y, HOST_BUTTON_WIDTH, HOST_BUTTON_HEIGHT, std::bind(&MainMenuSystem::Host, this), MENGINE_DEFAULT_UI_BUTTON_DEPTH, ButtonTextureID, GlobalsBlackboard::GetInstance()->ButtonFontID, "Host");
-	m_ConnectButtonID		= MEngine::CreateButton(CONNECT_BUTTON_POS_X, CONNECT_BUTTON_POS_Y, CONNECT_BUTTON_WIDTH, CONNECT_BUTTON_HEIGHT, std::bind(&MainMenuSystem::Connect, this), MENGINE_DEFAULT_UI_BUTTON_DEPTH, ButtonTextureID, GlobalsBlackboard::GetInstance()->ButtonFontID, "Connect");
-	m_ConnectInputTextBoxID	= MEngine::CreateTextBox(IP_TEXT_BOX_POS_X, IP_TEXT_BOX_POS_Y, IP_TEXT_BOX_WIDTH, IP_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->InputTextBoxFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, true, Config::GetString("DefaultConnectionIP", "127.0.0.1"), MEngine::TextAlignment::BottomLeft, Colors[WHITE], Colors[RED]);
+	m_HostButtonID				= MEngine::CreateButton(HOST_BUTTON_POS_X, HOST_BUTTON_POS_Y, HOST_BUTTON_WIDTH, HOST_BUTTON_HEIGHT, std::bind(&MainMenuSystem::Host, this), MENGINE_DEFAULT_UI_BUTTON_DEPTH, ButtonTextureID, GlobalsBlackboard::GetInstance()->ButtonFontID, "Host");
+	m_ConnectButtonID			= MEngine::CreateButton(CONNECT_BUTTON_POS_X, CONNECT_BUTTON_POS_Y, CONNECT_BUTTON_WIDTH, CONNECT_BUTTON_HEIGHT, std::bind(&MainMenuSystem::Connect, this), MENGINE_DEFAULT_UI_BUTTON_DEPTH, ButtonTextureID, GlobalsBlackboard::GetInstance()->ButtonFontID, "Connect");
+	m_ConnectIPInputTextBoxID	= MEngine::CreateTextBox(IP_TEXT_BOX_POS_X, IP_TEXT_BOX_POS_Y, IP_TEXT_BOX_WIDTH, IP_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->InputTextBoxFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, true, Config::GetString("DefaultConnectionIP", "127.0.0.1"), MEngine::TextAlignment::BottomLeft, Colors[WHITE], Colors[RED]);
+	m_ConnectPortInputTextBoxID	= MEngine::CreateTextBox(PORT_TEXT_BOX_POS_X, PORT_TEXT_BOX_POS_Y, PORT_TEXT_BOX_WIDTH, PORT_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->InputTextBoxFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, true, std::to_string(Config::GetInt("DefaultConnectionPort", DefaultPort)), MEngine::TextAlignment::BottomLeft, Colors[WHITE], Colors[RED]);
 
 	m_OnConnectionHandle = Tubes::RegisterConnectionCallback(std::bind(&MainMenuSystem::OnConnection, this, std::placeholders::_1));
 
@@ -34,7 +36,8 @@ void MainMenuSystem::Shutdown()
 {
 	MEngine::DestroyEntity(m_HostButtonID);
 	MEngine::DestroyEntity(m_ConnectButtonID);
-	MEngine::DestroyEntity(m_ConnectInputTextBoxID);
+	MEngine::DestroyEntity(m_ConnectIPInputTextBoxID);
+	MEngine::DestroyEntity(m_ConnectPortInputTextBoxID);
 
 	MEngine::UnregisterAllCommands();
 
@@ -142,8 +145,8 @@ bool MainMenuSystem::Host()
 
 void MainMenuSystem::Connect()
 {
-	const std::string& IP = *static_cast<const MEngine::TextComponent*>(MEngine::GetComponentForEntity(MEngine::TextComponent::GetComponentMask(), m_ConnectInputTextBoxID))->Text;
-	uint16_t port = static_cast<uint16_t>(MEngine::Config::GetInt("DefaultConnectionPort", DefaultPort));
+	const std::string& IP = *static_cast<const MEngine::TextComponent*>(MEngine::GetComponentForEntity(MEngine::TextComponent::GetComponentMask(), m_ConnectIPInputTextBoxID))->Text;
+	uint16_t port = atoi(static_cast<const MEngine::TextComponent*>(MEngine::GetComponentForEntity(MEngine::TextComponent::GetComponentMask(), m_ConnectPortInputTextBoxID))->Text->c_str());
 	ConnectTo(IP, port);
 }
 
