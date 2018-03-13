@@ -153,9 +153,13 @@ bool MainMenuSystem::Host()
 
 void MainMenuSystem::Connect()
 {
-	const std::string& IP = *static_cast<const MEngine::TextComponent*>(MEngine::GetComponentForEntity(MEngine::TextComponent::GetComponentMask(), m_ConnectIPInputTextBoxID))->Text;
-	uint16_t port = atoi(static_cast<const MEngine::TextComponent*>(MEngine::GetComponentForEntity(MEngine::TextComponent::GetComponentMask(), m_ConnectPortInputTextBoxID))->Text->c_str());
-	ConnectTo(IP, port);
+	const std::string& IPString = *static_cast<const MEngine::TextComponent*>(MEngine::GetComponentForEntity(MEngine::TextComponent::GetComponentMask(), m_ConnectIPInputTextBoxID))->Text;
+	const std::string& portString = *static_cast<const MEngine::TextComponent*>(MEngine::GetComponentForEntity(MEngine::TextComponent::GetComponentMask(), m_ConnectPortInputTextBoxID))->Text;
+	int32_t port = MUtilityString::IsStringNumber(portString) ? atoi(portString.c_str()) : -1;
+	
+	if(Tubes::IsValidIPv4Address(IPString.c_str()) && port >= 0 && port <= std::numeric_limits<uint16_t>::max() )
+		ConnectTo(IPString, port);
+	// TODODB: Else - Give feedback to user
 }
 
 void MainMenuSystem::ConnectTo(const std::string& IP, uint16_t port)
