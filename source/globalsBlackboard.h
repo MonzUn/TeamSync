@@ -10,6 +10,7 @@ constexpr uint16_t DefaultPort			= 19200;
 class GlobalsBlackboard : public MUtility::Singleton<GlobalsBlackboard>
 {
 public:
+	bool ShouldQuit = false;
 	bool IsHost = false;
 	Tubes::ConnectionID ConnectionID = INVALID_TUBES_CONNECTION_ID;
 

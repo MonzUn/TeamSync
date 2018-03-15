@@ -61,7 +61,7 @@ bool TeamSync::Initialize()
 
 void TeamSync::Run()
 {
-	while (!MEngine::ShouldQuit())
+	while (!MEngine::ShouldQuit() && !GlobalsBlackboard::GetInstance()->ShouldQuit)
 	{
 		Tubes::Update();
 		MEngine::Update();
