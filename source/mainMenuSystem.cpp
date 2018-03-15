@@ -59,6 +59,7 @@ void MainMenuSystem::RegisterCommands()
 {
 	RegisterCommand("host", std::bind(&MainMenuSystem::ExecuteHostcommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	RegisterCommand("connect", std::bind(&MainMenuSystem::ExecuteConnectCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	RegisterCommand("quit", std::bind(&MainMenuSystem::ExecuteQuitCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3)); // TODODB: Move this command to global scope
 }
 
 bool MainMenuSystem::ExecuteHostcommand(const std::string* parameters, int32_t parameterCount, std::string* outResponse)
@@ -138,6 +139,12 @@ bool MainMenuSystem::ExecuteConnectCommand(const std::string* parameters, int32_
 		*outResponse = "Wrong number of parameters supplied";
 
 	return result;
+}
+
+bool MainMenuSystem::ExecuteQuitCommand(const std::string* parameters, int32_t parameterCount, std::string* outResponse)
+{
+	Quit();
+	return true;
 }
 
 bool MainMenuSystem::Host()
