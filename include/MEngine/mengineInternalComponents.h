@@ -10,26 +10,27 @@
 
 namespace MEngine
 {
-	enum class TextBoxEditFlags : uint32_t
+	enum class TextBoxFlags : uint32_t
 	{
 		None = 0,
 
-		Editable = 1 << 0,
-		OverwriteOnDefaultTextMatch = 1 << 1,
-		ResetToDefaultWhenEmpty = 1 << 2,
+		Editable					= 1 << 0,
+		Scrollable					= 1 << 1,
+		OverwriteOnDefaultTextMatch = 1 << 2,
+		ResetToDefaultWhenEmpty		= 1 << 3,
 	};
 
 	// TODODB: Can we hide this using a custom underlying type defined in MUtility?
-	TextBoxEditFlags operator|(const TextBoxEditFlags& lhs, const TextBoxEditFlags& rhs);
-	TextBoxEditFlags operator&(const TextBoxEditFlags& lhs, const TextBoxEditFlags& rhs);
-	TextBoxEditFlags& operator|=(TextBoxEditFlags& lhs, const TextBoxEditFlags& rhs);
-	TextBoxEditFlags& operator&=(TextBoxEditFlags& lhs, const TextBoxEditFlags& rhs);
-	bool operator==(const TextBoxEditFlags& lhs, const TextBoxEditFlags& rhs);
-	bool operator!=(const TextBoxEditFlags& lhs, const TextBoxEditFlags& rhs);
-	bool operator==(const TextBoxEditFlags& lhs, const uint32_t& rhs);
-	bool operator!=(const TextBoxEditFlags& lhs, const uint32_t& rhs);
-	bool operator==(const uint32_t& lhs, const TextBoxEditFlags& rhs);
-	bool operator!=(const uint32_t& lhs, const TextBoxEditFlags& rhs);
+	TextBoxFlags operator|(const TextBoxFlags& lhs, const TextBoxFlags& rhs);
+	TextBoxFlags operator&(const TextBoxFlags& lhs, const TextBoxFlags& rhs);
+	TextBoxFlags& operator|=(TextBoxFlags& lhs, const TextBoxFlags& rhs);
+	TextBoxFlags& operator&=(TextBoxFlags& lhs, const TextBoxFlags& rhs);
+	bool operator==(const TextBoxFlags& lhs, const TextBoxFlags& rhs);
+	bool operator!=(const TextBoxFlags& lhs, const TextBoxFlags& rhs);
+	bool operator==(const TextBoxFlags& lhs, const uint32_t& rhs);
+	bool operator!=(const TextBoxFlags& lhs, const uint32_t& rhs);
+	bool operator==(const uint32_t& lhs, const TextBoxFlags& rhs);
+	bool operator!=(const uint32_t& lhs, const TextBoxFlags& rhs);
 
 	class PosSizeComponent : public ComponentBase<PosSizeComponent>
 	{
@@ -63,7 +64,9 @@ namespace MEngine
 	public:
 		void Destroy() override;
 
-		bool IsTriggered = false;
+		bool IsActive		= true;
+		bool IsTriggered	= false;
+		bool IsMouseOver	= false;
 		std::function<void()>* Callback = nullptr; // TODODB: Attempt to make it possible to use any parameters and return type
 	};
 
@@ -72,12 +75,14 @@ namespace MEngine
 	{
 	public:
 		void Destroy() override;
-		MEngineFontID FontID = INVALID_MENGINE_FONT_ID;
-		std::string* Text = nullptr;
-		const std::string* DefaultText = nullptr;
-		TextAlignment Alignment;
-		bool RenderIgnore = false;
-		TextBoxEditFlags EditFlags = TextBoxEditFlags::None;
+
+		MEngineFontID FontID			= INVALID_MENGINE_FONT_ID;
+		std::string* Text				= nullptr;
+		const std::string* DefaultText	= nullptr;
+		TextAlignment Alignment			= TextAlignment::BottomLeft;
+		bool RenderIgnore				= false;
+		TextBoxFlags EditFlags			= TextBoxFlags::None;
+		uint32_t ScrolledLinesCount		= 0;
 
 		void StartEditing() const // TODODB: When we can use any parameter for button callbacks; move this to the relevant system instead
 		{
@@ -87,10 +92,10 @@ namespace MEngine
 				return;
 			}
 
-			if ((EditFlags & TextBoxEditFlags::Editable) != 0)
+			if ((EditFlags & TextBoxFlags::Editable) != 0)
 			{
 				// Removed the text if it is the default text
-				if (((EditFlags & TextBoxEditFlags::OverwriteOnDefaultTextMatch) != 0) && DefaultText != nullptr && *Text == *DefaultText)
+				if (((EditFlags & TextBoxFlags::OverwriteOnDefaultTextMatch) != 0) && DefaultText != nullptr && *Text == *DefaultText)
 					*Text = "";
 
 				MEngine::StartTextInput(Text);
@@ -99,10 +104,10 @@ namespace MEngine
 
 		void StopEditing() const // TODODB: See if there are any additional places we should call this (direct calls to MEngineInput was used before this was created)
 		{
-			if ((EditFlags & TextBoxEditFlags::Editable) != 0 && MEngine::IsInputString(Text))
+			if ((EditFlags & TextBoxFlags::Editable) != 0 && MEngine::IsInputString(Text))
 			{
 				// Return the text to the default if it is left empty
-				if ((EditFlags & TextBoxEditFlags::ResetToDefaultWhenEmpty) != 0 && *Text == "")
+				if ((EditFlags & TextBoxFlags::ResetToDefaultWhenEmpty) != 0 && *Text == "")
 					*Text = *DefaultText;
 
 				MEngine::StopTextInput();
