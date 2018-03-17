@@ -21,16 +21,18 @@ private:
 	void Connect();
 	void ConnectTo(const std::string& IP, uint16_t port);
 	void Quit();
+	void OpenAbout();
 
 	void OnConnection(Tubes::ConnectionID connectionID);
 
 	MEngine::EntityID m_HostButtonID							= INVALID_MENGINE_ENTITY_ID;
-	MEngine::EntityID m_ConnectButtonID							= INVALID_MENGINE_ENTITY_ID;;
-	MEngine::EntityID m_QuitButtonID							= INVALID_MENGINE_ENTITY_ID;;
-	MEngine::EntityID m_ConnectIPInputTextBoxID					= INVALID_MENGINE_ENTITY_ID;;
-	MEngine::EntityID m_ConnectPortInputTextBoxID				= INVALID_MENGINE_ENTITY_ID;;
-	MEngine::EntityID m_ConnectIPInputTextBoxDescriptionID		= INVALID_MENGINE_ENTITY_ID;;
-	MEngine::EntityID m_ConnectPortInputTextBoxDescriptionID	= INVALID_MENGINE_ENTITY_ID;;
+	MEngine::EntityID m_ConnectButtonID							= INVALID_MENGINE_ENTITY_ID;
+	MEngine::EntityID m_QuitButtonID							= INVALID_MENGINE_ENTITY_ID;
+	MEngine::EntityID m_AboutButtonID							= INVALID_MENGINE_ENTITY_ID;
+	MEngine::EntityID m_ConnectIPInputTextBoxID					= INVALID_MENGINE_ENTITY_ID;
+	MEngine::EntityID m_ConnectPortInputTextBoxID				= INVALID_MENGINE_ENTITY_ID;
+	MEngine::EntityID m_ConnectIPInputTextBoxDescriptionID		= INVALID_MENGINE_ENTITY_ID;
+	MEngine::EntityID m_ConnectPortInputTextBoxDescriptionID	= INVALID_MENGINE_ENTITY_ID;
 
 	Tubes::ConnectionCallbackHandle m_OnConnectionHandle;
 };

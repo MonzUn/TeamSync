@@ -1,4 +1,5 @@
 #include "teamSync.h"
+#include "AboutSystem.h"
 #include "globalsBlackboard.h"
 #include "mainMenuSystem.h"
 #include "replicator.h"
@@ -41,16 +42,22 @@ bool TeamSync::Initialize()
 	GlobalsBlackboard::GetInstance()->ButtonFontID			= MEngine::CreateFont("resources/fonts/OpenSans-Regular.ttf", 30);
 	GlobalsBlackboard::GetInstance()->InputTextBoxFontID	= MEngine::CreateFont("resources/fonts/OpenSans-Regular.ttf", 20);
 	GlobalsBlackboard::GetInstance()->DescriptionFontID		= MEngine::CreateFont("resources/fonts/OpenSans-Regular.ttf", 20, Colors[WHITE]);
+	GlobalsBlackboard::GetInstance()->AboutFontID			= MEngine::CreateFont("resources/fonts/OpenSans-Regular.ttf", 30, Colors[WHITE]);
 
+	// Setup
+	Tubes::RegisterReplicator(new Replicator());
+	MEngine::SetFocusRequired(false);
 	MEngine::InitializeConsole(GlobalsBlackboard::GetInstance()->ConsoleInputFontID, GlobalsBlackboard::GetInstance()->ConsoleOutputFontID);
 
 	// Systems
 	GlobalsBlackboard::GetInstance()->MainMenuSystemID	= MEngine::RegisterSystem(new MainMenuSystem());
+	GlobalsBlackboard::GetInstance()->AboutMenuSystemID = MEngine::RegisterSystem(new AboutSystem());
 	GlobalsBlackboard::GetInstance()->TeamSystemID		= MEngine::RegisterSystem(new TeamSystem());
 
 	// GameModes
 	GlobalsBlackboard::GetInstance()->MainMenuGameModeID = MEngine::CreateGameMode();
 	MEngine::AddSystemToGameMode(GlobalsBlackboard::GetInstance()->MainMenuGameModeID, GlobalsBlackboard::GetInstance()->MainMenuSystemID, 100);
+	MEngine::AddSystemToGameMode(GlobalsBlackboard::GetInstance()->MainMenuGameModeID, GlobalsBlackboard::GetInstance()->AboutMenuSystemID, 101);
 
 	GlobalsBlackboard::GetInstance()->MultiplayerGameModeID = MEngine::CreateGameMode();
 	MEngine::AddSystemToGameMode(GlobalsBlackboard::GetInstance()->MultiplayerGameModeID, GlobalsBlackboard::GetInstance()->TeamSystemID, 100);
