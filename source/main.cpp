@@ -8,6 +8,7 @@
 #include <MUtilityWindowsInclude.h>
 #endif
 
+// TODODB: Rename source files using uppercase initial character
 // TODODB: Fix memory leak that occurs after a client exits the program while connected to a host
 // TODODB: Fix memory leak that occurs after a host exits the program before any clients connect
 // TODODB: Make the application UI scalable
