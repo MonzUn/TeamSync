@@ -8,6 +8,8 @@ class MainMenuSystem : public MEngine::System
 public:
 	void Initialize() override;
 	void Shutdown() override;
+	void Suspend() override;
+	void Resume() override;
 
 private:
 	void RegisterCommands();

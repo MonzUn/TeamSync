@@ -24,6 +24,7 @@ using namespace MEngine::PredefinedColors;
 
 bool TeamSync::Initialize()
 {
+	// Base setup
 	std::string applicationName = "TeamSync";
 #if COMPILE_MODE == COMPILE_MODE_DEBUG
 	applicationName += " (PID=" + std::to_string(MUtility::GetPid()) + ")";
@@ -34,7 +35,7 @@ bool TeamSync::Initialize()
 	if (!Tubes::Initialize())
 		MLOG_ERROR("Failed to initialize Tubes", LOG_CATEGORY_TEAMSYNC);
 
-	MEngine::SetFocusRequired(false);
+	// Load resources
 	GlobalsBlackboard::GetInstance()->ConsoleInputFontID	= MEngine::CreateFont("resources/fonts/OpenSans-Regular.ttf", 20);
 	GlobalsBlackboard::GetInstance()->ConsoleOutputFontID	= MEngine::CreateFont("resources/fonts/OpenSans-Regular.ttf", 15);
 	GlobalsBlackboard::GetInstance()->ButtonFontID			= MEngine::CreateFont("resources/fonts/OpenSans-Regular.ttf", 30);
@@ -43,16 +44,16 @@ bool TeamSync::Initialize()
 
 	MEngine::InitializeConsole(GlobalsBlackboard::GetInstance()->ConsoleInputFontID, GlobalsBlackboard::GetInstance()->ConsoleOutputFontID);
 
-	Tubes::RegisterReplicator(new Replicator());
+	// Systems
+	GlobalsBlackboard::GetInstance()->MainMenuSystemID	= MEngine::RegisterSystem(new MainMenuSystem());
+	GlobalsBlackboard::GetInstance()->TeamSystemID		= MEngine::RegisterSystem(new TeamSystem());
 
-	GlobalsBlackboard::GetInstance()->MainMenuGameModeID	= MEngine::CreateGameMode();
+	// GameModes
+	GlobalsBlackboard::GetInstance()->MainMenuGameModeID = MEngine::CreateGameMode();
+	MEngine::AddSystemToGameMode(GlobalsBlackboard::GetInstance()->MainMenuGameModeID, GlobalsBlackboard::GetInstance()->MainMenuSystemID, 100);
+
 	GlobalsBlackboard::GetInstance()->MultiplayerGameModeID = MEngine::CreateGameMode();
-
-	MEngine::SystemID mainMenuSystemID = MEngine::RegisterSystem(new MainMenuSystem());
-	MEngine::AddSystemToGameMode(GlobalsBlackboard::GetInstance()->MainMenuGameModeID, mainMenuSystemID, 100);
-
-	MEngine::SystemID teamSystemID = MEngine::RegisterSystem(new TeamSystem());
-	MEngine::AddSystemToGameMode(GlobalsBlackboard::GetInstance()->MultiplayerGameModeID, teamSystemID, 100);
+	MEngine::AddSystemToGameMode(GlobalsBlackboard::GetInstance()->MultiplayerGameModeID, GlobalsBlackboard::GetInstance()->TeamSystemID, 100);
 
 	MEngine::RequestGameModeChange(GlobalsBlackboard::GetInstance()->MainMenuGameModeID);
 
