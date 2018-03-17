@@ -21,6 +21,9 @@ set(ConfigurationBasedExternalPathAbsolute "${ProjectRootAbsolute}/external/wind
 # Resource path
 set(ResourcePathAbsolute "${ProjectRootAbsolute}/resources")
 
+# License path
+set(LicensePathAbsolute "${ProjectRootAbsolute}/license")
+
 # Visual Studio settings
 if(MSVC)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP /D _CRT_SECURE_NO_WARNINGS")
@@ -189,8 +192,12 @@ target_link_libraries(${PROJECT_NAME} optimized ${SDL2Libraries} optimized ${SDL
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${ConfigurationBasedExternalPathAbsolute} ${OutputDirectoryAbsolute}/$<CONFIGURATION>)
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${SharedExternalsPathAbsolute} ${OutputDirectoryAbsolute}/$<CONFIGURATION>)
 
-# Add postbuild scripts that moves resources to the directory of the executable
+# Add postbuild scripts
+# Move resources to the directory of the executable
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${ResourcePathAbsolute} ${OutputDirectoryAbsolute}/$<CONFIGURATION>/resources)
+
+# Move License folder to the directory of the executable
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${LicensePathAbsolute} ${OutputDirectoryAbsolute}/$<CONFIGURATION>/license)
 
 if(MUtilityRootPath)
 	add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${MUtilityIncludePath} ${MUtilityLocalIncludePath})
