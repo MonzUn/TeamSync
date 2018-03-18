@@ -153,7 +153,7 @@ namespace UILayout
 	constexpr int32_t CUT_1440P_NAME_WIDTH						= 419;
 	constexpr int32_t CUT_1440P_NAME_HEIGHT						= 49;
 	constexpr int32_t CUT_1440P_GEAR_SLOT_OFFSET_X				= 878;
-	constexpr int32_t CUT_1440P_GEAR_SLOT_1_OFFSET_Y			= 232;
+	constexpr int32_t CUT_1440P_GEAR_SLOT_1_OFFSET_Y			= 179;
 	constexpr int32_t CUT_1440P_GEAR_SLOT_2_OFFSET_Y			= CUT_1440P_GEAR_SLOT_1_OFFSET_Y + 262;
 	constexpr int32_t CUT_1440P_GEAR_SLOT_3_OFFSET_Y			= CUT_1440P_GEAR_SLOT_2_OFFSET_Y + 90;
 	constexpr int32_t CUT_1440P_GEAR_SLOT_WIDTH					= 80;
@@ -183,7 +183,7 @@ namespace UILayout
 	constexpr int32_t CUT_1080P_NAME_WIDTH						= 248;
 	constexpr int32_t CUT_1080P_NAME_HEIGHT						= 37;
 	constexpr int32_t CUT_1080P_GEAR_SLOT_OFFSET_X				= 659;
-	constexpr int32_t CUT_1080P_GEAR_SLOT_1_OFFSET_Y			= 175;
+	constexpr int32_t CUT_1080P_GEAR_SLOT_1_OFFSET_Y			= 135;
 	constexpr int32_t CUT_1080P_GEAR_SLOT_2_OFFSET_Y			= CUT_1080P_GEAR_SLOT_1_OFFSET_Y + 197;
 	constexpr int32_t CUT_1080P_GEAR_SLOT_3_OFFSET_Y			= CUT_1080P_GEAR_SLOT_2_OFFSET_Y + 67;
 	constexpr int32_t CUT_1080P_GEAR_SLOT_WIDTH					= 60;
