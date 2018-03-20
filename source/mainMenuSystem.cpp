@@ -57,9 +57,12 @@ void MainMenuSystem::Shutdown()
 
 	MEngine::DestroyEntity(m_ConnectIPInputTextBoxID);
 	MEngine::DestroyEntity(m_ConnectPortInputTextBoxID);
+
 	MEngine::DestroyEntity(m_ConnectIPInputTextBoxDescriptionID);
 	MEngine::DestroyEntity(m_ConnectPortInputTextBoxDescriptionID);
+
 	MEngine::DestroyEntity(m_AppTitleTextID);
+	MEngine::DestroyEntity(m_VersionNumberTextID);
 
 	MEngine::UnregisterAllCommands();
 
