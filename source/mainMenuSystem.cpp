@@ -9,6 +9,7 @@
 #include <MEngineSystemManager.h>
 #include <MEngineGraphics.h>
 #include <MUtilityString.h>
+#include <MUtilitySystem.h>
 #include <Tubes.h>
 #include <iostream>
 #include <stdlib.h>
@@ -27,6 +28,7 @@ void MainMenuSystem::Initialize()
 	m_ConnectButtonID			= MEngine::CreateButton(CONNECT_BUTTON_POS_X, CONNECT_BUTTON_POS_Y, MAIN_MENU_BIG_BUTTON_WIDTH, MAIN_MENU_BIG_BUTTON_HEIGHT, std::bind(&MainMenuSystem::Connect, this), MENGINE_DEFAULT_UI_BUTTON_DEPTH, ButtonTextureID, GlobalsBlackboard::GetInstance()->ButtonFontID, "Connect");
 	m_QuitButtonID				= MEngine::CreateButton(QUIT_BUTTON_POS_X, QUIT_BUTTON_POS_Y, MAIN_MENU_SMALL_BUTTON_WIDTH, MAIN_MENU_SMALL_BUTTON_HEIGHT, std::bind(&MainMenuSystem::Quit, this), MENGINE_DEFAULT_UI_BUTTON_DEPTH, ButtonTextureID, GlobalsBlackboard::GetInstance()->ButtonFontID, "Quit");
 	m_AboutButtonID				= MEngine::CreateButton(ABOUT_BUTTON_POS_X, ABOUT_BUTTON_POS_Y, MAIN_MENU_SMALL_BUTTON_WIDTH, MAIN_MENU_SMALL_BUTTON_HEIGHT, std::bind(&MainMenuSystem::OpenAbout, this), MENGINE_DEFAULT_UI_BUTTON_DEPTH, ButtonTextureID, GlobalsBlackboard::GetInstance()->ButtonFontID, "About");
+	m_DevBlogButtonID			= MEngine::CreateButton(DEV_BLOG_BUTTON_POS_X, DEV_BLOG_BUTTON_POS_Y, MAIN_MENU_SMALL_BUTTON_WIDTH, MAIN_MENU_SMALL_BUTTON_HEIGHT, std::bind(&MainMenuSystem::OpenDevBlog, this), MENGINE_DEFAULT_UI_BUTTON_DEPTH, ButtonTextureID, GlobalsBlackboard::GetInstance()->ButtonFontID, "DevBlog");
 
 	m_ConnectIPInputTextBoxID	= MEngine::CreateTextBox(IP_TEXT_BOX_POS_X, IP_TEXT_BOX_POS_Y, IP_TEXT_BOX_WIDTH, IP_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->InputTextBoxFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, Config::GetString("DefaultConnectionIP", "127.0.0.1"), MEngine::TextAlignment::BottomLeft, TEXT_BOX_EDIT_OVERWRITE_RESET_FLAG, Colors[WHITE], Colors[RED]);
 	m_ConnectPortInputTextBoxID	= MEngine::CreateTextBox(PORT_TEXT_BOX_POS_X, PORT_TEXT_BOX_POS_Y, PORT_TEXT_BOX_WIDTH, PORT_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->InputTextBoxFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, std::to_string(Config::GetInt("DefaultConnectionPort", DefaultPort)), MEngine::TextAlignment::BottomLeft, TEXT_BOX_EDIT_OVERWRITE_RESET_FLAG, Colors[WHITE], Colors[RED]);
@@ -45,6 +47,7 @@ void MainMenuSystem::Shutdown()
 	MEngine::DestroyEntity(m_ConnectButtonID);
 	MEngine::DestroyEntity(m_QuitButtonID);
 	MEngine::DestroyEntity(m_AboutButtonID);
+	MEngine::DestroyEntity(m_DevBlogButtonID);
 	MEngine::DestroyEntity(m_ConnectIPInputTextBoxID);
 	MEngine::DestroyEntity(m_ConnectPortInputTextBoxID);
 	MEngine::DestroyEntity(m_ConnectIPInputTextBoxDescriptionID);
@@ -62,24 +65,27 @@ void MainMenuSystem::Suspend()
 	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_ConnectButtonID))->IsActive	= false;
 	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_QuitButtonID))->IsActive	= false;
 	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_AboutButtonID))->IsActive	= false;
+	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_DevBlogButtonID))->IsActive	= false;
 
 	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_HostButtonID))->RenderIgnore	= true;
 	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_ConnectButtonID))->RenderIgnore = true;
 	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_QuitButtonID))->RenderIgnore	= true;
 	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_AboutButtonID))->RenderIgnore	= true;
+	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_DevBlogButtonID))->RenderIgnore	= true;
 
 	static_cast<TextureRenderingComponent*>(MEngine::GetComponentForEntity(TextureRenderingComponent::GetComponentMask(), m_HostButtonID))->RenderIgnore	= true;
 	static_cast<TextureRenderingComponent*>(MEngine::GetComponentForEntity(TextureRenderingComponent::GetComponentMask(), m_ConnectButtonID))->RenderIgnore = true;
 	static_cast<TextureRenderingComponent*>(MEngine::GetComponentForEntity(TextureRenderingComponent::GetComponentMask(), m_QuitButtonID))->RenderIgnore	= true;
 	static_cast<TextureRenderingComponent*>(MEngine::GetComponentForEntity(TextureRenderingComponent::GetComponentMask(), m_AboutButtonID))->RenderIgnore	= true;
+	static_cast<TextureRenderingComponent*>(MEngine::GetComponentForEntity(TextureRenderingComponent::GetComponentMask(), m_DevBlogButtonID))->RenderIgnore	= true;
 
 	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_ConnectIPInputTextBoxID))->RenderIgnore					= true;
 	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_ConnectPortInputTextBoxID))->RenderIgnore				= true;
 	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_ConnectIPInputTextBoxDescriptionID))->RenderIgnore		= true;
 	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_ConnectPortInputTextBoxDescriptionID))->RenderIgnore	= true;
 
-	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_ConnectIPInputTextBoxID))->IsActive = false;
-	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_ConnectPortInputTextBoxID))->IsActive = false;
+	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_ConnectIPInputTextBoxID))->IsActive		= false;
+	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_ConnectPortInputTextBoxID))->IsActive	= false;
 
 	static_cast<RectangleRenderingComponent*>(MEngine::GetComponentForEntity(RectangleRenderingComponent::GetComponentMask(), m_ConnectIPInputTextBoxID))->RenderIgnore					= true;
 	static_cast<RectangleRenderingComponent*>(MEngine::GetComponentForEntity(RectangleRenderingComponent::GetComponentMask(), m_ConnectPortInputTextBoxID))->RenderIgnore				= true;
@@ -97,16 +103,19 @@ void MainMenuSystem::Resume()
 	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_ConnectButtonID))->IsActive	= true;
 	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_QuitButtonID))->IsActive	= true;
 	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_AboutButtonID))->IsActive	= true;
+	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_DevBlogButtonID))->IsActive = true;
 
 	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_HostButtonID))->RenderIgnore	= false;
 	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_ConnectButtonID))->RenderIgnore = false;
 	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_QuitButtonID))->RenderIgnore	= false;
 	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_AboutButtonID))->RenderIgnore	= false;
+	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_DevBlogButtonID))->RenderIgnore = false;
 
 	static_cast<TextureRenderingComponent*>(MEngine::GetComponentForEntity(TextureRenderingComponent::GetComponentMask(), m_HostButtonID))->RenderIgnore	= false;
 	static_cast<TextureRenderingComponent*>(MEngine::GetComponentForEntity(TextureRenderingComponent::GetComponentMask(), m_ConnectButtonID))->RenderIgnore = false;
 	static_cast<TextureRenderingComponent*>(MEngine::GetComponentForEntity(TextureRenderingComponent::GetComponentMask(), m_QuitButtonID))->RenderIgnore	= false;
 	static_cast<TextureRenderingComponent*>(MEngine::GetComponentForEntity(TextureRenderingComponent::GetComponentMask(), m_AboutButtonID))->RenderIgnore	= false;
+	static_cast<TextureRenderingComponent*>(MEngine::GetComponentForEntity(TextureRenderingComponent::GetComponentMask(), m_DevBlogButtonID))->RenderIgnore = false;
 
 	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_ConnectIPInputTextBoxID))->RenderIgnore					= false;
 	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_ConnectPortInputTextBoxID))->RenderIgnore				= false;
@@ -257,6 +266,11 @@ void MainMenuSystem::OpenAbout()
 {
 	MEngine::RequestSuspendSystem(GetID());
 	MEngine::RequestResumeSystem(GlobalsBlackboard::GetInstance()->AboutMenuSystemID);
+}
+
+void MainMenuSystem::OpenDevBlog() const
+{
+	MUtility::OpenBrowserOnURL("https://monzun.github.io/mirage.html");
 }
 
 void MainMenuSystem::OnConnection(Tubes::ConnectionID connectionID)
