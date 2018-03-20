@@ -35,6 +35,7 @@ private:
 	MEngine::EntityID m_ConnectPortInputTextBoxID				= INVALID_MENGINE_ENTITY_ID;
 	MEngine::EntityID m_ConnectIPInputTextBoxDescriptionID		= INVALID_MENGINE_ENTITY_ID;
 	MEngine::EntityID m_ConnectPortInputTextBoxDescriptionID	= INVALID_MENGINE_ENTITY_ID;
+	MEngine::EntityID m_AppTitleTextID							= INVALID_MENGINE_ENTITY_ID;
 
 	Tubes::ConnectionCallbackHandle m_OnConnectionHandle;
 };

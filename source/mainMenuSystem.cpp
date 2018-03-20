@@ -8,6 +8,7 @@
 #include <MEngineEntityManager.h>
 #include <MEngineSystemManager.h>
 #include <MEngineGraphics.h>
+#include <MengineUtility.h>
 #include <MUtilityString.h>
 #include <MUtilitySystem.h>
 #include <Tubes.h>
@@ -36,6 +37,8 @@ void MainMenuSystem::Initialize()
 	m_ConnectIPInputTextBoxDescriptionID	= MEngine::CreateTextBox(IP_TEXT_BOX_POS_X, IP_TEXT_BOX_POS_Y - IP_TEXT_BOX_HEIGHT - MAIN_MENU_INPUT_TEXT_BOX_TO_DESCRIPTION_SPACING, IP_TEXT_BOX_WIDTH, IP_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->DescriptionFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, "IP address");
 	m_ConnectPortInputTextBoxDescriptionID	= MEngine::CreateTextBox(PORT_TEXT_BOX_POS_X, PORT_TEXT_BOX_POS_Y - PORT_TEXT_BOX_HEIGHT - MAIN_MENU_INPUT_TEXT_BOX_TO_DESCRIPTION_SPACING, PORT_TEXT_BOX_WIDTH, PORT_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->DescriptionFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, "Port");
 
+	m_AppTitleTextID = MEngine::CreateTextBox(APP_TITLE_TEXT_BOX_POS_X, APP_TITLE_TEXT_BOX_POS_Y, APP_TITLE_TEXT_BOX_WIDTH, APP_TITLE_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->TitleFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, MEngine::GetApplicationName(), TextAlignment::TopCentered);
+
 	m_OnConnectionHandle = Tubes::RegisterConnectionCallback(std::bind(&MainMenuSystem::OnConnection, this, std::placeholders::_1));
 
 	RegisterCommands();
@@ -52,6 +55,7 @@ void MainMenuSystem::Shutdown()
 	MEngine::DestroyEntity(m_ConnectPortInputTextBoxID);
 	MEngine::DestroyEntity(m_ConnectIPInputTextBoxDescriptionID);
 	MEngine::DestroyEntity(m_ConnectPortInputTextBoxDescriptionID);
+	MEngine::DestroyEntity(m_AppTitleTextID);
 
 	MEngine::UnregisterAllCommands();
 
@@ -83,6 +87,7 @@ void MainMenuSystem::Suspend()
 	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_ConnectPortInputTextBoxID))->RenderIgnore				= true;
 	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_ConnectIPInputTextBoxDescriptionID))->RenderIgnore		= true;
 	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_ConnectPortInputTextBoxDescriptionID))->RenderIgnore	= true;
+	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_AppTitleTextID))->RenderIgnore							= true;
 
 	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_ConnectIPInputTextBoxID))->IsActive		= false;
 	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_ConnectPortInputTextBoxID))->IsActive	= false;
@@ -91,6 +96,7 @@ void MainMenuSystem::Suspend()
 	static_cast<RectangleRenderingComponent*>(MEngine::GetComponentForEntity(RectangleRenderingComponent::GetComponentMask(), m_ConnectPortInputTextBoxID))->RenderIgnore				= true;
 	static_cast<RectangleRenderingComponent*>(MEngine::GetComponentForEntity(RectangleRenderingComponent::GetComponentMask(), m_ConnectIPInputTextBoxDescriptionID))->RenderIgnore		= true;
 	static_cast<RectangleRenderingComponent*>(MEngine::GetComponentForEntity(RectangleRenderingComponent::GetComponentMask(), m_ConnectPortInputTextBoxDescriptionID))->RenderIgnore	= true;
+	static_cast<RectangleRenderingComponent*>(MEngine::GetComponentForEntity(RectangleRenderingComponent::GetComponentMask(), m_AppTitleTextID))->RenderIgnore							= true;
 
 	MEngine::UnregisterAllCommands();
 
@@ -121,6 +127,7 @@ void MainMenuSystem::Resume()
 	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_ConnectPortInputTextBoxID))->RenderIgnore				= false;
 	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_ConnectIPInputTextBoxDescriptionID))->RenderIgnore		= false;
 	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_ConnectPortInputTextBoxDescriptionID))->RenderIgnore	= false;
+	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_AppTitleTextID))->RenderIgnore							= false;
 
 	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_ConnectIPInputTextBoxID))->IsActive = true;
 	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_ConnectPortInputTextBoxID))->IsActive = true;
@@ -129,6 +136,7 @@ void MainMenuSystem::Resume()
 	static_cast<RectangleRenderingComponent*>(MEngine::GetComponentForEntity(RectangleRenderingComponent::GetComponentMask(), m_ConnectPortInputTextBoxID))->RenderIgnore				= false;
 	static_cast<RectangleRenderingComponent*>(MEngine::GetComponentForEntity(RectangleRenderingComponent::GetComponentMask(), m_ConnectIPInputTextBoxDescriptionID))->RenderIgnore		= false;
 	static_cast<RectangleRenderingComponent*>(MEngine::GetComponentForEntity(RectangleRenderingComponent::GetComponentMask(), m_ConnectPortInputTextBoxDescriptionID))->RenderIgnore	= false;
+	static_cast<RectangleRenderingComponent*>(MEngine::GetComponentForEntity(RectangleRenderingComponent::GetComponentMask(), m_AppTitleTextID))->RenderIgnore							= false;
 
 	RegisterCommands();
 

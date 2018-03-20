@@ -24,6 +24,7 @@ public:
 	MEngine::SystemID TeamSystemID		= INVALID_MENGINE_SYSTEM_ID;
 
 	// Fonts
+	MEngine::MEngineFontID	TitleFontID				= INVALID_MENGINE_FONT_ID;
 	MEngine::MEngineFontID	ConsoleInputFontID		= INVALID_MENGINE_FONT_ID;
 	MEngine::MEngineFontID	ConsoleOutputFontID		= INVALID_MENGINE_FONT_ID;
 	MEngine::MEngineFontID	ButtonFontID			= INVALID_MENGINE_FONT_ID;

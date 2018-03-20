@@ -96,6 +96,8 @@ std::string GetAboutString()
 		+ "-- Fonts --"
 		+ "\n"
 		+ "OpenSans-Regular"
+		+ "\n"
+		+ "GaffersTape"
 		+ "\n\n"
 		+ "For licenses; see the license folder";
 }

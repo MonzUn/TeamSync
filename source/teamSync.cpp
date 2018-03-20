@@ -37,6 +37,7 @@ bool TeamSync::Initialize()
 		MLOG_ERROR("Failed to initialize Tubes", LOG_CATEGORY_TEAMSYNC);
 
 	// Load resources
+	GlobalsBlackboard::GetInstance()->TitleFontID			= MEngine::CreateFont("resources/fonts/GaffersTape.ttf", 100, Colors[WHITE]);
 	GlobalsBlackboard::GetInstance()->ConsoleInputFontID	= MEngine::CreateFont("resources/fonts/OpenSans-Regular.ttf", 20);
 	GlobalsBlackboard::GetInstance()->ConsoleOutputFontID	= MEngine::CreateFont("resources/fonts/OpenSans-Regular.ttf", 15);
 	GlobalsBlackboard::GetInstance()->ButtonFontID			= MEngine::CreateFont("resources/fonts/OpenSans-Regular.ttf", 30);
