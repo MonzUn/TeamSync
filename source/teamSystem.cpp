@@ -479,8 +479,8 @@ void TeamSystem::HandleNetworkCommunication()
 
 void TeamSystem::RegisterCommands()
 {
-	MEngine::RegisterCommand("prime", std::bind(&TeamSystem::ExecutePrimeCycledScreenshotCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-	MEngine::RegisterCommand("disconnect", std::bind(&TeamSystem::ExecuteDisconnectCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	MEngine::RegisterCommand("prime", std::bind(&TeamSystem::ExecutePrimeCycledScreenshotCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), "Primes the screenshot cycle of one or all players\nParam 1(optional): Player ID - The player for which to prime the cycle (All player's cycles will be primed if this paramter is not supplied)");
+	MEngine::RegisterCommand("disconnect", std::bind(&TeamSystem::ExecuteDisconnectCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), "Disconnects one or all players\nParam 1(optional): Player ID - The player to disconnect. Disconnecting oneself as host will terminate the hosted session (The local player will be disconnected if this parameter is not supplied.)");
 }
 
 bool TeamSystem::ExecutePrimeCycledScreenshotCommand(const std::string* parameters, int32_t parameterCount, std::string* outResponse)

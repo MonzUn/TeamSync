@@ -161,9 +161,9 @@ void MainMenuSystem::Resume()
 
 void MainMenuSystem::RegisterCommands()
 {
-	RegisterCommand("host", std::bind(&MainMenuSystem::ExecuteHostcommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-	RegisterCommand("connect", std::bind(&MainMenuSystem::ExecuteConnectCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-	RegisterCommand("quit", std::bind(&MainMenuSystem::ExecuteQuitCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3)); // TODODB: Move this command to global scope
+	RegisterCommand("host", std::bind(&MainMenuSystem::ExecuteHostcommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), "Hosts a new session\nParam 1(optional): Port - The port on which to listen for remote clients (Will be read from config if this parameter is not supplied)");
+	RegisterCommand("connect", std::bind(&MainMenuSystem::ExecuteConnectCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), "Requests a connection to the specified IP\nParam 1: - IPv4 Address of the remote client\nParam 2(optional): Port - The port on which the remote client is expected to listen (Will be read from config if this parameter is not supplied)");
+	RegisterCommand("quit", std::bind(&MainMenuSystem::ExecuteQuitCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), "Exits the application"); // TODODB: Move this command to global scope
 }
 
 bool MainMenuSystem::ExecuteHostcommand(const std::string* parameters, int32_t parameterCount, std::string* outResponse)
