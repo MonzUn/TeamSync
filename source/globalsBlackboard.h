@@ -3,9 +3,19 @@
 #include <MEngineTypes.h>
 #include <TubesTypes.h>
 #include <stdint.h>
+#include <string.h>
 
+// TODODB: Put these into a Globals namespace
 constexpr int32_t TEAMSYNC_MAX_PLAYERS	= 4;
 constexpr uint16_t DefaultPort			= 19200; // TODODB: Rename using UPPERCASE
+constexpr uint16_t APP_VERSION_SUPER	= 0;
+constexpr uint16_t APP_VERSION_MAJOR	= 7;
+constexpr uint16_t APP_VERSION_MINOR	= 8;
+constexpr uint16_t APP_VERSION_PATCH	= 2;
+
+const std::string APP_VERSION_STRING = std::to_string(APP_VERSION_SUPER)
+	+ '.' + std::to_string(APP_VERSION_MAJOR) + '.' + std::to_string(APP_VERSION_MINOR)
+	+ '.' + std::to_string(APP_VERSION_PATCH);
 
 class GlobalsBlackboard : public MUtility::Singleton<GlobalsBlackboard>
 {
@@ -25,6 +35,7 @@ public:
 
 	// Fonts
 	MEngine::MEngineFontID	TitleFontID				= INVALID_MENGINE_FONT_ID;
+	MEngine::MEngineFontID	VersionFontID			= INVALID_MENGINE_FONT_ID;
 	MEngine::MEngineFontID	ConsoleInputFontID		= INVALID_MENGINE_FONT_ID;
 	MEngine::MEngineFontID	ConsoleOutputFontID		= INVALID_MENGINE_FONT_ID;
 	MEngine::MEngineFontID	ButtonFontID			= INVALID_MENGINE_FONT_ID;

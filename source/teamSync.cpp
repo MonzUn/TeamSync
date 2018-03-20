@@ -38,6 +38,7 @@ bool TeamSync::Initialize()
 
 	// Load resources
 	GlobalsBlackboard::GetInstance()->TitleFontID			= MEngine::CreateFont("resources/fonts/GaffersTape.ttf", 100, Colors[WHITE]);
+	GlobalsBlackboard::GetInstance()->VersionFontID			= MEngine::CreateFont("resources/fonts/Poland-canned-into-Future.ttf", 30, Colors[WHITE]);
 	GlobalsBlackboard::GetInstance()->ConsoleInputFontID	= MEngine::CreateFont("resources/fonts/OpenSans-Regular.ttf", 20);
 	GlobalsBlackboard::GetInstance()->ConsoleOutputFontID	= MEngine::CreateFont("resources/fonts/OpenSans-Regular.ttf", 15);
 	GlobalsBlackboard::GetInstance()->ButtonFontID			= MEngine::CreateFont("resources/fonts/OpenSans-Regular.ttf", 30);
