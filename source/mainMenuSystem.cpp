@@ -247,8 +247,16 @@ bool MainMenuSystem::ExecuteConnectCommand(const std::string* parameters, int32_
 
 bool MainMenuSystem::ExecuteQuitCommand(const std::string* parameters, int32_t parameterCount, std::string* outResponse)
 {
-	Quit();
-	return true;
+	bool result = false;
+	if (parameterCount == 0)
+	{
+		Quit();
+		result = true;
+	}
+	else if (outResponse != nullptr)
+		*outResponse = "Wrong number of parameters supplied";
+
+	return result;
 }
 
 bool MainMenuSystem::Host()
