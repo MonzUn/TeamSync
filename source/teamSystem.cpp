@@ -71,6 +71,8 @@ void TeamSystem::Shutdown()
 
 	MEngine::StopTextInput();
 	UnregisterAllCommands();
+
+	System::Shutdown();
 }
 
 void TeamSystem::UpdatePresentationLayer(float deltaTime)

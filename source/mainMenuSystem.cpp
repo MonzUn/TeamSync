@@ -67,6 +67,8 @@ void MainMenuSystem::Shutdown()
 	MEngine::UnregisterAllCommands();
 
 	Tubes::UnregisterConnectionCallback(m_OnConnectionHandle);
+
+	System::Shutdown();
 }
 
 void MainMenuSystem::Suspend()

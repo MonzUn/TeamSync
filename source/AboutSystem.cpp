@@ -25,6 +25,8 @@ void AboutSystem::Shutdown()
 {
 	MEngine::DestroyEntity(m_BackButtonID);
 	MEngine::DestroyEntity(m_AboutTextBoxID);
+
+	System::Shutdown();
 }
 
 void AboutSystem::Suspend()
