@@ -78,8 +78,8 @@ void TeamSync::Run()
 		MEngine::Render();
 	}
 
-	GlobalsBlackboard::Destroy();
-
 	Tubes::Shutdown();
 	MEngine::Shutdown();
+
+	GlobalsBlackboard::Destroy();
 }
