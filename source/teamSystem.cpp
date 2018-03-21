@@ -35,7 +35,7 @@ void TeamSystem::Initialize()
 	if (GlobalsBlackboard::GetInstance()->IsHost)
 	{
 		localPlayerID = 0;
-		players[localPlayerID]->Activate(localPlayerID, PlayerConnectionType::Local, INVALID_TUBES_CONNECTION_ID);
+		players[localPlayerID]->Activate(localPlayerID, PlayerConnectionType::Local, INVALID_TUBES_CONNECTION_ID, GlobalsBlackboard::GetInstance()->LocalPlayerName);
 	}
 
 	RegisterCommands();
@@ -105,7 +105,7 @@ void TeamSystem::RemovePlayer(Player* player)
 		localPlayerID = UNASSIGNED_PLAYER_ID;
 }
 
-void TeamSystem::OnConnection(Tubes::ConnectionID connectionID)
+void TeamSystem::OnConnection(Tubes::ConnectionID connectionID) // TODODB: Rework this to request player data from the connecting client and only create the player when that data ahs arrived
 {
 	if (!GlobalsBlackboard::GetInstance()->IsHost)
 	{
@@ -113,63 +113,9 @@ void TeamSystem::OnConnection(Tubes::ConnectionID connectionID)
 		return;
 	}
 
-	PlayerID newPlayerID = FindFreePlayerSlot();
-	if (newPlayerID >= 0)
-	{
-		players[newPlayerID]->Activate(newPlayerID, PlayerConnectionType::Direct, connectionID);
-
-		// Send the new player ID to all clients
-		PlayerIDMessage idMessage = PlayerIDMessage(newPlayerID, PlayerConnectionType::Local);
-		Tubes::SendToConnection(&idMessage, connectionID); // Tell the new client its ID
-
-		idMessage.PlayerConnectionType = PlayerConnectionType::Relayed;
-		Tubes::SendToAll(&idMessage, connectionID); // Tell all other clients about the new client
-
-		idMessage.Destroy();
-
-		// Make the new client aware of the relayed clients and update the new clients view of the relayed clients 
-		for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
-		{
-			if (players[i]->IsActive())
-			{
-				PlayerID playerID = players[i]->GetPlayerID();
-				if (playerID != newPlayerID)
-				{
-					PlayerConnectionType::PlayerConnectionType connectionType = (playerID == localPlayerID ? PlayerConnectionType::Direct : PlayerConnectionType::Relayed);
-					PlayerIDMessage idMessage = PlayerIDMessage(playerID, connectionType);
-					Tubes::SendToConnection(&idMessage, connectionID);
-					idMessage.Destroy();
-
-
-					if (players[playerID]->GetImageTextureID(PlayerImageSlot::Fullscreen) != INVALID_MENGINE_TEXTURE_ID)
-					{
-						PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, PlayerImageSlot::Fullscreen, MEngine::GetTextureData(players[playerID]->GetImageTextureID(PlayerImageSlot::Fullscreen)));
-						Tubes::SendToConnection(&updateMessage, connectionID);
-						updateMessage.Destroy();
-					}
-					else
-					{
-						for (int i = 0; i < PlayerImageSlot::Count - 1; ++i)
-						{
-							TextureID textureID = players[playerID]->GetImageTextureID(static_cast<PlayerImageSlot::PlayerImageSlot>(i));
-							if (textureID != INVALID_MENGINE_TEXTURE_ID)
-							{
-								PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, static_cast<PlayerImageSlot::PlayerImageSlot>(i), MEngine::GetTextureData(textureID));
-								Tubes::SendToConnection(&updateMessage, connectionID);
-								updateMessage.Destroy();
-							}
-						}
-					}
-
-					SignalFlagMessage primeFlagMessage = SignalFlagMessage(TeamSyncSignals::PRIME, players[playerID]->GetCycledScreenshotPrimed(), playerID);
-					Tubes::SendToConnection(&primeFlagMessage, connectionID);
-					primeFlagMessage.Destroy();
-				}
-			}
-		}
-	}
-	else
-		Tubes::Disconnect(connectionID); // TODODB: Make these players observers instead
+	RequestMessageMessage* requestMessage = new RequestMessageMessage(TeamSyncMessages::PLAYER_INITIALIZE);
+	Tubes::SendToConnection(requestMessage, connectionID);
+	requestMessage->Destroy();
 }
 
 void TeamSystem::OnDisconnection(Tubes::ConnectionID connectionID)
@@ -408,34 +354,119 @@ void TeamSystem::HandleNetworkCommunication()
 			}
 		} break;
 
-		case TeamSyncMessages::PLAYER_ID:
+		case TeamSyncMessages::REQUEST_MESSAGE:
 		{
-			if (!GlobalsBlackboard::GetInstance()->IsHost)
+			const RequestMessageMessage* requestMessageMessage = static_cast<const RequestMessageMessage*>(receivedMessages[i]);
+			switch (requestMessageMessage->RequestedMessageType)
 			{
-				const PlayerIDMessage* playerIDMessage = static_cast<const PlayerIDMessage*>(receivedMessages[i]);
-				PlayerID playerID = playerIDMessage->PlayerID;
-				PlayerConnectionType::PlayerConnectionType connectionType = static_cast<PlayerConnectionType::PlayerConnectionType>(playerIDMessage->PlayerConnectionType);
+			case TeamSyncMessages::PLAYER_INITIALIZE:
+			{
+				if (!GlobalsBlackboard::GetInstance()->IsHost)
+				{
+					PlayerInitializeMessage* playerInitMessage = new PlayerInitializeMessage(UNASSIGNED_PLAYER_ID, PlayerConnectionType::Invalid, GlobalsBlackboard::GetInstance()->LocalPlayerName);
+					Tubes::SendToConnection(playerInitMessage, messageSenders[i]);
+					playerInitMessage->Destroy();
+				}
+				else
+					MLOG_WARNING("Received request for player initialization message as host", LOG_CATEGORY_TEAM);
+			} break;
+
+			default:
+				MLOG_WARNING("Received unexpected request for message of type " << requestMessageMessage->RequestedMessageType, LOG_CATEGORY_TEAM);
+				break;
+			}
+		} break;
+
+		case TeamSyncMessages::PLAYER_INITIALIZE:
+		{
+			const PlayerInitializeMessage* playerInitMessage = static_cast<const PlayerInitializeMessage*>(receivedMessages[i]);
+			if (GlobalsBlackboard::GetInstance()->IsHost)
+			{
+				PlayerID newPlayerID = FindFreePlayerSlot();
+				if (newPlayerID >= 0)
+				{
+					players[newPlayerID]->Activate(newPlayerID, PlayerConnectionType::Direct, messageSenders[i], playerInitMessage->PlayerName);
+
+					// Send the new player ID to all clients
+					PlayerInitializeMessage relayedInitMessage = PlayerInitializeMessage(newPlayerID, PlayerConnectionType::Local, players[newPlayerID]->GetPlayerName());
+					Tubes::SendToConnection(&relayedInitMessage, messageSenders[i]); // Tell the new client its ID
+
+					relayedInitMessage.PlayerConnectionType = PlayerConnectionType::Relayed;
+					Tubes::SendToAll(&relayedInitMessage, messageSenders[i]); // Tell all other clients about the new client
+					relayedInitMessage.Destroy();
+
+					// Make the new client aware of the relayed clients and update the new clients view of the relayed clients 
+					for (int j = 0; j < TEAMSYNC_MAX_PLAYERS; ++j)
+					{
+						if (players[j]->IsActive())
+						{
+							PlayerID playerID = players[j]->GetPlayerID();
+							if (playerID != newPlayerID)
+							{
+								PlayerConnectionType::PlayerConnectionType connectionType = (playerID == localPlayerID ? PlayerConnectionType::Direct : PlayerConnectionType::Relayed);
+								PlayerInitializeMessage idMessage = PlayerInitializeMessage(playerID, connectionType, players[newPlayerID]->GetPlayerName());
+								Tubes::SendToConnection(&idMessage, messageSenders[i]);
+								idMessage.Destroy();
+
+
+								if (players[playerID]->GetImageTextureID(PlayerImageSlot::Fullscreen) != INVALID_MENGINE_TEXTURE_ID)
+								{
+									PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, PlayerImageSlot::Fullscreen, MEngine::GetTextureData(players[playerID]->GetImageTextureID(PlayerImageSlot::Fullscreen)));
+									Tubes::SendToConnection(&updateMessage, messageSenders[i]);
+									updateMessage.Destroy();
+								}
+								else
+								{
+									for (int k = 0; k < PlayerImageSlot::Count - 1; ++k)
+									{
+										TextureID textureID = players[playerID]->GetImageTextureID(static_cast<PlayerImageSlot::PlayerImageSlot>(k));
+										if (textureID != INVALID_MENGINE_TEXTURE_ID)
+										{
+											PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, static_cast<PlayerImageSlot::PlayerImageSlot>(k), MEngine::GetTextureData(textureID));
+											Tubes::SendToConnection(&updateMessage, messageSenders[i]);
+											updateMessage.Destroy();
+										}
+									}
+								}
+
+								SignalFlagMessage primeFlagMessage = SignalFlagMessage(TeamSyncSignals::PRIME, players[playerID]->GetCycledScreenshotPrimed(), playerID);
+								Tubes::SendToConnection(&primeFlagMessage, messageSenders[i]);
+								primeFlagMessage.Destroy();
+							}
+						}
+					}
+				}
+				else
+					Tubes::Disconnect(messageSenders[i]); // TODODB: Make these players observers instead
+			}
+			else
+			{
+				PlayerID playerID = playerInitMessage->PlayerID;
+				PlayerConnectionType::PlayerConnectionType connectionType = static_cast<PlayerConnectionType::PlayerConnectionType>(playerInitMessage->PlayerConnectionType);
 				Tubes::ConnectionID connectionID = INVALID_TUBES_CONNECTION_ID;
 
-				if (playerIDMessage->PlayerConnectionType == PlayerConnectionType::Local)
+				std::string playerName;
+				if (playerInitMessage->PlayerConnectionType == PlayerConnectionType::Local)
 				{
 					if (localPlayerID == UNASSIGNED_PLAYER_ID)
+					{
 						localPlayerID = playerID;
+						playerName = GlobalsBlackboard::GetInstance()->LocalPlayerName;
+					}
 					else
 						MLOG_WARNING("Received playerID message with ConnectionType::Local but the local player ID is already set", LOG_CATEGORY_TEAM);
 				}
-				else if (playerIDMessage->PlayerConnectionType == PlayerConnectionType::Direct)
+				else if (playerInitMessage->PlayerConnectionType == PlayerConnectionType::Direct)
 				{
 					connectionID = messageSenders[i];
+					playerName = playerInitMessage->PlayerName;
 				}
 
 				if (!players[playerID]->IsActive())
-					players[playerID]->Activate(playerID, connectionType, connectionID);
+					players[playerID]->Activate(playerID, connectionType, connectionID, playerName);
 				else
 					MLOG_WARNING("Received playerID message for playerID " << playerID + " but there is already a player assigned to that ID", LOG_CATEGORY_TEAM);
 			}
-			else
-				MLOG_WARNING("Received playerID message as host", LOG_CATEGORY_TEAM);
 		} break;
 
 		case TeamSyncMessages::PLAYER_UPDATE:

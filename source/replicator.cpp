@@ -55,11 +55,18 @@ Byte* Replicator::SerializeMessage(const Message* message, MessageSize* outMessa
 			WriteInt32(signalFlagMessage->PlayerID);
 		} break;
 
-		case PLAYER_ID:
+		case REQUEST_MESSAGE:
 		{
-			const PlayerIDMessage* playerIDMessage = static_cast<const PlayerIDMessage*>(message);
-			WriteInt32(playerIDMessage->PlayerID);
-			WriteUint32(playerIDMessage->PlayerConnectionType);
+			const RequestMessageMessage* requestMessageMessage = static_cast<const RequestMessageMessage*>(message);
+			WriteUint64(requestMessageMessage->RequestedMessageType);
+		} break;
+
+		case PLAYER_INITIALIZE:
+		{
+			const PlayerInitializeMessage* playerInitMessage = static_cast<const PlayerInitializeMessage*>(message);
+			WriteInt32(playerInitMessage->PlayerID);
+			WriteUint32(playerInitMessage->PlayerConnectionType);
+			WriteString(playerInitMessage->PlayerName);
 		} break;
 
 		case PLAYER_UPDATE:
@@ -90,8 +97,8 @@ Byte* Replicator::SerializeMessage(const Message* message, MessageSize* outMessa
 	}
 
 #if REPLICATOR_DEBUG
-	uint64_t differance = m_WritingWalker - serializedMessage;
-	if (differance != messageSize)
+	uint64_t difference = m_WritingWalker - serializedMessage;
+	if (difference != messageSize)
 	{
 		MLOG_WARNING("SerializeMessage didn't write the expected amount of bytes", LOG_CATEGORY_REPLICATOR);
 		assert(false);
@@ -141,13 +148,23 @@ Message* Replicator::DeserializeMessage(const Byte* const buffer)
 			deserializedMessage = new SignalFlagMessage(static_cast<TeamSyncSignals::Signal>(signal), flag, playerID);
 		} break;
 
-		case PLAYER_ID:
+		case REQUEST_MESSAGE:
+		{
+			MESSAGE_TYPE_ENUM_UNDELYING_TYPE requestedMessageType;
+			ReadUint64(requestedMessageType);
+
+			deserializedMessage = new RequestMessageMessage(requestedMessageType);
+		} break;
+
+		case PLAYER_INITIALIZE:
 		{
 			int32_t playerID, playerConnectionType;
+			std::string playerName;
 			ReadInt32(playerID);
 			ReadInt32(playerConnectionType);
+			ReadString(playerName);
 
-			deserializedMessage = new PlayerIDMessage(playerID, playerConnectionType);
+			deserializedMessage = new PlayerInitializeMessage(playerID, playerConnectionType, playerName);
 		} break;
 
 		case PLAYER_UPDATE:
@@ -217,10 +234,18 @@ int32_t Replicator::CalculateMessageSize(const Message& message) const
 			messageSize += INT_32_SIZE;
 		} break;
 
-		case PLAYER_ID:
+		case REQUEST_MESSAGE:
 		{
+			const RequestMessageMessage* requestMessage = static_cast<const RequestMessageMessage*>(&message);
+			messageSize += sizeof(MESSAGE_TYPE_ENUM_UNDELYING_TYPE);
+		} break;
+
+		case PLAYER_INITIALIZE:
+		{
+			const PlayerInitializeMessage* playerInitMessage = static_cast<const PlayerInitializeMessage*>(&message);
 			messageSize += INT_32_SIZE;
 			messageSize += INT_32_SIZE;
+			messageSize += (INT_32_SIZE + static_cast<uint32_t>(playerInitMessage->PlayerName.length())); // INT_32_SIZE = Name string length variable
 		} break;
 
 		case PLAYER_UPDATE:

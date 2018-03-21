@@ -23,6 +23,7 @@ public:
 	bool ShouldQuit = false;
 	bool IsHost = false;
 	Tubes::ConnectionID ConnectionID = INVALID_TUBES_CONNECTION_ID;
+	std::string LocalPlayerName = "INVALID_NAME";
 
 	// GameModes
 	MEngine::GameModeID	MainMenuGameModeID		= INVALID_MENGINE_GAME_MODE_ID;

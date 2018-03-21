@@ -27,6 +27,8 @@ private:
 
 	void OnConnection(Tubes::ConnectionID connectionID);
 
+	void StartMPGameMode();
+
 	MEngine::EntityID m_HostButtonID							= INVALID_MENGINE_ENTITY_ID;
 	MEngine::EntityID m_ConnectButtonID							= INVALID_MENGINE_ENTITY_ID;
 	MEngine::EntityID m_QuitButtonID							= INVALID_MENGINE_ENTITY_ID;
@@ -36,8 +38,10 @@ private:
 
 	MEngine::EntityID m_ConnectIPInputTextBoxID					= INVALID_MENGINE_ENTITY_ID;
 	MEngine::EntityID m_ConnectPortInputTextBoxID				= INVALID_MENGINE_ENTITY_ID;
+	MEngine::EntityID m_PlayerNameInputTextBoxID				= INVALID_MENGINE_ENTITY_ID;
 	MEngine::EntityID m_ConnectIPInputTextBoxDescriptionID		= INVALID_MENGINE_ENTITY_ID;
 	MEngine::EntityID m_ConnectPortInputTextBoxDescriptionID	= INVALID_MENGINE_ENTITY_ID;
+	MEngine::EntityID m_PlayerNameDescriptionID					= INVALID_MENGINE_ENTITY_ID;
 	MEngine::EntityID m_AppTitleTextID							= INVALID_MENGINE_ENTITY_ID;
 	MEngine::EntityID m_VersionNumberTextID						= INVALID_MENGINE_ENTITY_ID;
 

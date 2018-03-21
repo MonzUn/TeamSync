@@ -44,7 +44,7 @@ Player::~Player()
 	delete statusImage;
 }
 
-void Player::Activate(PlayerID playerID, PlayerConnectionType::PlayerConnectionType connectionType, Tubes::ConnectionID connectionID)
+void Player::Activate(PlayerID playerID, PlayerConnectionType::PlayerConnectionType connectionType, Tubes::ConnectionID connectionID, const std::string& playerName)
 {
 	if (m_IsActive)
 	{
@@ -55,6 +55,7 @@ void Player::Activate(PlayerID playerID, PlayerConnectionType::PlayerConnectionT
 	m_PlayerID			= playerID;
 	m_ConnectionType	= connectionType;
 	m_ConnectionID		= connectionID;
+	m_Name				= playerName;
 	SetCycledScreenshotPrimed(true);
 	statusImage->SetTextureID(statusActiveTextureID);
 
@@ -117,6 +118,11 @@ Tubes::ConnectionID Player::GetPlayerConnectionID() const
 PlayerConnectionType::PlayerConnectionType Player::GetPlayerConnectionType() const
 {
 	return m_ConnectionType;
+}
+
+const std::string& Player::GetPlayerName() const
+{
+	return m_Name;
 }
 
 bool Player::IsActive() const

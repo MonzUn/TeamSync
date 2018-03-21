@@ -93,22 +93,24 @@ public:
 	Player(int32_t posX, int32_t posY, int32_t width, int32_t height);
 	~Player();
 
-	void Activate(PlayerID playerID, PlayerConnectionType::PlayerConnectionType connectionType, Tubes::ConnectionID connectionID);
+	void Activate(PlayerID playerID, PlayerConnectionType::PlayerConnectionType connectionType, Tubes::ConnectionID connectionID, const std::string& playerName);
 	void Deactivate();
 
 	MEngine::TextureID GetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImage) const;
 	void SetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImage, MEngine::TextureID textureID);
 
+	// TODODB: Omit "Player"; it's obvious from the context
 	PlayerID GetPlayerID() const;
 	Tubes::ConnectionID GetPlayerConnectionID() const;
 	PlayerConnectionType::PlayerConnectionType GetPlayerConnectionType() const;
+	const std::string& GetPlayerName() const;
 
 	bool IsActive() const;
 
 	bool GetCycledScreenshotPrimed() const;
 	void SetCycledScreenshotPrimed(bool primed);
 
-private:
+private: // TODODB: Rename member variables using m_ standard
 	void Reset();
 	void UnloadScreenshotTextures();
 
@@ -132,4 +134,5 @@ private:
 	PlayerConnectionType::PlayerConnectionType m_ConnectionType;
 	bool m_IsActive;
 	bool m_CycledScreenshotPrimed;
+	std::string m_Name = "INVALID_NAME";
 };

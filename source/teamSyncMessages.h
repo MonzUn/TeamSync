@@ -1,6 +1,7 @@
 #pragma once
 #include "messageBase.h"
 #include <MEngineGraphics.h>
+#include <string>
 
 namespace TeamSyncMessages
 {
@@ -8,7 +9,8 @@ namespace TeamSyncMessages
 	{
 		SIGNAL,
 		SIGNAL_FLAG,
-		PLAYER_ID,
+		REQUEST_MESSAGE,
+		PLAYER_INITIALIZE,
 		PLAYER_UPDATE,
 		PLAYER_DISCONNECT,
 	};
@@ -40,13 +42,22 @@ struct SignalFlagMessage : TeamSyncMessage
 	int32_t PlayerID;
 };
 
-struct PlayerIDMessage : TeamSyncMessage
+struct RequestMessageMessage : TeamSyncMessage
 {
-	PlayerIDMessage(int32_t playerID, int32_t playerConnectionType) : TeamSyncMessage(TeamSyncMessages::PLAYER_ID), PlayerID(playerID), PlayerConnectionType(playerConnectionType)
+	RequestMessageMessage(MESSAGE_TYPE_ENUM_UNDELYING_TYPE requestedMessageType) : TeamSyncMessage(TeamSyncMessages::REQUEST_MESSAGE), RequestedMessageType(requestedMessageType)
+	{}
+
+	MESSAGE_TYPE_ENUM_UNDELYING_TYPE RequestedMessageType;
+};
+
+struct PlayerInitializeMessage : TeamSyncMessage
+{
+	PlayerInitializeMessage(int32_t playerID, int32_t playerConnectionType, const std::string& playerName) : TeamSyncMessage(TeamSyncMessages::PLAYER_INITIALIZE), PlayerID(playerID), PlayerConnectionType(playerConnectionType), PlayerName(playerName)
 	{}
 
 	int32_t PlayerID;
 	int32_t PlayerConnectionType;
+	std::string PlayerName;
 };
 
 struct PlayerUpdateMessage : TeamSyncMessage
