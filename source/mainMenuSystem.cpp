@@ -80,49 +80,22 @@ void MainMenuSystem::Shutdown()
 
 void MainMenuSystem::Suspend()
 {
-	// TODODB: Create Activate/inactivate functions for the entities in the entityFactory
-	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_HostButtonID))->IsActive		= false;
-	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_ConnectButtonID))->IsActive		= false;
-	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_QuitButtonID))->IsActive		= false;
-	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_AboutButtonID))->IsActive		= false;
-	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_DevBlogButtonID))->IsActive		= false;
-	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_ControlsButtonID))->IsActive	= false;
+	MEngine::HideButton(m_HostButtonID);
+	MEngine::HideButton(m_ConnectButtonID);
+	MEngine::HideButton(m_QuitButtonID);
+	MEngine::HideButton(m_AboutButtonID);
+	MEngine::HideButton(m_DevBlogButtonID);
+	MEngine::HideButton(m_ControlsButtonID);
 
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_HostButtonID))->RenderIgnore		= true;
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_ConnectButtonID))->RenderIgnore		= true;
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_QuitButtonID))->RenderIgnore		= true;
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_AboutButtonID))->RenderIgnore		= true;
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_DevBlogButtonID))->RenderIgnore		= true;
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_ControlsButtonID))->RenderIgnore	= true;
-
-	static_cast<TextureRenderingComponent*>(MEngine::GetComponentForEntity(TextureRenderingComponent::GetComponentMask(), m_HostButtonID))->RenderIgnore		= true;
-	static_cast<TextureRenderingComponent*>(MEngine::GetComponentForEntity(TextureRenderingComponent::GetComponentMask(), m_ConnectButtonID))->RenderIgnore		= true;
-	static_cast<TextureRenderingComponent*>(MEngine::GetComponentForEntity(TextureRenderingComponent::GetComponentMask(), m_QuitButtonID))->RenderIgnore		= true;
-	static_cast<TextureRenderingComponent*>(MEngine::GetComponentForEntity(TextureRenderingComponent::GetComponentMask(), m_AboutButtonID))->RenderIgnore		= true;
-	static_cast<TextureRenderingComponent*>(MEngine::GetComponentForEntity(TextureRenderingComponent::GetComponentMask(), m_DevBlogButtonID))->RenderIgnore		= true;
-	static_cast<TextureRenderingComponent*>(MEngine::GetComponentForEntity(TextureRenderingComponent::GetComponentMask(), m_ControlsButtonID))->RenderIgnore	= true;
-
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_ConnectIPInputTextBoxID))->RenderIgnore					= true;
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_ConnectPortInputTextBoxID))->RenderIgnore				= true;
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_PlayerNameInputTextBoxID))->RenderIgnore				= true;
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_ConnectIPInputTextBoxDescriptionID))->RenderIgnore		= true;
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_ConnectPortInputTextBoxDescriptionID))->RenderIgnore	= true;
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_PlayerNameDescriptionID))->RenderIgnore	= true;
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_AppTitleTextID))->RenderIgnore							= true;
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_VersionNumberTextID))->RenderIgnore						= true;
-	
-	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_ConnectIPInputTextBoxID))->IsActive		= false;
-	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_ConnectPortInputTextBoxID))->IsActive	= false;
-	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_PlayerNameInputTextBoxID))->IsActive	= false;
-
-	static_cast<RectangleRenderingComponent*>(MEngine::GetComponentForEntity(RectangleRenderingComponent::GetComponentMask(), m_ConnectIPInputTextBoxID))->RenderIgnore					= true;
-	static_cast<RectangleRenderingComponent*>(MEngine::GetComponentForEntity(RectangleRenderingComponent::GetComponentMask(), m_ConnectPortInputTextBoxID))->RenderIgnore				= true;
-	static_cast<RectangleRenderingComponent*>(MEngine::GetComponentForEntity(RectangleRenderingComponent::GetComponentMask(), m_PlayerNameInputTextBoxID))->RenderIgnore				= true;
-	static_cast<RectangleRenderingComponent*>(MEngine::GetComponentForEntity(RectangleRenderingComponent::GetComponentMask(), m_ConnectIPInputTextBoxDescriptionID))->RenderIgnore		= true;
-	static_cast<RectangleRenderingComponent*>(MEngine::GetComponentForEntity(RectangleRenderingComponent::GetComponentMask(), m_ConnectPortInputTextBoxDescriptionID))->RenderIgnore	= true;
-	static_cast<RectangleRenderingComponent*>(MEngine::GetComponentForEntity(RectangleRenderingComponent::GetComponentMask(), m_PlayerNameDescriptionID))->RenderIgnore	= true;
-	static_cast<RectangleRenderingComponent*>(MEngine::GetComponentForEntity(RectangleRenderingComponent::GetComponentMask(), m_AppTitleTextID))->RenderIgnore							= true;
-	static_cast<RectangleRenderingComponent*>(MEngine::GetComponentForEntity(RectangleRenderingComponent::GetComponentMask(), m_VersionNumberTextID))->RenderIgnore						= true;
+	MEngine::HideTextBox(m_ConnectIPInputTextBoxID);
+	MEngine::HideTextBox(m_ConnectPortInputTextBoxID);
+	MEngine::HideTextBox(m_PlayerNameInputTextBoxID);
+	MEngine::HideTextBox(m_ConnectIPInputTextBoxDescriptionID);
+	MEngine::HideTextBox(m_ConnectPortInputTextBoxDescriptionID);
+	MEngine::HideTextBox(m_PlayerNameDescriptionID);
+	MEngine::HideTextBox(m_AppTitleTextID);
+	MEngine::HideTextBox(m_VersionNumberTextID);
+	MEngine::HideTextBox(m_PlayerNameInputTextBoxID);
 
 	MEngine::UnregisterAllCommands();
 
@@ -131,48 +104,22 @@ void MainMenuSystem::Suspend()
 
 void MainMenuSystem::Resume()
 {
-	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_HostButtonID))->IsActive		= true;
-	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_ConnectButtonID))->IsActive		= true;
-	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_QuitButtonID))->IsActive		= true;
-	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_AboutButtonID))->IsActive		= true;
-	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_DevBlogButtonID))->IsActive		= true;
-	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_ControlsButtonID))->IsActive	= true;
-
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_HostButtonID))->RenderIgnore		= false;
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_ConnectButtonID))->RenderIgnore		= false;
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_QuitButtonID))->RenderIgnore		= false;
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_AboutButtonID))->RenderIgnore		= false;
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_DevBlogButtonID))->RenderIgnore		= false;
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_ControlsButtonID))->RenderIgnore	= false;
-
-	static_cast<TextureRenderingComponent*>(MEngine::GetComponentForEntity(TextureRenderingComponent::GetComponentMask(), m_HostButtonID))->RenderIgnore		= false;
-	static_cast<TextureRenderingComponent*>(MEngine::GetComponentForEntity(TextureRenderingComponent::GetComponentMask(), m_ConnectButtonID))->RenderIgnore		= false;
-	static_cast<TextureRenderingComponent*>(MEngine::GetComponentForEntity(TextureRenderingComponent::GetComponentMask(), m_QuitButtonID))->RenderIgnore		= false;
-	static_cast<TextureRenderingComponent*>(MEngine::GetComponentForEntity(TextureRenderingComponent::GetComponentMask(), m_AboutButtonID))->RenderIgnore		= false;
-	static_cast<TextureRenderingComponent*>(MEngine::GetComponentForEntity(TextureRenderingComponent::GetComponentMask(), m_DevBlogButtonID))->RenderIgnore		= false;
-	static_cast<TextureRenderingComponent*>(MEngine::GetComponentForEntity(TextureRenderingComponent::GetComponentMask(), m_ControlsButtonID))->RenderIgnore	= false;
-
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_ConnectIPInputTextBoxID))->RenderIgnore					= false;
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_ConnectPortInputTextBoxID))->RenderIgnore				= false;
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_PlayerNameInputTextBoxID))->RenderIgnore				= false;
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_ConnectIPInputTextBoxDescriptionID))->RenderIgnore		= false;
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_ConnectPortInputTextBoxDescriptionID))->RenderIgnore	= false;
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_PlayerNameDescriptionID))->RenderIgnore	= false;
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_AppTitleTextID))->RenderIgnore							= false;
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_VersionNumberTextID))->RenderIgnore						= false;
-
-	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_ConnectIPInputTextBoxID))->IsActive		= true;
-	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_ConnectPortInputTextBoxID))->IsActive	= true;
-	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_PlayerNameInputTextBoxID))->IsActive	= true;
-
-	static_cast<RectangleRenderingComponent*>(MEngine::GetComponentForEntity(RectangleRenderingComponent::GetComponentMask(), m_ConnectIPInputTextBoxID))->RenderIgnore					= false;
-	static_cast<RectangleRenderingComponent*>(MEngine::GetComponentForEntity(RectangleRenderingComponent::GetComponentMask(), m_ConnectPortInputTextBoxID))->RenderIgnore				= false;
-	static_cast<RectangleRenderingComponent*>(MEngine::GetComponentForEntity(RectangleRenderingComponent::GetComponentMask(), m_PlayerNameInputTextBoxID))->RenderIgnore				= false;
-	static_cast<RectangleRenderingComponent*>(MEngine::GetComponentForEntity(RectangleRenderingComponent::GetComponentMask(), m_ConnectIPInputTextBoxDescriptionID))->RenderIgnore		= false;
-	static_cast<RectangleRenderingComponent*>(MEngine::GetComponentForEntity(RectangleRenderingComponent::GetComponentMask(), m_ConnectPortInputTextBoxDescriptionID))->RenderIgnore	= false;
-	static_cast<RectangleRenderingComponent*>(MEngine::GetComponentForEntity(RectangleRenderingComponent::GetComponentMask(), m_PlayerNameDescriptionID))->RenderIgnore					= false;
-	static_cast<RectangleRenderingComponent*>(MEngine::GetComponentForEntity(RectangleRenderingComponent::GetComponentMask(), m_AppTitleTextID))->RenderIgnore							= false;
-	static_cast<RectangleRenderingComponent*>(MEngine::GetComponentForEntity(RectangleRenderingComponent::GetComponentMask(), m_VersionNumberTextID))->RenderIgnore						= false;
+	MEngine::ShowButton(m_HostButtonID);
+	MEngine::ShowButton(m_ConnectButtonID);
+	MEngine::ShowButton(m_QuitButtonID);
+	MEngine::ShowButton(m_AboutButtonID);
+	MEngine::ShowButton(m_DevBlogButtonID);
+	MEngine::ShowButton(m_ControlsButtonID);
+			 
+	MEngine::ShowTextBox(m_ConnectIPInputTextBoxID);
+	MEngine::ShowTextBox(m_ConnectPortInputTextBoxID);
+	MEngine::ShowTextBox(m_PlayerNameInputTextBoxID);
+	MEngine::ShowTextBox(m_ConnectIPInputTextBoxDescriptionID);
+	MEngine::ShowTextBox(m_ConnectPortInputTextBoxDescriptionID);
+	MEngine::ShowTextBox(m_PlayerNameDescriptionID);
+	MEngine::ShowTextBox(m_AppTitleTextID);
+	MEngine::ShowTextBox(m_VersionNumberTextID);
+	MEngine::ShowTextBox(m_PlayerNameInputTextBoxID);
 
 	RegisterCommands();
 
