@@ -27,7 +27,6 @@ namespace PlayerImageSlot
 		InventoryCount1,
 		InvetoryImage2,
 		InentoryCount2,
-		Name,
 		Head,
 		Backpack,
 		Body,
@@ -120,13 +119,15 @@ private: // TODODB: Rename member variables using m_ standard
 	int32_t Height		= -1;
 
 	Player::Image* images[PlayerImageSlot::Count] = { nullptr };
-	Player::Image* imageFrame		= nullptr;
-	Player::Image* primeImage		= nullptr;
+	Player::Image* imageFrame	= nullptr;
+	Player::Image* primeImage	= nullptr;
 	Player::Image* defaultImage	= nullptr;
 	Player::Image* statusImage	= nullptr;
 
-	MEngine::TextureID statusActiveTextureID		= INVALID_MENGINE_TEXTURE_ID;
+	MEngine::TextureID statusActiveTextureID	= INVALID_MENGINE_TEXTURE_ID;
 	MEngine::TextureID statusInactiveTextureID	= INVALID_MENGINE_TEXTURE_ID;
+
+	MEngine::EntityID m_NameTextBoxID = INVALID_MENGINE_ENTITY_ID;
 	
 	// Default values for these variables are set in the Reset() function
 	PlayerID m_PlayerID;
@@ -134,5 +135,5 @@ private: // TODODB: Rename member variables using m_ standard
 	PlayerConnectionType::PlayerConnectionType m_ConnectionType;
 	bool m_IsActive;
 	bool m_CycledScreenshotPrimed;
-	std::string m_Name = "INVALID_NAME";
+	std::string m_Name;	
 };

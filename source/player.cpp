@@ -1,9 +1,12 @@
 #include "player.h"
 #include "uiLayout.h"
 #include "MUtilityLog.h"
+#include <MengineEntityFactory.h>
 #include <MEngineGraphics.h>
 
 #define LOG_CATEGORY_PLAYER "Player"
+
+// TODODB: Use namespace MEngine
 
 Player::Player(int32_t posX, int32_t posY, int32_t width, int32_t height) :
 	PositionX(posX), PositionY(posY), Width(width), Height(height)
@@ -27,6 +30,8 @@ Player::Player(int32_t posX, int32_t posY, int32_t width, int32_t height) :
 	
 	statusImage = new Image(PositionX + UILayout::PLAYER_STATUS_IMAGE_RELATIVE_POS_X, PositionY + UILayout::PLAYER_STATUS_IMAGE_RELATIVE_POS_Y, UILayout::PLAYER_STATUS_IMAGE_WIDTH, UILayout::PLAYER_STATUS_IMAGE_HEIGHT);
 
+	m_NameTextBoxID = MEngine::CreateTextBox(PositionX + UILayout::MULTIPLAYER_PLAYER_NAME_OFFSET_X, PositionY + UILayout::MULTIPLAYER_PLAYER_NAME_OFFSET_Y, UILayout::MULTIPLAYER_PLAYER_NAME_TEXT_BOX_WIDTH, UILayout::MULTIPLAYER_PLAYER_NAME_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->DescriptionFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, m_Name, MEngine::TextAlignment::BottomCentered);
+
 	Reset();
 }
 
@@ -42,6 +47,8 @@ Player::~Player()
 	delete primeImage;
 	delete defaultImage;
 	delete statusImage;
+
+	MEngine::DestroyEntity(m_NameTextBoxID);
 }
 
 void Player::Activate(PlayerID playerID, PlayerConnectionType::PlayerConnectionType connectionType, Tubes::ConnectionID connectionID, const std::string& playerName)
@@ -59,6 +66,9 @@ void Player::Activate(PlayerID playerID, PlayerConnectionType::PlayerConnectionT
 	SetCycledScreenshotPrimed(true);
 	statusImage->SetTextureID(statusActiveTextureID);
 
+	*static_cast<MEngine::TextComponent*>(MEngine::GetComponentForEntity(MEngine::TextComponent::GetComponentMask(), m_NameTextBoxID))->Text = playerName;
+	MEngine::ShowTextBox(m_NameTextBoxID);
+
 	m_IsActive = true;
 }
 
@@ -69,6 +79,9 @@ void Player::Deactivate()
 		MLOG_WARNING("Attempted to deactivate an already inactive player", LOG_CATEGORY_PLAYER);
 		return;
 	}
+
+	static_cast<MEngine::PosSizeComponent*>(MEngine::GetComponentForEntity(MEngine::PosSizeComponent::GetComponentMask(), m_NameTextBoxID))->PosX = PositionX + UILayout::MULTIPLAYER_PLAYER_NAME_OFFSET_X;
+	MEngine::HideTextBox(m_NameTextBoxID);
 
 	Reset();
 	UnloadScreenshotTextures();
@@ -87,9 +100,15 @@ void Player::SetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImageSlot,
 	if (!m_IsActive)
 		return;
 
+	static_cast<MEngine::PosSizeComponent*>(MEngine::GetComponentForEntity(MEngine::PosSizeComponent::GetComponentMask(), m_NameTextBoxID))->PosX = PositionX + UILayout::MULTIPLAYER_PLAYER_NAME_SPLIT_IMAGE_OFFSET_X;
+
+	if(playerImageSlot != PlayerImageSlot::Fullscreen)
+		MEngine::ShowTextBox(m_NameTextBoxID);
+
 	if (playerImageSlot == PlayerImageSlot::Fullscreen)
 	{
 		UnloadScreenshotTextures();
+		MEngine::HideTextBox(m_NameTextBoxID);
 	}
 	else if (images[PlayerImageSlot::Fullscreen]->GetTextureID() != INVALID_MENGINE_TEXTURE_ID)
 	{
@@ -147,6 +166,7 @@ void Player::Reset()
 	m_ConnectionID		= INVALID_TUBES_CONNECTION_ID;
 	m_ConnectionType	= PlayerConnectionType::Invalid;
 	m_IsActive			= false;
+	m_Name				= "INVALID_NAME";
 
 	defaultImage->SetRenderIgnore(false);
 	statusImage->SetRenderIgnore(false);
