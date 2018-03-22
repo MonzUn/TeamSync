@@ -404,7 +404,7 @@ void TeamSystem::HandleNetworkCommunication()
 							if (playerID != newPlayerID)
 							{
 								PlayerConnectionType::PlayerConnectionType connectionType = (playerID == localPlayerID ? PlayerConnectionType::Direct : PlayerConnectionType::Relayed);
-								PlayerInitializeMessage idMessage = PlayerInitializeMessage(playerID, connectionType, players[newPlayerID]->GetPlayerName());
+								PlayerInitializeMessage idMessage = PlayerInitializeMessage(playerID, connectionType, players[playerID]->GetPlayerName());
 								Tubes::SendToConnection(&idMessage, messageSenders[i]);
 								idMessage.Destroy();
 
