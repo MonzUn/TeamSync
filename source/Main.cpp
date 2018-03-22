@@ -1,4 +1,4 @@
-#include "teamSync.h"
+#include "TeamSync.h"
 #include <MUtilityPlatformDefinitions.h>
 
 #if PLATFORM == PLATFORM_WINDOWS

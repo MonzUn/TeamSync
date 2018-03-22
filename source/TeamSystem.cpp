@@ -1,8 +1,8 @@
-#include "teamSystem.h"
-#include "globalsBlackboard.h"
-#include "imageJob.h"
-#include "teamSyncMessages.h"
-#include "uiLayout.h"
+#include "TeamSystem.h"
+#include "GlobalsBlackboard.h"
+#include "ImageJob.h"
+#include "TeamSyncMessages.h"
+#include "UILayout.h"
 #include <MEngineConfig.h>
 #include <MEngineConsole.h>
 #include <MEngineInput.h>

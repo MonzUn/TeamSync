@@ -1,10 +1,10 @@
-#include "teamSync.h"
+#include "TeamSync.h"
 #include "AboutSystem.h"
-#include "globalsBlackboard.h"
-#include "mainMenuSystem.h"
-#include "replicator.h"
-#include "teamSystem.h"
-#include "uiLayout.h"
+#include "GlobalsBlackboard.h"
+#include "MainMenuSystem.h"
+#include "Replicator.h"
+#include "TeamSystem.h"
+#include "UILayout.h"
 #include <MEngine.h>
 #include <MEngineConsole.h>
 #include <MEngineInput.h>

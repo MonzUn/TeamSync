@@ -1,5 +1,5 @@
 #pragma once
-#include "replicator.h"
+#include "Replicator.h"
 #include <messaging/Message.h>
 
 struct TeamSyncMessage : Message

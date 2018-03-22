@@ -1,5 +1,5 @@
-#include "player.h"
-#include "uiLayout.h"
+#include "Player.h"
+#include "UILayout.h"
 #include "MUtilityLog.h"
 #include <MengineEntityFactory.h>
 #include <MEngineGraphics.h>

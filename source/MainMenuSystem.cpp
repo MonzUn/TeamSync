@@ -1,7 +1,7 @@
-#include "mainMenuSystem.h"
-#include "globalsBlackboard.h"
+#include "MainMenuSystem.h"
+#include "GlobalsBlackboard.h"
 #include "PlayerNames.h"
-#include "uiLayout.h"
+#include "UILayout.h"
 #include <MEngineColor.h>
 #include <MEngineConfig.h>
 #include <MEngineConsole.h>

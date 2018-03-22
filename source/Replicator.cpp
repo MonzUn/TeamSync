@@ -1,5 +1,5 @@
-#include "replicator.h"
-#include "teamSyncMessages.h"
+#include "Replicator.h"
+#include "TeamSyncMessages.h"
 #include <messaging/MessagingTypes.h>
 #include <MUtilityDataSizes.h>
 #include <MUtilityLog.h>
