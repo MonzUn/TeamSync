@@ -13,7 +13,6 @@
 // TOODDB: Memory leaks (3) on (Client) connect -> exit
 
 // Project TODO list
-// TODODB: Rename source files using uppercase initial character
 // TODODB: Make the application UI scalable
 // TODODB: Make clipping and destination rects customizable from file
 // TODODB: Make clipping/destination rect setups selectable from main menu
