@@ -456,7 +456,7 @@ void TeamSystem::HandleNetworkCommunication()
 					else
 						MLOG_WARNING("Received playerID message with ConnectionType::Local but the local player ID is already set", LOG_CATEGORY_TEAM);
 				}
-				else if (playerInitMessage->PlayerConnectionType == PlayerConnectionType::Direct)
+				else if (playerInitMessage->PlayerConnectionType == PlayerConnectionType::Direct || playerInitMessage->PlayerConnectionType == PlayerConnectionType::Relayed)
 				{
 					connectionID = messageSenders[i];
 					playerName = playerInitMessage->PlayerName;
