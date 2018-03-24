@@ -26,12 +26,17 @@ using namespace MEngine::PredefinedColors;
 bool TeamSync::Initialize()
 {
 	// Base setup
+	MUtilityLog::Initialize();
+
 	std::string applicationName = "TeamSync";
 #if COMPILE_MODE == COMPILE_MODE_DEBUG
 	applicationName += " (PID=" + std::to_string(MUtility::GetPid()) + ")";
 #endif
 	if (!MEngine::Initialize(applicationName.c_str(), UILayout::APPLICATION_WINDOW_WIDTH, UILayout::APPLICATION_WINDOW_HEIGHT))
+	{
+		MUtilityLog::Shutdown();
 		return false;
+	}
 
 	if (!Tubes::Initialize())
 		MLOG_ERROR("Failed to initialize Tubes", LOG_CATEGORY_TEAMSYNC);
@@ -78,8 +83,10 @@ void TeamSync::Run()
 		MEngine::Render();
 	}
 
-	Tubes::Shutdown();
 	MEngine::Shutdown();
-
+	Tubes::Shutdown();
+	
 	GlobalsBlackboard::Destroy();
+
+	MUtilityLog::Shutdown();
 }
