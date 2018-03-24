@@ -360,6 +360,8 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 						++delayedScreenshotcounter;
 					else if(!signalFlagMessage->Flag && delayedScreenshotcounter % 2 == 0)
 						++delayedScreenshotcounter;
+
+					MLOG_INFO("Cycled screenshot was primed remotely", LOG_CATEGORY_TEAM_SYSTEM);
 				}
 
 				// Relay
@@ -459,7 +461,7 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 					Tubes::SendToConnection(&hostSettingsMessage, messageSenders[i]);
 					hostSettingsMessage.Destroy();
 
-					MLOG_INFO("Added new player\n Name = " << players[newPlayerID]->GetPlayerName() << "\nPlayerID = " << newPlayerID << "\nConnectionID = " << players[newPlayerID]->GetPlayerConnectionID() << "\nConnectionType = " << players[newPlayerID]->GetPlayerConnectionType(), LOG_CATEGORY_TEAM_SYSTEM);
+					MLOG_INFO("Added new player\nName = " << players[newPlayerID]->GetPlayerName() << "\nPlayerID = " << newPlayerID << "\nConnectionID = " << players[newPlayerID]->GetPlayerConnectionID() << "\nConnectionType = " << players[newPlayerID]->GetPlayerConnectionType(), LOG_CATEGORY_TEAM_SYSTEM);
 				}
 				else
 					Tubes::Disconnect(messageSenders[i]); // TODODB: Make these players observers instead
@@ -490,7 +492,7 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 				if (!players[playerID]->IsActive())
 				{
 					players[playerID]->Activate(playerID, connectionType, connectionID, playerName);
-					MLOG_INFO("Host informs of new player\nName = " << players[playerID]->GetPlayerName() << "\nPlayerID = " << playerID << "\nConnectionID = " << players[playerID]->GetPlayerConnectionID() << "\nConnectionType = " << players[playerID]->GetPlayerConnectionType(), LOG_CATEGORY_TEAM_SYSTEM);
+					MLOG_INFO("Host informs of new player\nName = \"" << players[playerID]->GetPlayerName() << "\"\nPlayerID = " << playerID << "\nConnectionID = " << players[playerID]->GetPlayerConnectionID() << "\nConnectionType = " << players[playerID]->GetPlayerConnectionType(), LOG_CATEGORY_TEAM_SYSTEM);
 				}
 				else
 					MLOG_WARNING("Received playerID message for playerID " << playerID + " but there is already a player assigned to that ID", LOG_CATEGORY_TEAM_SYSTEM);
@@ -520,7 +522,10 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 				for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
 				{
 					if (players[i]->IsActive() && players[i]->GetPlayerID() == playerDisconnectMessage->PlayerID)
+					{
+						MLOG_INFO("Host informs of player disconenction\nName = \"" << players[i]->GetPlayerName() << "\"\nPlayerID = " << players[i]->GetPlayerID(), LOG_CATEGORY_TEAM_SYSTEM);
 						RemovePlayer(players[i]);
+					}
 				}
 			}
 			else
@@ -533,9 +538,10 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 			{
 				const HostSettingsMessage* hostSettingsMessage = static_cast<const HostSettingsMessage*>(receivedMessages[i]);
 				GlobalsBlackboard::GetInstance()->HostSettingsData = hostSettingsMessage->Settings;
+				MLOG_INFO("Host settings:\nRequestsLogs = " << hostSettingsMessage->Settings.RequestsLogs, LOG_CATEGORY_TEAM_SYSTEM);
 			}
 			else
-				MLOG_WARNING("Received HostSettingsMessage as host", LOG_CATEGORY_TEAM_SYSTEM);
+				MLOG_WARNING("Received Host settings message as host", LOG_CATEGORY_TEAM_SYSTEM);
 		} break;
 
 		case TeamSyncMessages::LOG_UPDATE:
