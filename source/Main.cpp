@@ -9,8 +9,6 @@
 #endif
 
 // --- Known memory leaks
-// TOODDB: Memory leaks (2) on (Host) host -> 1 client connect -> exit
-// TOODDB: Memory leaks (3) on (Client) connect -> exit
 
 // Project TODO list
 // TODODB: Make the application UI scalable
