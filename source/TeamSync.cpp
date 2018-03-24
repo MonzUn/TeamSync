@@ -1,6 +1,7 @@
 #include "TeamSync.h"
 #include "AboutSystem.h"
 #include "GlobalsBlackboard.h"
+#include "LogSyncSystem.h"
 #include "MainMenuSystem.h"
 #include "Replicator.h"
 #include "TeamSystem.h"
@@ -60,14 +61,17 @@ bool TeamSync::Initialize()
 	GlobalsBlackboard::GetInstance()->MainMenuSystemID	= MEngine::RegisterSystem(new MainMenuSystem());
 	GlobalsBlackboard::GetInstance()->AboutMenuSystemID = MEngine::RegisterSystem(new AboutSystem());
 	GlobalsBlackboard::GetInstance()->TeamSystemID		= MEngine::RegisterSystem(new TeamSystem());
+	GlobalsBlackboard::GetInstance()->LogSyncSystemID	= MEngine::RegisterSystem(new LogSyncSystem());
 
 	// GameModes
 	GlobalsBlackboard::GetInstance()->MainMenuGameModeID = MEngine::CreateGameMode();
 	MEngine::AddSystemToGameMode(GlobalsBlackboard::GetInstance()->MainMenuGameModeID, GlobalsBlackboard::GetInstance()->MainMenuSystemID, 100);
 	MEngine::AddSystemToGameMode(GlobalsBlackboard::GetInstance()->MainMenuGameModeID, GlobalsBlackboard::GetInstance()->AboutMenuSystemID, 101);
+	MEngine::AddSystemToGameMode(GlobalsBlackboard::GetInstance()->MainMenuGameModeID, GlobalsBlackboard::GetInstance()->LogSyncSystemID, 300);
 
 	GlobalsBlackboard::GetInstance()->MultiplayerGameModeID = MEngine::CreateGameMode();
 	MEngine::AddSystemToGameMode(GlobalsBlackboard::GetInstance()->MultiplayerGameModeID, GlobalsBlackboard::GetInstance()->TeamSystemID, 100);
+	MEngine::AddSystemToGameMode(GlobalsBlackboard::GetInstance()->MultiplayerGameModeID, GlobalsBlackboard::GetInstance()->LogSyncSystemID, 300);
 
 	MEngine::RequestGameModeChange(GlobalsBlackboard::GetInstance()->MainMenuGameModeID);
 

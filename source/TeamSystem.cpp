@@ -99,7 +99,6 @@ void TeamSystem::UpdatePresentationLayer(float deltaTime)
 #endif
 	HandleInput();
 	HandleImageJobResults();
-	HandleLogSynchronization();
 	HandleIncomingNetworkCommunication();
 }
 
@@ -570,22 +569,6 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 
 		receivedMessages[i]->Destroy();
 		free(receivedMessages[i]);
-	}
-}
-
-void TeamSystem::HandleLogSynchronization() // TODODB: Make a separete system for this and make sure it runs in every game mdoe
-{
-	if (!GlobalsBlackboard::GetInstance()->IsHost && GlobalsBlackboard::GetInstance()->HostSettingsData.RequestsLogs)
-	{
-		std::string newMessages = MEngine::GetUnreadCommandLog();
-		MEngine::MarkCommandLogRead();
-		MUtilityLog::GetUnreadMessages(newMessages);
-		if (!newMessages.empty())
-		{
-			LogUpdateMessage message = LogUpdateMessage(newMessages);
-			Tubes::SendToAll(&message); // TODODB: Send only to host; use SendToConnection and create a way to get the host connection ID (There are probably more places to apply this change on)
-			message.Destroy();
-		}
 	}
 }
 

@@ -39,6 +39,7 @@ public:
 	MEngine::SystemID MainMenuSystemID	= INVALID_MENGINE_SYSTEM_ID;
 	MEngine::SystemID AboutMenuSystemID = INVALID_MENGINE_SYSTEM_ID;
 	MEngine::SystemID TeamSystemID		= INVALID_MENGINE_SYSTEM_ID;
+	MEngine::SystemID LogSyncSystemID	= INVALID_MENGINE_SYSTEM_ID;
 
 	// Fonts
 	MEngine::MEngineFontID	TitleFontID				= INVALID_MENGINE_FONT_ID;
