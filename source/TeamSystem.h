@@ -26,7 +26,8 @@ private:
 	void ProcessImageJobs();
 	void HandleInput();
 	void HandleImageJobResults();
-	void HandleNetworkCommunication();
+	void HandleIncomingNetworkCommunication();
+	void HandleLogSynchronization();
 
 	void RegisterCommands();
 	bool ExecutePrimeCycledScreenshotCommand(const std::string* parameters, int32_t parameterCount, std::string* outResponse);

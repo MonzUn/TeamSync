@@ -17,6 +17,11 @@ const std::string APP_VERSION_STRING = std::to_string(APP_VERSION_SUPER)
 	+ '.' + std::to_string(APP_VERSION_MAJOR) + '.' + std::to_string(APP_VERSION_MINOR)
 	+ '.' + std::to_string(APP_VERSION_PATCH);
 
+struct HostSettings
+{
+	bool RequestsLogs = false;
+};
+
 class GlobalsBlackboard : public MUtility::Singleton<GlobalsBlackboard>
 {
 public:
@@ -24,6 +29,7 @@ public:
 	bool IsHost = false;
 	Tubes::ConnectionID ConnectionID = INVALID_TUBES_CONNECTION_ID;
 	std::string LocalPlayerName = "INVALID_NAME";
+	HostSettings HostSettingsData;
 
 	// GameModes
 	MEngine::GameModeID	MainMenuGameModeID		= INVALID_MENGINE_GAME_MODE_ID;

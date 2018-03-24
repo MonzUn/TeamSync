@@ -86,6 +86,18 @@ Byte* Replicator::SerializeMessage(const Message* message, MessageSize* outMessa
 			WriteInt32(playerDisconnectMessage->PlayerID);
 		} break;
 
+		case HOST_SETTINGS:
+		{
+			const HostSettingsMessage* hostSettingsMessage = static_cast<const HostSettingsMessage*>(message);
+			WriteBool(&hostSettingsMessage->Settings.RequestsLogs);
+		} break;
+
+		case LOG_UPDATE:
+		{
+			const LogUpdateMessage* logUpdateMessage = static_cast<const LogUpdateMessage*>(message);
+			WriteString(logUpdateMessage->LogMessages);
+		} break;
+
 		default:
 		{
 			MLOG_WARNING("Failed to find serialization logic for message of type " << message->Type, LOG_CATEGORY_REPLICATOR);
@@ -189,6 +201,22 @@ Message* Replicator::DeserializeMessage(const Byte* const buffer)
 			deserializedMessage = new PlayerDisconnectMessage(playerID);
 		} break;
 
+		case HOST_SETTINGS:
+		{
+			bool requestsLogs;
+			ReadBool(requestsLogs);
+
+			deserializedMessage = new HostSettingsMessage(HostSettings({ requestsLogs }));
+		} break;
+
+		case LOG_UPDATE:
+		{
+			std::string logMessages;
+			ReadString(logMessages);
+			
+			deserializedMessage = new LogUpdateMessage(logMessages);
+		} break;
+
 		default:
 		{
 			MLOG_WARNING("Failed to find deserialization logic for message of type " << deserializedMessage->Type, LOG_CATEGORY_REPLICATOR);
@@ -258,6 +286,17 @@ int32_t Replicator::CalculateMessageSize(const Message& message) const
 			messageSize += INT_32_SIZE;
 			messageSize += playerUpdateMessage->ImageByteSize;
 		}	break;
+
+		case HOST_SETTINGS:
+		{
+			messageSize += sizeof(HostSettings);
+		} break;
+
+		case LOG_UPDATE:
+		{
+			const LogUpdateMessage* logUpdateMessage = static_cast<const LogUpdateMessage*>(&message);
+			messageSize += (INT_32_SIZE + static_cast<uint32_t>(logUpdateMessage->LogMessages.length())); // INT_32_SIZE = Name string length variable
+		} break;
 
 		case PLAYER_DISCONNECT:
 		{

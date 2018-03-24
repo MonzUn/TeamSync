@@ -1,12 +1,17 @@
 #include "Player.h"
 #include "UILayout.h"
-#include "MUtilityLog.h"
 #include <MengineEntityFactory.h>
 #include <MEngineGraphics.h>
+#include <MUtilityFile.h>
+#include <MUtilityLog.h>
+#include <MUtilitySystem.h>
+#include <fstream>
 
 #define LOG_CATEGORY_PLAYER "Player"
 
 // TODODB: Use namespace MEngine
+
+// ---------- PUBLIC ----------
 
 Player::Player(int32_t posX, int32_t posY, int32_t width, int32_t height) :
 	PositionX(posX), PositionY(posY), Width(width), Height(height)
@@ -63,6 +68,7 @@ void Player::Activate(PlayerID playerID, PlayerConnectionType::PlayerConnectionT
 	m_ConnectionType	= connectionType;
 	m_ConnectionID		= connectionID;
 	m_Name				= playerName;
+	m_RemoteLog			= "";
 	SetCycledScreenshotPrimed(true);
 	statusImage->SetTextureID(statusActiveTextureID);
 
@@ -144,6 +150,16 @@ const std::string& Player::GetPlayerName() const
 	return m_Name;
 }
 
+const std::string& Player::GetRemoteLog() const
+{
+	return m_RemoteLog;
+}
+
+void Player::AppendRemoteLog(const std::string& newLogMessages)
+{
+	m_RemoteLog += newLogMessages;
+}
+
 bool Player::IsActive() const
 {
 	return m_IsActive;
@@ -160,13 +176,35 @@ void Player::SetCycledScreenshotPrimed(bool primed)
 	primeImage->SetRenderIgnore(!primed);
 }
 
+void Player::FlushRemoteLog()
+{
+	if (m_RemoteLog != "")
+	{
+		std::string remoteLogsDir = MUtility::GetExecutableDirectoryPath() + "/logs/remote";
+		if(!MUtility::DirectoryExists(remoteLogsDir.c_str()))
+			MUtility::CreateDir(remoteLogsDir.c_str());
+
+		std::ofstream outStream;
+		outStream.open(remoteLogsDir + "/" + m_Name + ".txt", std::ofstream::out | std::ofstream::trunc);
+		if (outStream.is_open())
+		{
+			outStream << m_RemoteLog;
+			outStream.close();
+		}
+		else
+			MLOG_ERROR("Failed to write remote log file of player " << m_Name, LOG_CATEGORY_PLAYER);
+	}
+}
+
+// ---------- PRIVATE ----------
+
 void Player::Reset()
 {
 	m_PlayerID			= UNASSIGNED_PLAYER_ID;
 	m_ConnectionID		= INVALID_TUBES_CONNECTION_ID;
 	m_ConnectionType	= PlayerConnectionType::Invalid;
 	m_IsActive			= false;
-	m_Name				= "INVALID_NAME";
+	// TODODB: Reset remoteLog and name here instead when remote logs are being flushed on disconnection instead
 
 	defaultImage->SetRenderIgnore(false);
 	statusImage->SetRenderIgnore(false);

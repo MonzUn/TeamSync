@@ -13,7 +13,7 @@
 #include <Tubes.h>
 #include <iostream>
 
-#define LOG_CATEGORY_TEAM "Team"
+#define LOG_CATEGORY_TEAM_SYSTEM "TeamSystem"
 #define DELAYED_SCREENSHOT_WAIT_TIME_MILLISECONDS 150
 
 using namespace MEngine;
@@ -36,6 +36,10 @@ void TeamSystem::Initialize()
 	{
 		localPlayerID = 0;
 		players[localPlayerID]->Activate(localPlayerID, PlayerConnectionType::Local, INVALID_TUBES_CONNECTION_ID, GlobalsBlackboard::GetInstance()->LocalPlayerName);
+		GlobalsBlackboard::GetInstance()->HostSettingsData.RequestsLogs = Config::GetBool("HostRequestsLogs", false);
+
+		if (GlobalsBlackboard::GetInstance()->HostSettingsData.RequestsLogs)
+			MLOG_INFO("Requesting log synchronization from clients", LOG_CATEGORY_TEAM_SYSTEM);
 	}
 
 	RegisterCommands();
@@ -43,17 +47,18 @@ void TeamSystem::Initialize()
 
 void TeamSystem::Shutdown()
 {
+	// Unregister callbakcs
 	if (m_OnConnectionHandle != Tubes::ConnectionCallbackHandle::invalid())
 		Tubes::UnregisterConnectionCallback(m_OnConnectionHandle);
 	if (m_OnDisconnectionHandle != Tubes::DisconnectionCallbackHandle::invalid())
 		Tubes::UnregisterDisconnectionCallback(m_OnDisconnectionHandle);
 
-	GlobalsBlackboard::GetInstance()->ConnectionID = INVALID_TUBES_CONNECTION_ID;
-
+	// Stop image job thread
 	m_RunImageJobThread = false;
 	m_ImageJobLockCondition.notify_one();
 	MUtilityThreading::JoinThread(m_ImageJobThread);
 
+	// Clean up any imageJobs left unhandled
 	ImageJob* imageJob = nullptr;
 	while (m_ImageJobQueue.Consume(imageJob))
 	{
@@ -64,11 +69,23 @@ void TeamSystem::Shutdown()
 	m_ImageJobQueue.Clear();
 	m_ImageJobResultQueue.Clear();
 
+	// Remove players
 	for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
 	{
+		if(players[i]->GetPlayerID() != localPlayerID && GlobalsBlackboard::GetInstance()->IsHost && GlobalsBlackboard::GetInstance()->HostSettingsData.RequestsLogs)
+			players[i]->FlushRemoteLog(); // TODODB: Make this trigger on client disconnection instead
+
 		delete players[i];
 	}
 
+	// Reset Globals blackboard
+	GlobalsBlackboard* globalsBlackboard = GlobalsBlackboard::GetInstance();
+	globalsBlackboard->IsHost = false;
+	globalsBlackboard->ConnectionID = INVALID_TUBES_CONNECTION_ID;
+	globalsBlackboard->LocalPlayerName = "INVALID_NAME";
+	globalsBlackboard->HostSettingsData = HostSettings();
+
+	// MEngine cleanup
 	MEngine::StopTextInput();
 	UnregisterAllCommands();
 
@@ -82,7 +99,8 @@ void TeamSystem::UpdatePresentationLayer(float deltaTime)
 #endif
 	HandleInput();
 	HandleImageJobResults();
-	HandleNetworkCommunication();
+	HandleLogSynchronization();
+	HandleIncomingNetworkCommunication();
 }
 
 // ---------- PRIVATE ----------
@@ -109,7 +127,7 @@ void TeamSystem::OnConnection(Tubes::ConnectionID connectionID) // TODODB: Rewor
 {
 	if (!GlobalsBlackboard::GetInstance()->IsHost)
 	{
-		MLOG_WARNING("Connection callback triggered in client mode", LOG_CATEGORY_TEAM);
+		MLOG_WARNING("Connection callback triggered in client mode", LOG_CATEGORY_TEAM_SYSTEM);
 		return;
 	}
 
@@ -140,7 +158,7 @@ void TeamSystem::OnDisconnection(Tubes::ConnectionID connectionID)
 
 			RemovePlayer(disconnectingPlayer);
 		}
-		else // Disconnect from host
+		else // Disconnected from host
 		{
 			for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
 			{
@@ -187,7 +205,7 @@ void TeamSystem::ProcessImageJobs()
 				else if (job->ImageWidth == 1920 && job->ImageHeight == 1080)
 					cutPositionArray = &UILayout::CutPositions1080P;
 				else
-					MLOG_WARNING("Attempted to split image of unsupported size (" << job->ImageWidth << ", " << job->ImageHeight << ')', LOG_CATEGORY_TEAM);
+					MLOG_WARNING("Attempted to split image of unsupported size (" << job->ImageWidth << ", " << job->ImageHeight << ')', LOG_CATEGORY_TEAM_SYSTEM);
 
 				if (cutPositionArray != nullptr)
 					job->ResultTextureID = MEngine::CreateSubTextureFromTextureData(MEngine::TextureData(job->ImageWidth, job->ImageHeight, job->Pixels), (*cutPositionArray)[job->ImageSlot][0], (*cutPositionArray)[job->ImageSlot][1], (*cutPositionArray)[job->ImageSlot][2], (*cutPositionArray)[job->ImageSlot][3], true);
@@ -317,7 +335,7 @@ void TeamSystem::HandleImageJobResults()
 	}
 }
 
-void TeamSystem::HandleNetworkCommunication()
+void TeamSystem::HandleIncomingNetworkCommunication()
 {
 	std::vector<Message*> receivedMessages;
 	std::vector<Tubes::ConnectionID> messageSenders;
@@ -368,11 +386,11 @@ void TeamSystem::HandleNetworkCommunication()
 					playerInitMessage->Destroy();
 				}
 				else
-					MLOG_WARNING("Received request for player initialization message as host", LOG_CATEGORY_TEAM);
+					MLOG_WARNING("Received request for player initialization message as host", LOG_CATEGORY_TEAM_SYSTEM);
 			} break;
 
 			default:
-				MLOG_WARNING("Received unexpected request for message of type " << requestMessageMessage->RequestedMessageType, LOG_CATEGORY_TEAM);
+				MLOG_WARNING("Received unexpected request for message of type " << requestMessageMessage->RequestedMessageType, LOG_CATEGORY_TEAM_SYSTEM);
 				break;
 			}
 		} break;
@@ -435,6 +453,13 @@ void TeamSystem::HandleNetworkCommunication()
 							}
 						}
 					}
+
+					// Tell the new client about the host settings
+					HostSettingsMessage hostSettingsMessage = HostSettingsMessage(GlobalsBlackboard::GetInstance()->HostSettingsData);
+					Tubes::SendToConnection(&hostSettingsMessage, messageSenders[i]);
+					hostSettingsMessage.Destroy();
+
+					MLOG_INFO("Added new player\n Name = " << players[newPlayerID]->GetPlayerName() << "\nPlayerID = " << newPlayerID << "\nConnectionID = " << players[newPlayerID]->GetPlayerConnectionID() << "\nConnectionType = " << players[newPlayerID]->GetPlayerConnectionType(), LOG_CATEGORY_TEAM_SYSTEM);
 				}
 				else
 					Tubes::Disconnect(messageSenders[i]); // TODODB: Make these players observers instead
@@ -454,7 +479,7 @@ void TeamSystem::HandleNetworkCommunication()
 						playerName = GlobalsBlackboard::GetInstance()->LocalPlayerName;
 					}
 					else
-						MLOG_WARNING("Received playerID message with ConnectionType::Local but the local player ID is already set", LOG_CATEGORY_TEAM);
+						MLOG_WARNING("Received playerID message with ConnectionType::Local but the local player ID is already set", LOG_CATEGORY_TEAM_SYSTEM);
 				}
 				else if (playerInitMessage->PlayerConnectionType == PlayerConnectionType::Direct || playerInitMessage->PlayerConnectionType == PlayerConnectionType::Relayed)
 				{
@@ -463,9 +488,12 @@ void TeamSystem::HandleNetworkCommunication()
 				}
 
 				if (!players[playerID]->IsActive())
+				{
 					players[playerID]->Activate(playerID, connectionType, connectionID, playerName);
+					MLOG_INFO("Host informs of new player\nName = " << players[playerID]->GetPlayerName() << "\nPlayerID = " << playerID << "\nConnectionID = " << players[playerID]->GetPlayerConnectionID() << "\nConnectionType = " << players[playerID]->GetPlayerConnectionType(), LOG_CATEGORY_TEAM_SYSTEM);
+				}
 				else
-					MLOG_WARNING("Received playerID message for playerID " << playerID + " but there is already a player assigned to that ID", LOG_CATEGORY_TEAM);
+					MLOG_WARNING("Received playerID message for playerID " << playerID + " but there is already a player assigned to that ID", LOG_CATEGORY_TEAM_SYSTEM);
 			}
 		} break;
 
@@ -496,17 +524,62 @@ void TeamSystem::HandleNetworkCommunication()
 				}
 			}
 			else
-				MLOG_WARNING("Received disconnection message as host", LOG_CATEGORY_TEAM);
+				MLOG_WARNING("Received disconnection message as host", LOG_CATEGORY_TEAM_SYSTEM);
+		} break;
+
+		case TeamSyncMessages::HOST_SETTINGS:
+		{
+			if (!GlobalsBlackboard::GetInstance()->IsHost)
+			{
+				const HostSettingsMessage* hostSettingsMessage = static_cast<const HostSettingsMessage*>(receivedMessages[i]);
+				GlobalsBlackboard::GetInstance()->HostSettingsData = hostSettingsMessage->Settings;
+			}
+			else
+				MLOG_WARNING("Received HostSettingsMessage as host", LOG_CATEGORY_TEAM_SYSTEM);
+		} break;
+
+		case TeamSyncMessages::LOG_UPDATE:
+		{
+			if (GlobalsBlackboard::GetInstance()->IsHost)
+			{
+				const LogUpdateMessage* logUpdateMessage = static_cast<const LogUpdateMessage*>(receivedMessages[i]);
+				for (int j = 0; j < TEAMSYNC_MAX_PLAYERS; ++j) // TODODB: Create utility function for getting a playerID from a conenctionID
+				{
+					if (players[j]->GetPlayerConnectionID() == messageSenders[i])
+					{
+						players[j]->AppendRemoteLog(logUpdateMessage->LogMessages);
+						break;
+					}
+				}
+			}
+			else
+				MLOG_WARNING("Received log update message as client", LOG_CATEGORY_TEAM_SYSTEM);
 		} break;
 
 		default:
 		{
-			MLOG_WARNING("Received message of unknown type (Type = " << receivedMessages[i]->Type << ")", LOG_CATEGORY_TEAM);
+			MLOG_WARNING("Received message of unknown type (Type = " << receivedMessages[i]->Type << ")", LOG_CATEGORY_TEAM_SYSTEM);
 		} break;
 		}
 
 		receivedMessages[i]->Destroy();
 		free(receivedMessages[i]);
+	}
+}
+
+void TeamSystem::HandleLogSynchronization() // TODODB: Make a separete system for this and make sure it runs in every game mdoe
+{
+	if (!GlobalsBlackboard::GetInstance()->IsHost && GlobalsBlackboard::GetInstance()->HostSettingsData.RequestsLogs)
+	{
+		std::string newMessages = MEngine::GetUnreadCommandLog();
+		MEngine::MarkCommandLogRead();
+		MUtilityLog::GetUnreadMessages(newMessages);
+		if (!newMessages.empty())
+		{
+			LogUpdateMessage message = LogUpdateMessage(newMessages);
+			Tubes::SendToAll(&message); // TODODB: Send only to host; use SendToConnection and create a way to get the host connection ID (There are probably more places to apply this change on)
+			message.Destroy();
+		}
 	}
 }
 
@@ -707,6 +780,8 @@ void TeamSystem::StopHosting()
 		if (players[i]->IsActive())
 			RemovePlayer(players[i]);
 	}
+
+	MLOG_INFO("Hosted session stopped", LOG_CATEGORY_TEAM_SYSTEM);
 	RequestGameModeChange(GlobalsBlackboard::GetInstance()->MainMenuGameModeID);
 }
 

@@ -104,10 +104,15 @@ public:
 	PlayerConnectionType::PlayerConnectionType GetPlayerConnectionType() const;
 	const std::string& GetPlayerName() const;
 
+	const std::string& GetRemoteLog() const;
+	void AppendRemoteLog(const std::string& newLogMessages);
+
 	bool IsActive() const;
 
 	bool GetCycledScreenshotPrimed() const;
 	void SetCycledScreenshotPrimed(bool primed);
+
+	void FlushRemoteLog();
 
 private: // TODODB: Rename member variables using m_ standard
 	void Reset();
@@ -136,4 +141,5 @@ private: // TODODB: Rename member variables using m_ standard
 	bool m_IsActive;
 	bool m_CycledScreenshotPrimed;
 	std::string m_Name;	
+	std::string m_RemoteLog;
 };

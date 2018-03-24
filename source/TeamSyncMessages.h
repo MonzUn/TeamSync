@@ -1,5 +1,6 @@
 #pragma once
 #include "MessageBase.h"
+#include "GlobalsBlackboard.h"
 #include <MEngineGraphics.h>
 #include <string>
 
@@ -13,6 +14,8 @@ namespace TeamSyncMessages
 		PLAYER_INITIALIZE,
 		PLAYER_UPDATE,
 		PLAYER_DISCONNECT,
+		HOST_SETTINGS,
+		LOG_UPDATE,
 	};
 }
 
@@ -57,7 +60,7 @@ struct PlayerInitializeMessage : TeamSyncMessage
 
 	int32_t PlayerID;
 	int32_t PlayerConnectionType;
-	std::string PlayerName;
+	std::string PlayerName; // TODODB: Make heap allocated and delete in Destroy() to avoid memory leaks
 };
 
 struct PlayerUpdateMessage : TeamSyncMessage
@@ -94,4 +97,18 @@ struct PlayerDisconnectMessage : TeamSyncMessage
 	PlayerDisconnectMessage(int32_t playerID) : TeamSyncMessage(TeamSyncMessages::PLAYER_DISCONNECT), PlayerID(playerID) {}
 
 	int32_t PlayerID;
+};
+
+struct HostSettingsMessage : TeamSyncMessage
+{
+	HostSettingsMessage(const HostSettings& hostSettings) : TeamSyncMessage(TeamSyncMessages::HOST_SETTINGS), Settings(hostSettings) {}
+
+	HostSettings Settings;
+};
+
+struct LogUpdateMessage : TeamSyncMessage
+{
+	LogUpdateMessage(const std::string& logMessages) : TeamSyncMessage(TeamSyncMessages::LOG_UPDATE), LogMessages(logMessages) {}
+
+	std::string LogMessages; // TODODB: Make heap allocated and delete in Destroy() to avoid memory leaks
 };
