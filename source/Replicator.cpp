@@ -66,7 +66,7 @@ Byte* Replicator::SerializeMessage(const Message* message, MessageSize* outMessa
 			const PlayerInitializeMessage* playerInitMessage = static_cast<const PlayerInitializeMessage*>(message);
 			WriteInt32(playerInitMessage->PlayerID);
 			WriteUint32(playerInitMessage->PlayerConnectionType);
-			WriteString(playerInitMessage->PlayerName);
+			WriteString(*playerInitMessage->PlayerName);
 		} break;
 
 		case PLAYER_UPDATE:
@@ -95,7 +95,7 @@ Byte* Replicator::SerializeMessage(const Message* message, MessageSize* outMessa
 		case LOG_UPDATE:
 		{
 			const LogUpdateMessage* logUpdateMessage = static_cast<const LogUpdateMessage*>(message);
-			WriteString(logUpdateMessage->LogMessages);
+			WriteString(*logUpdateMessage->LogMessages);
 		} break;
 
 		default:
@@ -273,7 +273,7 @@ int32_t Replicator::CalculateMessageSize(const Message& message) const
 			const PlayerInitializeMessage* playerInitMessage = static_cast<const PlayerInitializeMessage*>(&message);
 			messageSize += INT_32_SIZE;
 			messageSize += INT_32_SIZE;
-			messageSize += (INT_32_SIZE + static_cast<uint32_t>(playerInitMessage->PlayerName.length())); // INT_32_SIZE = Name string length variable
+			messageSize += (INT_32_SIZE + static_cast<uint32_t>(playerInitMessage->PlayerName->length())); // INT_32_SIZE = Name string length variable
 		} break;
 
 		case PLAYER_UPDATE:
@@ -295,7 +295,7 @@ int32_t Replicator::CalculateMessageSize(const Message& message) const
 		case LOG_UPDATE:
 		{
 			const LogUpdateMessage* logUpdateMessage = static_cast<const LogUpdateMessage*>(&message);
-			messageSize += (INT_32_SIZE + static_cast<uint32_t>(logUpdateMessage->LogMessages.length())); // INT_32_SIZE = Name string length variable
+			messageSize += (INT_32_SIZE + static_cast<uint32_t>(logUpdateMessage->LogMessages->length())); // INT_32_SIZE = Name string length variable
 		} break;
 
 		case PLAYER_DISCONNECT:

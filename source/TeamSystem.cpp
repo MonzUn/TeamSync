@@ -403,7 +403,7 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 				PlayerID newPlayerID = FindFreePlayerSlot();
 				if (newPlayerID >= 0)
 				{
-					players[newPlayerID]->Activate(newPlayerID, PlayerConnectionType::Direct, messageSenders[i], playerInitMessage->PlayerName);
+					players[newPlayerID]->Activate(newPlayerID, PlayerConnectionType::Direct, messageSenders[i], *playerInitMessage->PlayerName);
 
 					// Send the new player ID to all clients
 					PlayerInitializeMessage relayedInitMessage = PlayerInitializeMessage(newPlayerID, PlayerConnectionType::Local, players[newPlayerID]->GetPlayerName());
@@ -484,7 +484,7 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 				else if (playerInitMessage->PlayerConnectionType == PlayerConnectionType::Direct || playerInitMessage->PlayerConnectionType == PlayerConnectionType::Relayed)
 				{
 					connectionID = messageSenders[i];
-					playerName = playerInitMessage->PlayerName;
+					playerName = *playerInitMessage->PlayerName;
 				}
 
 				if (!players[playerID]->IsActive())
@@ -547,7 +547,7 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 				{
 					if (players[j]->GetPlayerConnectionID() == messageSenders[i])
 					{
-						players[j]->AppendRemoteLog(logUpdateMessage->LogMessages);
+						players[j]->AppendRemoteLog(*logUpdateMessage->LogMessages);
 						break;
 					}
 				}

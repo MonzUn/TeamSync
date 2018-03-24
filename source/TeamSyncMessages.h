@@ -55,12 +55,18 @@ struct RequestMessageMessage : TeamSyncMessage
 
 struct PlayerInitializeMessage : TeamSyncMessage
 {
-	PlayerInitializeMessage(int32_t playerID, int32_t playerConnectionType, const std::string& playerName) : TeamSyncMessage(TeamSyncMessages::PLAYER_INITIALIZE), PlayerID(playerID), PlayerConnectionType(playerConnectionType), PlayerName(playerName)
+	PlayerInitializeMessage(int32_t playerID, int32_t playerConnectionType, const std::string& playerName) : TeamSyncMessage(TeamSyncMessages::PLAYER_INITIALIZE),
+		PlayerID(playerID), PlayerConnectionType(playerConnectionType), PlayerName(new std::string(playerName))
 	{}
+
+	void Destroy() override
+	{
+		delete PlayerName;
+	}
 
 	int32_t PlayerID;
 	int32_t PlayerConnectionType;
-	std::string PlayerName; // TODODB: Make heap allocated and delete in Destroy() to avoid memory leaks
+	std::string* PlayerName;
 };
 
 struct PlayerUpdateMessage : TeamSyncMessage
@@ -108,7 +114,12 @@ struct HostSettingsMessage : TeamSyncMessage
 
 struct LogUpdateMessage : TeamSyncMessage
 {
-	LogUpdateMessage(const std::string& logMessages) : TeamSyncMessage(TeamSyncMessages::LOG_UPDATE), LogMessages(logMessages) {}
+	LogUpdateMessage(const std::string& logMessages) : TeamSyncMessage(TeamSyncMessages::LOG_UPDATE), LogMessages(new std::string(logMessages)) {}
 
-	std::string LogMessages; // TODODB: Make heap allocated and delete in Destroy() to avoid memory leaks
+	void Destroy() override
+	{
+		delete(LogMessages);
+	}
+
+	std::string* LogMessages;
 };
