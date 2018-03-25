@@ -23,11 +23,10 @@ namespace PredefinedNames
 		"Puma",
 		"Snek",
 		"Wolf",
-		"Giraffe"
+		"Giraffe",
 		"Zebra",
 		"Goat",
 		"Horse",
-		"Falcon"
 	};
 
 	std::string GetRandomName()
