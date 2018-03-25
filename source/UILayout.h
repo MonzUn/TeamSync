@@ -23,7 +23,7 @@ namespace UILayout
 	constexpr int32_t MAIN_MENU_BIG_BUTTON_WIDTH	= 200;
 	constexpr int32_t MAIN_MENU_BIG_BUTTON_HEIGHT	= 100;
 	constexpr int32_t MAIN_MENU_SMALL_BUTTON_WIDTH	= 170;
-	constexpr int32_t MAIN_MENU_SMALL_BUTTON_HEIGHT = 50;
+	constexpr int32_t MAIN_MENU_SMALL_BUTTON_HEIGHT = 80;
 
 	constexpr int32_t IP_TEXT_BOX_WIDTH		= 150;
 	constexpr int32_t PORT_TEXT_BOX_WIDTH	= 100;
