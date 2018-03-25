@@ -22,6 +22,8 @@ using namespace PredefinedColors;
 
 // TODODB: Add randomize button for names
 
+using namespace std::placeholders;
+
 // ---------- PUBLIC ----------
 
 void MainMenuSystem::Initialize()
@@ -45,8 +47,10 @@ void MainMenuSystem::Initialize()
 	
 	m_AppTitleTextID		= MEngine::CreateTextBox(APP_TITLE_TEXT_BOX_POS_X, APP_TITLE_TEXT_BOX_POS_Y, APP_TITLE_TEXT_BOX_WIDTH, APP_TITLE_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->TitleFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, MEngine::GetApplicationName(), TextAlignment::TopCentered);
 	m_VersionNumberTextID	= MEngine::CreateTextBox(APP_VERSION_NUMBER_TEXT_BOX_POS_X, APP_VERSION_NUMBER_TEXT_BOX_POS_Y, APP_VERSION_NUMBER_TEXT_BOX_WIDTH, APP_VERSION_NUMBER_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->VersionFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, APP_VERSION_STRING, TextAlignment::TopCentered);
+	m_FeedbackTextID		= MEngine::CreateTextBox(MAIN_MENU_FEEDBACK_TEXT_POS_X, MAIN_MENU_FEEDBACK_TEXT_POS_Y, MAIN_MENU_FEEDBACK_TEXT_WIDTH, MAIN_MENU_FEEDBACK_TEXT_HEIGHT, GlobalsBlackboard::GetInstance()->DescriptionFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, "", TextAlignment::CenterCentered);
 
-	m_OnConnectionHandle = Tubes::RegisterConnectionCallback(std::bind(&MainMenuSystem::OnConnection, this, std::placeholders::_1));
+	m_OnConnectionHandle		= Tubes::RegisterConnectionCallback(std::bind(&MainMenuSystem::OnConnection, this, _1));
+	m_OnConnectionFailedHandle	= Tubes::RegisterConnectionFailedCallback(std::bind(&MainMenuSystem::OnConnectionFailed, this, _1));
 
 	RegisterCommands();
 }
@@ -70,10 +74,12 @@ void MainMenuSystem::Shutdown()
 	
 	MEngine::DestroyEntity(m_AppTitleTextID);
 	MEngine::DestroyEntity(m_VersionNumberTextID);
+	MEngine::DestroyEntity(m_FeedbackTextID);
 
 	MEngine::UnregisterAllCommands();
 
 	Tubes::UnregisterConnectionCallback(m_OnConnectionHandle);
+	Tubes::UnregisterConnectionFailedCallback(m_OnConnectionFailedHandle);
 
 	System::Shutdown();
 }
@@ -96,6 +102,7 @@ void MainMenuSystem::Suspend()
 	MEngine::HideTextBox(m_AppTitleTextID);
 	MEngine::HideTextBox(m_VersionNumberTextID);
 	MEngine::HideTextBox(m_PlayerNameInputTextBoxID);
+	MEngine::HideTextBox(m_FeedbackTextID);
 
 	MEngine::UnregisterAllCommands();
 
@@ -120,6 +127,7 @@ void MainMenuSystem::Resume()
 	MEngine::ShowTextBox(m_AppTitleTextID);
 	MEngine::ShowTextBox(m_VersionNumberTextID);
 	MEngine::ShowTextBox(m_PlayerNameInputTextBoxID);
+	MEngine::ShowTextBox(m_FeedbackTextID);
 
 	RegisterCommands();
 
@@ -130,9 +138,9 @@ void MainMenuSystem::Resume()
 
 void MainMenuSystem::RegisterCommands()
 {
-	RegisterCommand("host", std::bind(&MainMenuSystem::ExecuteHostcommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), "Hosts a new session\nParam 1(optional): Port - The port on which to listen for remote clients (Will be read from config if this parameter is not supplied)");
-	RegisterCommand("connect", std::bind(&MainMenuSystem::ExecuteConnectCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), "Requests a connection to the specified IP\nParam 1: - IPv4 Address of the remote client\nParam 2(optional): Port - The port on which the remote client is expected to listen (Will be read from config if this parameter is not supplied)");
-	RegisterCommand("quit", std::bind(&MainMenuSystem::ExecuteQuitCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), "Exits the application"); // TODODB: Move this command to global scope
+	RegisterCommand("host", std::bind(&MainMenuSystem::ExecuteHostcommand, this, _1, _2, _3), "Hosts a new session\nParam 1(optional): Port - The port on which to listen for remote clients (Will be read from config if this parameter is not supplied)");
+	RegisterCommand("connect", std::bind(&MainMenuSystem::ExecuteConnectCommand, this, _1, _2, _3), "Requests a connection to the specified IP\nParam 1: - IPv4 Address of the remote client\nParam 2(optional): Port - The port on which the remote client is expected to listen (Will be read from config if this parameter is not supplied)");
+	RegisterCommand("quit", std::bind(&MainMenuSystem::ExecuteQuitCommand, this, _1, _2, _3), "Exits the application"); // TODODB: Move this command to global scope
 }
 
 bool MainMenuSystem::ExecuteHostcommand(const std::string* parameters, int32_t parameterCount, std::string* outResponse)
@@ -246,9 +254,13 @@ void MainMenuSystem::Connect()
 	const std::string& portString = *static_cast<const MEngine::TextComponent*>(MEngine::GetComponentForEntity(MEngine::TextComponent::GetComponentMask(), m_ConnectPortInputTextBoxID))->Text;
 	int32_t port = MUtilityString::IsStringNumber(portString) ? atoi(portString.c_str()) : -1;
 	
-	if(Tubes::IsValidIPv4Address(IPString.c_str()) && port >= 0 && port <= std::numeric_limits<uint16_t>::max() )
+	if (Tubes::IsValidIPv4Address(IPString.c_str()) && port >= 0 && port <= std::numeric_limits<uint16_t>::max())
+	{
 		ConnectTo(IPString, port);
-	// TODODB: Else - Give feedback to user
+		*static_cast<TextComponent*>(GetComponentForEntity(TextComponent::GetComponentMask(), m_FeedbackTextID))->Text = "Attempting connection";
+	}
+	else
+		*static_cast<TextComponent*>(GetComponentForEntity(TextComponent::GetComponentMask(), m_FeedbackTextID))->Text = "Invalid connection parameter";
 }
 
 void MainMenuSystem::ConnectTo(const std::string& IP, uint16_t port)
@@ -285,6 +297,23 @@ void MainMenuSystem::OnConnection(Tubes::ConnectionID connectionID)
 	GlobalsBlackboard::GetInstance()->ConnectionID = connectionID;
 
 	StartMPGameMode();
+}
+
+void MainMenuSystem::OnConnectionFailed(const Tubes::ConnectionAttemptResultData& result)
+{
+	switch (result.Result)
+	{
+	case Tubes::ConnectionAttemptResult::FAILED_TIMEOUT:
+		{
+			*static_cast<TextComponent*>(GetComponentForEntity(TextComponent::GetComponentMask(), m_FeedbackTextID))->Text = "Connection attempt timed out";
+		} break;
+
+		case Tubes::ConnectionAttemptResult::FAILED_INVALID_IP: // TODODB: Give user feedback
+		case Tubes::ConnectionAttemptResult::FAILED_INVALID_PORT: // TODODB Give user feedback
+		case Tubes::ConnectionAttemptResult::INVALID:
+	default:
+		break;
+	}
 }
 
 void MainMenuSystem::StartMPGameMode()

@@ -26,6 +26,7 @@ private:
 	void OpenControlsPage() const;
 
 	void OnConnection(Tubes::ConnectionID connectionID);
+	void OnConnectionFailed(const Tubes::ConnectionAttemptResultData& result);
 
 	void StartMPGameMode();
 
@@ -44,6 +45,8 @@ private:
 	MEngine::EntityID m_PlayerNameDescriptionID					= INVALID_MENGINE_ENTITY_ID;
 	MEngine::EntityID m_AppTitleTextID							= INVALID_MENGINE_ENTITY_ID;
 	MEngine::EntityID m_VersionNumberTextID						= INVALID_MENGINE_ENTITY_ID;
+	MEngine::EntityID m_FeedbackTextID							= INVALID_MENGINE_ENTITY_ID;
 
 	Tubes::ConnectionCallbackHandle m_OnConnectionHandle;
+	Tubes::ConnectionFailedCallbackHandle m_OnConnectionFailedHandle;
 };
