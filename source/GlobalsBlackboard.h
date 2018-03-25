@@ -6,7 +6,7 @@
 #include <string.h>
 
 // TODODB: Put these into a Globals namespace
-constexpr int32_t TEAMSYNC_MAX_PLAYERS	= 4;
+constexpr int32_t MIRAGE_MAX_PLAYERS	= 4;
 constexpr uint16_t DefaultPort			= 19200; // TODODB: Rename using UPPERCASE
 constexpr uint16_t APP_VERSION_SUPER	= 0;
 constexpr uint16_t APP_VERSION_MAJOR	= 7;

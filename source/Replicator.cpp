@@ -1,5 +1,5 @@
 #include "Replicator.h"
-#include "TeamSyncMessages.h"
+#include "MirageMessages.h"
 #include <messaging/MessagingTypes.h>
 #include <MUtilityDataSizes.h>
 #include <MUtilityLog.h>
@@ -7,7 +7,7 @@
 #include <cassert>
 
 using namespace MUtility::Serialization;
-using namespace TeamSyncMessages;
+using namespace MirageMessages;
 using namespace MUtility::DataSizes;
 
 using MUtility::Byte;
@@ -145,7 +145,7 @@ Message* Replicator::DeserializeMessage(const Byte* const buffer)
 			uint32_t signal;
 			ReadUint32(signal);
 
-			deserializedMessage = new SignalMessage(static_cast<TeamSyncSignals::Signal>(signal));
+			deserializedMessage = new SignalMessage(static_cast<MirageSignals::Signal>(signal));
 		} break;
 
 		case SIGNAL_FLAG:
@@ -157,7 +157,7 @@ Message* Replicator::DeserializeMessage(const Byte* const buffer)
 			ReadBool(flag);
 			ReadInt32(playerID);
 
-			deserializedMessage = new SignalFlagMessage(static_cast<TeamSyncSignals::Signal>(signal), flag, playerID);
+			deserializedMessage = new SignalFlagMessage(static_cast<MirageSignals::Signal>(signal), flag, playerID);
 		} break;
 
 		case REQUEST_MESSAGE:

@@ -2,7 +2,7 @@
 #include "Replicator.h"
 #include <messaging/Message.h>
 
-struct TeamSyncMessage : Message
+struct MirageMessage : Message
 {
-	TeamSyncMessage(MESSAGE_TYPE_ENUM_UNDELYING_TYPE type) : Message(type, Replicator::Replicator_ID) {}
+	MirageMessage(MESSAGE_TYPE_ENUM_UNDELYING_TYPE type) : Message(type, Replicator::Replicator_ID) {}
 };

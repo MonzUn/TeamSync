@@ -214,7 +214,7 @@ namespace UILayout
 	constexpr int32_t CUT_1080P_WEAPON_WIDTH					= 477;
 	constexpr int32_t CUT_1080P_WEAPON_HEIGHT					= 820;
 
-	const int32_t PlayerPositions[TEAMSYNC_MAX_PLAYERS][2]
+	const int32_t PlayerPositions[MIRAGE_MAX_PLAYERS][2]
 	{
 		{ PLAYER_0_POS_X, PLAYER_0_POS_Y },	// Upper left
 		{ PLAYER_1_POS_X, PLAYER_1_POS_Y }, // Upper right

@@ -2,12 +2,9 @@
 #include <atomic>
 #include <thread>
 
-class TeamSync
+class Mirage
 {
 public:
 	bool Initialize();
 	void Run();
-
-private:
-	void HandleTextInputOutput();
 };

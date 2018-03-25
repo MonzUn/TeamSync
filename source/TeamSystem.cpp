@@ -1,7 +1,7 @@
 #include "TeamSystem.h"
 #include "GlobalsBlackboard.h"
 #include "ImageJob.h"
-#include "TeamSyncMessages.h"
+#include "MirageMessages.h"
 #include "UILayout.h"
 #include <MEngineConfig.h>
 #include <MEngineConsole.h>
@@ -27,7 +27,7 @@ void TeamSystem::Initialize()
 
 	m_ImageJobThread = std::thread(&TeamSystem::ProcessImageJobs, this);
 
-	for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
+	for (int i = 0; i < MIRAGE_MAX_PLAYERS; ++i)
 	{
 		players[i] = new Player(UILayout::PlayerPositions[i][0], UILayout::PlayerPositions[i][1], UILayout::PLAYER_WIDTH, UILayout::PLAYER_HEIGHT);
 	}
@@ -70,7 +70,7 @@ void TeamSystem::Shutdown()
 	m_ImageJobResultQueue.Clear();
 
 	// Remove players
-	for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
+	for (int i = 0; i < MIRAGE_MAX_PLAYERS; ++i)
 	{
 		if(players[i]->GetPlayerID() != localPlayerID && GlobalsBlackboard::GetInstance()->IsHost && GlobalsBlackboard::GetInstance()->HostSettingsData.RequestsLogs)
 			players[i]->FlushRemoteLog(); // TODODB: Make this trigger on client disconnection instead
@@ -106,7 +106,7 @@ void TeamSystem::UpdatePresentationLayer(float deltaTime)
 
 PlayerID TeamSystem::FindFreePlayerSlot() const
 {
-	for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
+	for (int i = 0; i < MIRAGE_MAX_PLAYERS; ++i)
 	{
 		if (!players[i]->IsActive())
 			return i;
@@ -130,7 +130,7 @@ void TeamSystem::OnConnection(Tubes::ConnectionID connectionID) // TODODB: Rewor
 		return;
 	}
 
-	RequestMessageMessage* requestMessage = new RequestMessageMessage(TeamSyncMessages::PLAYER_INITIALIZE);
+	RequestMessageMessage* requestMessage = new RequestMessageMessage(MirageMessages::PLAYER_INITIALIZE);
 	Tubes::SendToConnection(requestMessage, connectionID);
 	requestMessage->Destroy();
 }
@@ -138,7 +138,7 @@ void TeamSystem::OnConnection(Tubes::ConnectionID connectionID) // TODODB: Rewor
 void TeamSystem::OnDisconnection(Tubes::ConnectionID connectionID)
 {
 	Player* disconnectingPlayer = nullptr;
-	for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
+	for (int i = 0; i < MIRAGE_MAX_PLAYERS; ++i)
 	{
 		if (players[i]->IsActive() && players[i]->GetPlayerConnectionID() == connectionID)
 		{
@@ -159,7 +159,7 @@ void TeamSystem::OnDisconnection(Tubes::ConnectionID connectionID)
 		}
 		else // Disconnected from host
 		{
-			for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
+			for (int i = 0; i < MIRAGE_MAX_PLAYERS; ++i)
 			{
 				if (players[i]->IsActive())
 					RemovePlayer(players[i]);
@@ -241,7 +241,7 @@ void TeamSystem::HandleInput()
 			++delayedScreenshotcounter;
 
 			players[localPlayerID]->SetCycledScreenshotPrimed(delayedScreenshotcounter % 2 == 0);
-			SignalFlagMessage message = SignalFlagMessage(TeamSyncSignals::PRIME, delayedScreenshotcounter % 2 == 0, localPlayerID);
+			SignalFlagMessage message = SignalFlagMessage(MirageSignals::PRIME, delayedScreenshotcounter % 2 == 0, localPlayerID);
 			Tubes::SendToAll(&message);
 			message.Destroy();
 		}
@@ -343,12 +343,12 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 	{
 		switch (receivedMessages[i]->Type)
 		{
-		case TeamSyncMessages::SIGNAL_FLAG:
+		case MirageMessages::SIGNAL_FLAG:
 		{
 			const SignalFlagMessage* signalFlagMessage = static_cast<const SignalFlagMessage*>(receivedMessages[i]);
 			switch (signalFlagMessage->Signal)
 			{
-			case TeamSyncSignals::PRIME:
+			case MirageSignals::PRIME:
 			{
 				if (players[signalFlagMessage->PlayerID]->IsActive())
 					players[signalFlagMessage->PlayerID]->SetCycledScreenshotPrimed(signalFlagMessage->Flag);
@@ -373,12 +373,12 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 			}
 		} break;
 
-		case TeamSyncMessages::REQUEST_MESSAGE:
+		case MirageMessages::REQUEST_MESSAGE:
 		{
 			const RequestMessageMessage* requestMessageMessage = static_cast<const RequestMessageMessage*>(receivedMessages[i]);
 			switch (requestMessageMessage->RequestedMessageType)
 			{
-			case TeamSyncMessages::PLAYER_INITIALIZE:
+			case MirageMessages::PLAYER_INITIALIZE:
 			{
 				if (!GlobalsBlackboard::GetInstance()->IsHost)
 				{
@@ -396,7 +396,7 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 			}
 		} break;
 
-		case TeamSyncMessages::PLAYER_INITIALIZE:
+		case MirageMessages::PLAYER_INITIALIZE:
 		{
 			const PlayerInitializeMessage* playerInitMessage = static_cast<const PlayerInitializeMessage*>(receivedMessages[i]);
 			if (GlobalsBlackboard::GetInstance()->IsHost)
@@ -415,7 +415,7 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 					relayedInitMessage.Destroy();
 
 					// Make the new client aware of the relayed clients and update the new clients view of the relayed clients 
-					for (int j = 0; j < TEAMSYNC_MAX_PLAYERS; ++j)
+					for (int j = 0; j < MIRAGE_MAX_PLAYERS; ++j)
 					{
 						if (players[j]->IsActive())
 						{
@@ -448,7 +448,7 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 									}
 								}
 
-								SignalFlagMessage primeFlagMessage = SignalFlagMessage(TeamSyncSignals::PRIME, players[playerID]->GetCycledScreenshotPrimed(), playerID);
+								SignalFlagMessage primeFlagMessage = SignalFlagMessage(MirageSignals::PRIME, players[playerID]->GetCycledScreenshotPrimed(), playerID);
 								Tubes::SendToConnection(&primeFlagMessage, messageSenders[i]);
 								primeFlagMessage.Destroy();
 							}
@@ -498,7 +498,7 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 			}
 		} break;
 
-		case TeamSyncMessages::PLAYER_UPDATE:
+		case MirageMessages::PLAYER_UPDATE:
 		{
 			const PlayerUpdateMessage* playerUpdateMessage = static_cast<const PlayerUpdateMessage*>(receivedMessages[i]);
 
@@ -513,12 +513,12 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 			m_ImageJobLockCondition.notify_one();
 		} break;
 
-		case TeamSyncMessages::PLAYER_DISCONNECT:
+		case MirageMessages::PLAYER_DISCONNECT:
 		{
 			if (!GlobalsBlackboard::GetInstance()->IsHost)
 			{
 				const PlayerDisconnectMessage* playerDisconnectMessage = static_cast<const PlayerDisconnectMessage*>(receivedMessages[i]);
-				for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
+				for (int i = 0; i < MIRAGE_MAX_PLAYERS; ++i)
 				{
 					if (players[i]->IsActive() && players[i]->GetPlayerID() == playerDisconnectMessage->PlayerID)
 					{
@@ -531,7 +531,7 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 				MLOG_WARNING("Received disconnection message as host", LOG_CATEGORY_TEAM_SYSTEM);
 		} break;
 
-		case TeamSyncMessages::HOST_SETTINGS:
+		case MirageMessages::HOST_SETTINGS:
 		{
 			if (!GlobalsBlackboard::GetInstance()->IsHost)
 			{
@@ -543,12 +543,12 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 				MLOG_WARNING("Received Host settings message as host", LOG_CATEGORY_TEAM_SYSTEM);
 		} break;
 
-		case TeamSyncMessages::LOG_UPDATE:
+		case MirageMessages::LOG_UPDATE:
 		{
 			if (GlobalsBlackboard::GetInstance()->IsHost)
 			{
 				const LogUpdateMessage* logUpdateMessage = static_cast<const LogUpdateMessage*>(receivedMessages[i]);
-				for (int j = 0; j < TEAMSYNC_MAX_PLAYERS; ++j) // TODODB: Create utility function for getting a playerID from a conenctionID
+				for (int j = 0; j < MIRAGE_MAX_PLAYERS; ++j) // TODODB: Create utility function for getting a playerID from a conenctionID
 				{
 					if (players[j]->GetPlayerConnectionID() == messageSenders[i])
 					{
@@ -592,7 +592,7 @@ bool TeamSystem::ExecutePrimeCycledScreenshotCommand(const std::string* paramete
 		}
 		
 		int32_t playerID = std::stoi(playerIDString) - 1; // -1 to get index
-		if (playerID < 0 || playerID >= TEAMSYNC_MAX_PLAYERS)
+		if (playerID < 0 || playerID >= MIRAGE_MAX_PLAYERS)
 		{
 			if (outResponse != nullptr)
 				*outResponse = "The supplied playerID was not valid";
@@ -623,7 +623,7 @@ bool TeamSystem::ExecutePrimeCycledScreenshotCommand(const std::string* paramete
 	}
 	else if (parameterCount == 0) // Prime all players
 	{
-		for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
+		for (int i = 0; i < MIRAGE_MAX_PLAYERS; ++i)
 		{
 			if(players[i]->IsActive())
 				PrimeCycledScreenshotForPlayer(i);
@@ -653,7 +653,7 @@ bool TeamSystem::ExecuteDisconnectCommand(const std::string* parameters, int32_t
 		}
 
 		int32_t playerIndex = std::stoi(playerIDString) - 1;
-		if (playerIndex < 0 || playerIndex >= TEAMSYNC_MAX_PLAYERS)
+		if (playerIndex < 0 || playerIndex >= MIRAGE_MAX_PLAYERS)
 		{
 			if(outResponse != nullptr)
 				*outResponse = "The supplied playerID was not valid";
@@ -725,7 +725,7 @@ void TeamSystem::PrimeCycledScreenshotForPlayer(PlayerID playerID)
 			++delayedScreenshotcounter;
 	}
 	players[playerID]->SetCycledScreenshotPrimed(true);
-	SignalFlagMessage message = SignalFlagMessage(TeamSyncSignals::PRIME, true, playerID);
+	SignalFlagMessage message = SignalFlagMessage(MirageSignals::PRIME, true, playerID);
 	Tubes::SendToAll(&message);
 	message.Destroy();
 }
@@ -746,7 +746,7 @@ void TeamSystem::DisconnectAll()
 	Tubes::DisconnectAll();
 	
 	localPlayerID = UNASSIGNED_PLAYER_ID;
-	for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
+	for (int i = 0; i < MIRAGE_MAX_PLAYERS; ++i)
 	{
 		if (players[i]->IsActive())
 			RemovePlayer(players[i]);
@@ -764,7 +764,7 @@ void TeamSystem::StopHosting()
 	Tubes::DisconnectAll();
 
 	localPlayerID = UNASSIGNED_PLAYER_ID;
-	for (int i = 0; i < TEAMSYNC_MAX_PLAYERS; ++i)
+	for (int i = 0; i < MIRAGE_MAX_PLAYERS; ++i)
 	{
 		if (players[i]->IsActive())
 			RemovePlayer(players[i]);

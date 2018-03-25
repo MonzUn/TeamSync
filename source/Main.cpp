@@ -1,4 +1,4 @@
-#include "TeamSync.h"
+#include "Mirage.h"
 #include <MUtilityPlatformDefinitions.h>
 
 #if PLATFORM == PLATFORM_WINDOWS
@@ -28,12 +28,12 @@ int main(int argc, char* argv[])
 
 	srand(static_cast<uint32_t>(time(NULL))); // TODODB: Replace when MEngine has a built in Randomizer
 
-	TeamSync teamSync;
+	Mirage mirage;
 
-	if (!teamSync.Initialize())
+	if (!mirage.Initialize())
 		return 1;
 
-	teamSync.Run();
+	mirage.Run();
 
 	return 0;
 }

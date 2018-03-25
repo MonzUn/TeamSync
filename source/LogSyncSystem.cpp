@@ -1,6 +1,6 @@
 #include "LogSyncSystem.h"
 #include "GlobalsBlackboard.h"
-#include "TeamSyncMessages.h"
+#include "MirageMessages.h"
 #include <MengineConsole.h>
 #include <MUtilityLog.h>
 #include <Tubes.h>

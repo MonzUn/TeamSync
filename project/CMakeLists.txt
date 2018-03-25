@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.8.2)
 set(CMAKE_CONFIGURATION_TYPES Debug Release)
 
 # Project name
-project(TeamSync CXX)
+project(Mirage CXX)
 
 # OS Name
 string(TOLOWER ${CMAKE_SYSTEM_NAME} OperatingSystemNameLowerCase)
@@ -30,19 +30,19 @@ if(MSVC)
 endif(MSVC)
 
 # Include directory
-file(RELATIVE_PATH IncludeDirectoryRelative ${TeamSync_SOURCE_DIR} ${ProjectRootAbsolute}/include)
+file(RELATIVE_PATH IncludeDirectoryRelative ${Mirage_SOURCE_DIR} ${ProjectRootAbsolute}/include)
 get_filename_component(IncludeDirectoryAbsolute ${IncludeDirectoryRelative} ABSOLUTE)
 
 # Debug library directory
-file(RELATIVE_PATH DebugLibraryDirectoryRelative ${TeamSync_SOURCE_DIR} ${ProjectRootAbsolute}/lib/debug/x64)
+file(RELATIVE_PATH DebugLibraryDirectoryRelative ${Mirage_SOURCE_DIR} ${ProjectRootAbsolute}/lib/debug/x64)
 get_filename_component(DebugLibraryDirectoryAbsolute ${DebugLibraryDirectoryRelative} ABSOLUTE)
 
 # Release library directory
-file(RELATIVE_PATH ReleaseLibraryDirectoryRelative ${TeamSync_SOURCE_DIR} ${ProjectRootAbsolute}/lib/release/x64)
+file(RELATIVE_PATH ReleaseLibraryDirectoryRelative ${Mirage_SOURCE_DIR} ${ProjectRootAbsolute}/lib/release/x64)
 get_filename_component(ReleaseLibraryDirectoryAbsolute ${ReleaseLibraryDirectoryRelative} ABSOLUTE)
 
 # Shared library directory
-file(RELATIVE_PATH SharedLibraryDirectoryRelative ${TeamSync_SOURCE_DIR} ${ProjectRootAbsolute}/lib/shared/x64)
+file(RELATIVE_PATH SharedLibraryDirectoryRelative ${Mirage_SOURCE_DIR} ${ProjectRootAbsolute}/lib/shared/x64)
 get_filename_component(SharedLibraryDirectoryAbsolute ${SharedLibraryDirectoryRelative} ABSOLUTE)
 
 # Find SDL2

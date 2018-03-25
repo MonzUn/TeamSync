@@ -1,4 +1,4 @@
-#include "TeamSync.h"
+#include "Mirage.h"
 #include "AboutSystem.h"
 #include "GlobalsBlackboard.h"
 #include "LogSyncSystem.h"
@@ -20,27 +20,28 @@
 #include <algorithm>
 #include <iostream>
 
-#define LOG_CATEGORY_TEAMSYNC "TeamSyncApp"
+#define LOG_CATEGORY_MIRAGE "MirageMain"
 
 using namespace MEngine::PredefinedColors;
 
-bool TeamSync::Initialize()
+bool Mirage::Initialize()
 {
 	// Base setup
 	MUtilityLog::Initialize();
 
-	std::string applicationName = "TeamSync";
+	std::string applicationName = "Mirage";
 #if COMPILE_MODE == COMPILE_MODE_DEBUG
 	applicationName += " (PID=" + std::to_string(MUtility::GetPid()) + ")";
 #endif
 	if (!MEngine::Initialize(applicationName.c_str(), UILayout::APPLICATION_WINDOW_WIDTH, UILayout::APPLICATION_WINDOW_HEIGHT))
 	{
+		MLOG_ERROR("Failed to initialize MEngine", LOG_CATEGORY_MIRAGE);
 		MUtilityLog::Shutdown();
 		return false;
 	}
 
 	if (!Tubes::Initialize())
-		MLOG_ERROR("Failed to initialize Tubes", LOG_CATEGORY_TEAMSYNC);
+		MLOG_ERROR("Failed to initialize Tubes", LOG_CATEGORY_MIRAGE);
 
 	// Load resources
 	GlobalsBlackboard::GetInstance()->TitleFontID			= MEngine::CreateFont("resources/fonts/GaffersTape.ttf", 100, Colors[WHITE]);
@@ -78,7 +79,7 @@ bool TeamSync::Initialize()
 	return true;
 }
 
-void TeamSync::Run()
+void Mirage::Run()
 {
 	while (!MEngine::ShouldQuit() && !GlobalsBlackboard::GetInstance()->ShouldQuit)
 	{
