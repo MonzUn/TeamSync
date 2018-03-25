@@ -31,24 +31,16 @@ void AboutSystem::Shutdown()
 
 void AboutSystem::Suspend()
 {
-	static_cast<ButtonComponent*>(GetComponentForEntity(ButtonComponent::GetComponentMask(), m_BackButtonID))->IsActive = false;
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_BackButtonID))->RenderIgnore = true;
-	static_cast<TextureRenderingComponent*>(MEngine::GetComponentForEntity(TextureRenderingComponent::GetComponentMask(), m_BackButtonID))->RenderIgnore = true;
-
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_AboutTextBoxID))->RenderIgnore = true;
-	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_AboutTextBoxID))->IsActive = false;
+	MEngine::HideButton(m_BackButtonID);
+	MEngine::HideTextBox(m_AboutTextBoxID);
 
 	System::Suspend();
 }
 
 void AboutSystem::Resume()
 {
-	static_cast<ButtonComponent*>(GetComponentForEntity(ButtonComponent::GetComponentMask(), m_BackButtonID))->IsActive = true;
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_BackButtonID))->RenderIgnore = false;
-	static_cast<TextureRenderingComponent*>(MEngine::GetComponentForEntity(TextureRenderingComponent::GetComponentMask(), m_BackButtonID))->RenderIgnore = false;
-
-	static_cast<TextComponent*>(MEngine::GetComponentForEntity(TextComponent::GetComponentMask(), m_AboutTextBoxID))->RenderIgnore = false;
-	static_cast<ButtonComponent*>(MEngine::GetComponentForEntity(ButtonComponent::GetComponentMask(), m_AboutTextBoxID))->IsActive = true;
+	MEngine::ShowButton(m_BackButtonID);
+	MEngine::ShowTextBox(m_AboutTextBoxID);
 
 	System::Resume();
 }
