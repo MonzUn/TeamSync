@@ -201,7 +201,7 @@ void Player::FlushRemoteLog()
 void Player::Reset()
 {
 	m_PlayerID			= UNASSIGNED_PLAYER_ID;
-	m_ConnectionID		= INVALID_TUBES_CONNECTION_ID;
+	m_ConnectionID		= TUBES_INVALID_CONNECTION_ID;
 	m_ConnectionType	= PlayerConnectionType::Invalid;
 	m_IsActive			= false;
 	// TODODB: Reset remoteLog and name here instead when remote logs are being flushed on disconnection instead

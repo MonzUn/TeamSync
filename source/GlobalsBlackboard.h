@@ -27,7 +27,7 @@ class GlobalsBlackboard : public MUtility::Singleton<GlobalsBlackboard>
 public:
 	bool ShouldQuit = false;
 	bool IsHost = false;
-	Tubes::ConnectionID ConnectionID = INVALID_TUBES_CONNECTION_ID;
+	Tubes::ConnectionID ConnectionID = TUBES_INVALID_CONNECTION_ID;
 	std::string LocalPlayerName = "INVALID_NAME";
 	HostSettings HostSettingsData;
 

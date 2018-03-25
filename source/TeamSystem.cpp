@@ -35,7 +35,7 @@ void TeamSystem::Initialize()
 	if (GlobalsBlackboard::GetInstance()->IsHost)
 	{
 		localPlayerID = 0;
-		players[localPlayerID]->Activate(localPlayerID, PlayerConnectionType::Local, INVALID_TUBES_CONNECTION_ID, GlobalsBlackboard::GetInstance()->LocalPlayerName);
+		players[localPlayerID]->Activate(localPlayerID, PlayerConnectionType::Local, TUBES_INVALID_CONNECTION_ID, GlobalsBlackboard::GetInstance()->LocalPlayerName);
 		GlobalsBlackboard::GetInstance()->HostSettingsData.RequestsLogs = Config::GetBool("HostRequestsLogs", false);
 
 		if (GlobalsBlackboard::GetInstance()->HostSettingsData.RequestsLogs)
@@ -81,7 +81,7 @@ void TeamSystem::Shutdown()
 	// Reset Globals blackboard
 	GlobalsBlackboard* globalsBlackboard = GlobalsBlackboard::GetInstance();
 	globalsBlackboard->IsHost = false;
-	globalsBlackboard->ConnectionID = INVALID_TUBES_CONNECTION_ID;
+	globalsBlackboard->ConnectionID = TUBES_INVALID_CONNECTION_ID;
 	globalsBlackboard->LocalPlayerName = "INVALID_NAME";
 	globalsBlackboard->HostSettingsData = HostSettings();
 
@@ -469,7 +469,7 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 			{
 				PlayerID playerID = playerInitMessage->PlayerID;
 				PlayerConnectionType::PlayerConnectionType connectionType = static_cast<PlayerConnectionType::PlayerConnectionType>(playerInitMessage->PlayerConnectionType);
-				Tubes::ConnectionID connectionID = INVALID_TUBES_CONNECTION_ID;
+				Tubes::ConnectionID connectionID = TUBES_INVALID_CONNECTION_ID;
 
 				std::string playerName;
 				if (playerInitMessage->PlayerConnectionType == PlayerConnectionType::Local)
