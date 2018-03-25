@@ -4,7 +4,7 @@
 #include <MEngineGraphics.h>
 #include <string>
 
-namespace TeamSyncMessages
+namespace MirageMessages
 {
 	enum MessageType : MESSAGE_TYPE_ENUM_UNDELYING_TYPE
 	{
@@ -19,7 +19,7 @@ namespace TeamSyncMessages
 	};
 }
 
-namespace TeamSyncSignals
+namespace MirageSignals
 {
 	enum Signal : uint32_t
 	{
@@ -27,35 +27,35 @@ namespace TeamSyncSignals
 	};
 }
 
-struct SignalMessage : TeamSyncMessage
+struct SignalMessage : MirageMessage
 {
-	SignalMessage(TeamSyncSignals::Signal signal) : TeamSyncMessage(TeamSyncMessages::SIGNAL), Signal(signal)
+	SignalMessage(MirageSignals::Signal signal) : MirageMessage(MirageMessages::SIGNAL), Signal(signal)
 	{}
 
-	TeamSyncSignals::Signal Signal;
+	MirageSignals::Signal Signal;
 };
 
-struct SignalFlagMessage : TeamSyncMessage
+struct SignalFlagMessage : MirageMessage
 {
-	SignalFlagMessage(TeamSyncSignals::Signal signal, bool flag, int32_t playerID) : TeamSyncMessage(TeamSyncMessages::SIGNAL_FLAG), Signal(signal), Flag(flag), PlayerID(playerID)
+	SignalFlagMessage(MirageSignals::Signal signal, bool flag, int32_t playerID) : MirageMessage(MirageMessages::SIGNAL_FLAG), Signal(signal), Flag(flag), PlayerID(playerID)
 	{}
 
-	TeamSyncSignals::Signal Signal;
+	MirageSignals::Signal Signal;
 	bool Flag;
 	int32_t PlayerID;
 };
 
-struct RequestMessageMessage : TeamSyncMessage
+struct RequestMessageMessage : MirageMessage
 {
-	RequestMessageMessage(MESSAGE_TYPE_ENUM_UNDELYING_TYPE requestedMessageType) : TeamSyncMessage(TeamSyncMessages::REQUEST_MESSAGE), RequestedMessageType(requestedMessageType)
+	RequestMessageMessage(MESSAGE_TYPE_ENUM_UNDELYING_TYPE requestedMessageType) : MirageMessage(MirageMessages::REQUEST_MESSAGE), RequestedMessageType(requestedMessageType)
 	{}
 
 	MESSAGE_TYPE_ENUM_UNDELYING_TYPE RequestedMessageType;
 };
 
-struct PlayerInitializeMessage : TeamSyncMessage
+struct PlayerInitializeMessage : MirageMessage
 {
-	PlayerInitializeMessage(int32_t playerID, int32_t playerConnectionType, const std::string& playerName) : TeamSyncMessage(TeamSyncMessages::PLAYER_INITIALIZE),
+	PlayerInitializeMessage(int32_t playerID, int32_t playerConnectionType, const std::string& playerName) : MirageMessage(MirageMessages::PLAYER_INITIALIZE),
 		PlayerID(playerID), PlayerConnectionType(playerConnectionType), PlayerName(new std::string(playerName))
 	{}
 
@@ -69,14 +69,14 @@ struct PlayerInitializeMessage : TeamSyncMessage
 	std::string* PlayerName;
 };
 
-struct PlayerUpdateMessage : TeamSyncMessage
+struct PlayerUpdateMessage : MirageMessage
 {
-	PlayerUpdateMessage(int32_t playerID, int32_t imageSlot, int32_t width, int32_t height, void* pixels) : TeamSyncMessage(TeamSyncMessages::PLAYER_UPDATE), PlayerID(playerID), ImageSlot(imageSlot), Width(width), Height(height), Pixels(pixels)
+	PlayerUpdateMessage(int32_t playerID, int32_t imageSlot, int32_t width, int32_t height, void* pixels) : MirageMessage(MirageMessages::PLAYER_UPDATE), PlayerID(playerID), ImageSlot(imageSlot), Width(width), Height(height), Pixels(pixels)
 	{
 		ImageByteSize = Width * Height * MENGINE_BYTES_PER_PIXEL; // * 4 bytes per pixel due to RGBA format
 	}
 
-	PlayerUpdateMessage(int32_t playerID, int32_t imageSlot, const MEngine::TextureData& textureData) : TeamSyncMessage(TeamSyncMessages::PLAYER_UPDATE), PlayerID(playerID), ImageSlot(imageSlot)
+	PlayerUpdateMessage(int32_t playerID, int32_t imageSlot, const MEngine::TextureData& textureData) : MirageMessage(MirageMessages::PLAYER_UPDATE), PlayerID(playerID), ImageSlot(imageSlot)
 	{
 		Width = textureData.Width;
 		Height = textureData.Height;
@@ -98,23 +98,23 @@ struct PlayerUpdateMessage : TeamSyncMessage
 	void*	Pixels;
 };
 
-struct PlayerDisconnectMessage : TeamSyncMessage
+struct PlayerDisconnectMessage : MirageMessage
 {
-	PlayerDisconnectMessage(int32_t playerID) : TeamSyncMessage(TeamSyncMessages::PLAYER_DISCONNECT), PlayerID(playerID) {}
+	PlayerDisconnectMessage(int32_t playerID) : MirageMessage(MirageMessages::PLAYER_DISCONNECT), PlayerID(playerID) {}
 
 	int32_t PlayerID;
 };
 
-struct HostSettingsMessage : TeamSyncMessage
+struct HostSettingsMessage : MirageMessage
 {
-	HostSettingsMessage(const HostSettings& hostSettings) : TeamSyncMessage(TeamSyncMessages::HOST_SETTINGS), Settings(hostSettings) {}
+	HostSettingsMessage(const HostSettings& hostSettings) : MirageMessage(MirageMessages::HOST_SETTINGS), Settings(hostSettings) {}
 
 	HostSettings Settings;
 };
 
-struct LogUpdateMessage : TeamSyncMessage
+struct LogUpdateMessage : MirageMessage
 {
-	LogUpdateMessage(const std::string& logMessages) : TeamSyncMessage(TeamSyncMessages::LOG_UPDATE), LogMessages(new std::string(logMessages)) {}
+	LogUpdateMessage(const std::string& logMessages) : MirageMessage(MirageMessages::LOG_UPDATE), LogMessages(new std::string(logMessages)) {}
 
 	void Destroy() override
 	{
