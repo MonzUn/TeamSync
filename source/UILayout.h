@@ -27,11 +27,11 @@ namespace UILayout
 
 	constexpr int32_t IP_TEXT_BOX_WIDTH		= 150;
 	constexpr int32_t PORT_TEXT_BOX_WIDTH	= 100;
-	constexpr int32_t MAIN_MENU_PLAYER_NAME_TEXT_BOX_WIDTH	= 150; 
+	constexpr int32_t MAIN_MENU_PLAYER_NAME_TEXT_BOX_WIDTH	= 150;
 
 	constexpr int32_t APP_TITLE_TEXT_BOX_WIDTH	= static_cast<int32_t>(APPLICATION_WINDOW_WIDTH * 0.75f);
 	constexpr int32_t APP_TITLE_TEXT_BOX_HEIGHT = 100;
-	constexpr int32_t APP_VERSION_NUMBER_TEXT_BOX_WIDTH		= 100;
+	constexpr int32_t APP_VERSION_NUMBER_TEXT_BOX_WIDTH		= 150;
 	constexpr int32_t APP_VERSION_NUMBER_TEXT_BOX_HEIGHT	= 50;
 	constexpr int32_t MAIN_MENU_FEEDBACK_TEXT_WIDTH			= 300;
 	constexpr int32_t MAIN_MENU_FEEDBACK_TEXT_HEIGHT		= 50;

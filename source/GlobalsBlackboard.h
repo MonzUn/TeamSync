@@ -8,14 +8,14 @@
 // TODODB: Put these into a Globals namespace
 constexpr int32_t MIRAGE_MAX_PLAYERS	= 4;
 constexpr uint16_t DefaultPort			= 19200; // TODODB: Rename using UPPERCASE
-constexpr uint16_t APP_VERSION_SUPER	= 0;
-constexpr uint16_t APP_VERSION_MAJOR	= 7;
-constexpr uint16_t APP_VERSION_MINOR	= 8;
-constexpr uint16_t APP_VERSION_PATCH	= 2;
+constexpr uint16_t APP_VERSION_SUPER	= 8;
+constexpr uint16_t APP_VERSION_MAJOR	= 0;
+constexpr uint16_t APP_VERSION_MINOR	= 0;
+constexpr uint16_t APP_VERSION_PATCH	= 0;
 
 const std::string APP_VERSION_STRING = std::to_string(APP_VERSION_SUPER)
-	+ '.' + std::to_string(APP_VERSION_MAJOR) + '.' + std::to_string(APP_VERSION_MINOR)
-	+ '.' + std::to_string(APP_VERSION_PATCH);
+	+ '.' + std::to_string(APP_VERSION_MAJOR) + ((APP_VERSION_MINOR > 0 || APP_VERSION_PATCH > 0)  ? '.' + std::to_string(APP_VERSION_MINOR) : "")
+	+ (APP_VERSION_PATCH > 0 ? '.' + std::to_string(APP_VERSION_PATCH) : "");
 
 struct HostSettings
 {
