@@ -26,6 +26,7 @@ void TeamSystem::Initialize()
 	m_OnConnectionHandle = Tubes::RegisterConnectionCallback(std::bind(&TeamSystem::OnConnection, this, std::placeholders::_1));
 	m_OnDisconnectionHandle = Tubes::RegisterDisconnectionCallback(std::bind(&TeamSystem::OnDisconnection, this, std::placeholders::_1));
 
+	m_RunImageJobThread = true;
 	m_ImageJobThread = std::thread(&TeamSystem::ProcessImageJobs, this);
 
 	for (int i = 0; i < MIRAGE_MAX_PLAYERS; ++i)
