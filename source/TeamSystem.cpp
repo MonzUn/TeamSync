@@ -87,7 +87,9 @@ void TeamSystem::Shutdown()
 	globalsBlackboard->HostSettingsData = HostSettings();
 
 	// MEngine cleanup
-	MEngine::StopTextInput();
+	if(MEngine::IsTextInputActive())
+		MEngine::StopTextInput();
+
 	UnregisterAllCommands();
 
 	System::Shutdown();
