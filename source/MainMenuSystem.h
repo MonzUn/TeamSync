@@ -24,6 +24,7 @@ private:
 	void OpenAbout();
 	void OpenDevBlog() const;
 	void OpenControlsPage() const;
+	void OpenIssueTrackerPage() const;
 
 	void OnConnection(Tubes::ConnectionID connectionID);
 	void OnConnectionFailed(const Tubes::ConnectionAttemptResultData& result);
@@ -36,6 +37,7 @@ private:
 	MEngine::EntityID m_AboutButtonID							= INVALID_MENGINE_ENTITY_ID;
 	MEngine::EntityID m_DevBlogButtonID							= INVALID_MENGINE_ENTITY_ID;
 	MEngine::EntityID m_ControlsButtonID						= INVALID_MENGINE_ENTITY_ID;
+	MEngine::EntityID m_ReportBugButtonID						= INVALID_MENGINE_ENTITY_ID;
 
 	MEngine::EntityID m_ConnectIPInputTextBoxID					= INVALID_MENGINE_ENTITY_ID;
 	MEngine::EntityID m_ConnectPortInputTextBoxID				= INVALID_MENGINE_ENTITY_ID;
