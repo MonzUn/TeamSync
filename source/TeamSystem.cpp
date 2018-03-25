@@ -7,8 +7,9 @@
 #include <MEngineConsole.h>
 #include <MEngineInput.h>
 #include <MEngineSystemManager.h>
+#include <MengineUtility.h>
 #include <MUtilityLog.h>
-#include "MUtilityString.h"
+#include <MUtilityString.h>
 #include <MUtilityThreading.h>
 #include <Tubes.h>
 #include <iostream>
@@ -229,7 +230,7 @@ void TeamSystem::HandleInput()
 		PrimeCycledScreenshotForPlayer(localPlayerID);
 	}
 
-	if ((MEngine::KeyReleased(MKEY_TAB) || MEngine::KeyReleased(MKEY_I)) && !MEngine::KeyDown(MKEY_LEFT_ALT) && !MEngine::KeyDown(MKEY_RIGHT_ALT) && localPlayerID != UNASSIGNED_PLAYER_ID) // Take delayed screenshot
+	if ((MEngine::KeyReleased(MKEY_TAB) || MEngine::KeyReleased(MKEY_I)) && !MEngine::WindowHasFocus() && !MEngine::KeyDown(MKEY_LEFT_ALT) && !MEngine::KeyDown(MKEY_RIGHT_ALT) && localPlayerID != UNASSIGNED_PLAYER_ID) // Take delayed screenshot
 	{
 		if (!awaitingDelayedScreenshot)
 		{
@@ -252,7 +253,7 @@ void TeamSystem::HandleInput()
 		}
 	}
 
-	if (MEngine::KeyReleased(MKEY_GRAVE) && localPlayerID != UNASSIGNED_PLAYER_ID && !awaitingDelayedScreenshot) // Take direct screenshot
+	if (MEngine::KeyReleased(MKEY_GRAVE) && !MEngine::WindowHasFocus() && localPlayerID != UNASSIGNED_PLAYER_ID && !awaitingDelayedScreenshot) // Take direct screenshot
 	{
 		ImageJob* screenshotJob = new ImageJob(ImageJobType::TakeScreenshot, localPlayerID);
 		m_ImageJobQueue.Produce(screenshotJob);
