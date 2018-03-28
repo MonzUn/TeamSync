@@ -29,7 +29,7 @@ void TeamSystem::Initialize()
 	m_RunImageJobThread = true;
 	m_ImageJobThread = std::thread(&TeamSystem::ProcessImageJobs, this);
 
-	for (int i = 0; i < MIRAGE_MAX_PLAYERS; ++i)
+	for (int i = 0; i < Globals::MIRAGE_MAX_PLAYERS; ++i)
 	{
 		players[i] = new Player(UILayout::PlayerPositions[i][0], UILayout::PlayerPositions[i][1], UILayout::PLAYER_WIDTH, UILayout::PLAYER_HEIGHT);
 	}
@@ -72,7 +72,7 @@ void TeamSystem::Shutdown()
 	m_ImageJobResultQueue.Clear();
 
 	// Remove players
-	for (int i = 0; i < MIRAGE_MAX_PLAYERS; ++i)
+	for (int i = 0; i < Globals::MIRAGE_MAX_PLAYERS; ++i)
 	{
 		if(players[i]->GetPlayerID() != localPlayerID && GlobalsBlackboard::GetInstance()->IsHost && GlobalsBlackboard::GetInstance()->HostSettingsData.RequestsLogs)
 			players[i]->FlushRemoteLog(); // TODODB: Make this trigger on client disconnection instead
@@ -110,7 +110,7 @@ void TeamSystem::UpdatePresentationLayer(float deltaTime)
 
 PlayerID TeamSystem::FindFreePlayerSlot() const
 {
-	for (int i = 0; i < MIRAGE_MAX_PLAYERS; ++i)
+	for (int i = 0; i < Globals::MIRAGE_MAX_PLAYERS; ++i)
 	{
 		if (!players[i]->IsActive())
 			return i;
@@ -142,7 +142,7 @@ void TeamSystem::OnConnection(Tubes::ConnectionID connectionID) // TODODB: Rewor
 void TeamSystem::OnDisconnection(Tubes::ConnectionID connectionID)
 {
 	Player* disconnectingPlayer = nullptr;
-	for (int i = 0; i < MIRAGE_MAX_PLAYERS; ++i)
+	for (int i = 0; i < Globals::MIRAGE_MAX_PLAYERS; ++i)
 	{
 		if (players[i]->IsActive() && players[i]->GetPlayerConnectionID() == connectionID)
 		{
@@ -163,7 +163,7 @@ void TeamSystem::OnDisconnection(Tubes::ConnectionID connectionID)
 		}
 		else // Disconnected from host
 		{
-			for (int i = 0; i < MIRAGE_MAX_PLAYERS; ++i)
+			for (int i = 0; i < Globals::MIRAGE_MAX_PLAYERS; ++i)
 			{
 				if (players[i]->IsActive())
 					RemovePlayer(players[i]);
@@ -419,7 +419,7 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 					relayedInitMessage.Destroy();
 
 					// Make the new client aware of the relayed clients and update the new clients view of the relayed clients 
-					for (int j = 0; j < MIRAGE_MAX_PLAYERS; ++j)
+					for (int j = 0; j < Globals::MIRAGE_MAX_PLAYERS; ++j)
 					{
 						if (players[j]->IsActive())
 						{
@@ -522,7 +522,7 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 			if (!GlobalsBlackboard::GetInstance()->IsHost)
 			{
 				const PlayerDisconnectMessage* playerDisconnectMessage = static_cast<const PlayerDisconnectMessage*>(receivedMessages[i]);
-				for (int i = 0; i < MIRAGE_MAX_PLAYERS; ++i)
+				for (int i = 0; i < Globals::MIRAGE_MAX_PLAYERS; ++i)
 				{
 					if (players[i]->IsActive() && players[i]->GetPlayerID() == playerDisconnectMessage->PlayerID)
 					{
@@ -552,7 +552,7 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 			if (GlobalsBlackboard::GetInstance()->IsHost)
 			{
 				const LogUpdateMessage* logUpdateMessage = static_cast<const LogUpdateMessage*>(receivedMessages[i]);
-				for (int j = 0; j < MIRAGE_MAX_PLAYERS; ++j) // TODODB: Create utility function for getting a playerID from a conenctionID
+				for (int j = 0; j < Globals::MIRAGE_MAX_PLAYERS; ++j) // TODODB: Create utility function for getting a playerID from a conenctionID
 				{
 					if (players[j]->GetPlayerConnectionID() == messageSenders[i])
 					{
@@ -596,7 +596,7 @@ bool TeamSystem::ExecutePrimeCycledScreenshotCommand(const std::string* paramete
 		}
 		
 		int32_t playerID = std::stoi(playerIDString) - 1; // -1 to get index
-		if (playerID < 0 || playerID >= MIRAGE_MAX_PLAYERS)
+		if (playerID < 0 || playerID >= Globals::MIRAGE_MAX_PLAYERS)
 		{
 			if (outResponse != nullptr)
 				*outResponse = "The supplied playerID was not valid";
@@ -627,7 +627,7 @@ bool TeamSystem::ExecutePrimeCycledScreenshotCommand(const std::string* paramete
 	}
 	else if (parameterCount == 0) // Prime all players
 	{
-		for (int i = 0; i < MIRAGE_MAX_PLAYERS; ++i)
+		for (int i = 0; i < Globals::MIRAGE_MAX_PLAYERS; ++i)
 		{
 			if(players[i]->IsActive())
 				PrimeCycledScreenshotForPlayer(i);
@@ -657,7 +657,7 @@ bool TeamSystem::ExecuteDisconnectCommand(const std::string* parameters, int32_t
 		}
 
 		int32_t playerIndex = std::stoi(playerIDString) - 1;
-		if (playerIndex < 0 || playerIndex >= MIRAGE_MAX_PLAYERS)
+		if (playerIndex < 0 || playerIndex >= Globals::MIRAGE_MAX_PLAYERS)
 		{
 			if(outResponse != nullptr)
 				*outResponse = "The supplied playerID was not valid";
@@ -750,7 +750,7 @@ void TeamSystem::DisconnectAll()
 	Tubes::DisconnectAll();
 	
 	localPlayerID = UNASSIGNED_PLAYER_ID;
-	for (int i = 0; i < MIRAGE_MAX_PLAYERS; ++i)
+	for (int i = 0; i < Globals::MIRAGE_MAX_PLAYERS; ++i)
 	{
 		if (players[i]->IsActive())
 			RemovePlayer(players[i]);
@@ -768,7 +768,7 @@ void TeamSystem::StopHosting()
 	Tubes::DisconnectAll();
 
 	localPlayerID = UNASSIGNED_PLAYER_ID;
-	for (int i = 0; i < MIRAGE_MAX_PLAYERS; ++i)
+	for (int i = 0; i < Globals::MIRAGE_MAX_PLAYERS; ++i)
 	{
 		if (players[i]->IsActive())
 			RemovePlayer(players[i]);

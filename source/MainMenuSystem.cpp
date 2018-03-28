@@ -40,7 +40,7 @@ void MainMenuSystem::Initialize()
 	m_ReportBugButtonID			= MEngine::CreateButton(REPORT_BUG_BUTTON_POS_X, REPORT_BUG_BUTTON_POS_Y, MAIN_MENU_SMALL_BUTTON_WIDTH, MAIN_MENU_SMALL_BUTTON_HEIGHT, std::bind(&MainMenuSystem::OpenIssueTrackerPage, this), MENGINE_DEFAULT_UI_BUTTON_DEPTH, BrowserButtonTextureID, GlobalsBlackboard::GetInstance()->ButtonFontID, "Report bug");
 	
 	m_ConnectIPInputTextBoxID	= MEngine::CreateTextBox(IP_TEXT_BOX_POS_X, IP_TEXT_BOX_POS_Y, IP_TEXT_BOX_WIDTH, MAIN_MENU_INPUT_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->InputTextBoxFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, Config::GetString("DefaultConnectionIP", "127.0.0.1"), MEngine::TextAlignment::BottomLeft, TEXT_BOX_EDIT_OVERWRITE_RESET_FLAG, Colors[WHITE], Colors[RED]);
-	m_ConnectPortInputTextBoxID	= MEngine::CreateTextBox(PORT_TEXT_BOX_POS_X, PORT_TEXT_BOX_POS_Y, PORT_TEXT_BOX_WIDTH, MAIN_MENU_INPUT_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->InputTextBoxFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, std::to_string(Config::GetInt("DefaultConnectionPort", DefaultPort)), MEngine::TextAlignment::BottomLeft, TEXT_BOX_EDIT_OVERWRITE_RESET_FLAG, Colors[WHITE], Colors[RED]);
+	m_ConnectPortInputTextBoxID	= MEngine::CreateTextBox(PORT_TEXT_BOX_POS_X, PORT_TEXT_BOX_POS_Y, PORT_TEXT_BOX_WIDTH, MAIN_MENU_INPUT_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->InputTextBoxFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, std::to_string(Config::GetInt("DefaultConnectionPort", Globals::DefaultPort)), MEngine::TextAlignment::BottomLeft, TEXT_BOX_EDIT_OVERWRITE_RESET_FLAG, Colors[WHITE], Colors[RED]);
 	m_PlayerNameInputTextBoxID	= MEngine::CreateTextBox(PLAYER_NAME_TEXT_BOX_POS_X, PLAYER_NAME_TEXT_BOX_POS_Y, MAIN_MENU_PLAYER_NAME_TEXT_BOX_WIDTH, MAIN_MENU_INPUT_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->InputTextBoxFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, Config::GetString("PlayerName", PredefinedNames::GetRandomName() + '-' + PredefinedNames::GetRandomName()), MEngine::TextAlignment::BottomLeft, TEXT_BOX_EDIT_OVERWRITE_RESET_FLAG, Colors[WHITE], Colors[RED]);
 	
 	m_ConnectIPInputTextBoxDescriptionID	= MEngine::CreateTextBox(IP_TEXT_BOX_POS_X, IP_TEXT_BOX_POS_Y - MAIN_MENU_INPUT_TEXT_BOX_HEIGHT - MAIN_MENU_INPUT_TEXT_BOX_TO_DESCRIPTION_SPACING, IP_TEXT_BOX_WIDTH, MAIN_MENU_INPUT_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->DescriptionFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, "IP address");
@@ -48,7 +48,7 @@ void MainMenuSystem::Initialize()
 	m_PlayerNameDescriptionID = MEngine::CreateTextBox(PLAYER_NAME_TEXT_BOX_POS_X, PLAYER_NAME_TEXT_BOX_POS_Y - MAIN_MENU_INPUT_TEXT_BOX_HEIGHT - MAIN_MENU_INPUT_TEXT_BOX_TO_DESCRIPTION_SPACING, MAIN_MENU_PLAYER_NAME_TEXT_BOX_WIDTH, MAIN_MENU_INPUT_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->DescriptionFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, "Name");
 	
 	m_AppTitleTextID		= MEngine::CreateTextBox(APP_TITLE_TEXT_BOX_POS_X, APP_TITLE_TEXT_BOX_POS_Y, APP_TITLE_TEXT_BOX_WIDTH, APP_TITLE_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->TitleFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, MEngine::GetApplicationName(), TextAlignment::TopCentered);
-	m_VersionNumberTextID	= MEngine::CreateTextBox(APP_VERSION_NUMBER_TEXT_BOX_POS_X, APP_VERSION_NUMBER_TEXT_BOX_POS_Y, APP_VERSION_NUMBER_TEXT_BOX_WIDTH, APP_VERSION_NUMBER_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->VersionFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, APP_VERSION_STRING, TextAlignment::TopCentered);
+	m_VersionNumberTextID	= MEngine::CreateTextBox(APP_VERSION_NUMBER_TEXT_BOX_POS_X, APP_VERSION_NUMBER_TEXT_BOX_POS_Y, APP_VERSION_NUMBER_TEXT_BOX_WIDTH, APP_VERSION_NUMBER_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->VersionFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, Globals::APP_VERSION_STRING, TextAlignment::TopCentered);
 	m_FeedbackTextID		= MEngine::CreateTextBox(MAIN_MENU_FEEDBACK_TEXT_POS_X, MAIN_MENU_FEEDBACK_TEXT_POS_Y, MAIN_MENU_FEEDBACK_TEXT_WIDTH, MAIN_MENU_FEEDBACK_TEXT_HEIGHT, GlobalsBlackboard::GetInstance()->DescriptionFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, "", TextAlignment::CenterCentered);
 
 	m_OnConnectionHandle		= Tubes::RegisterConnectionCallback(std::bind(&MainMenuSystem::OnConnection, this, _1));
@@ -197,7 +197,7 @@ bool MainMenuSystem::ExecuteConnectCommand(const std::string* parameters, int32_
 			return false;
 		}
 
-		uint16_t port = static_cast<uint16_t>(MEngine::Config::GetInt("DefaultConnectionPort", DefaultPort));
+		uint16_t port = static_cast<uint16_t>(MEngine::Config::GetInt("DefaultConnectionPort", Globals::DefaultPort));
 		ConnectTo(ipv4String, port);
 
 		if (outResponse != nullptr)
@@ -214,7 +214,7 @@ bool MainMenuSystem::ExecuteConnectCommand(const std::string* parameters, int32_
 			return false;
 		}
 
-		uint16_t port = static_cast<uint16_t>(MEngine::Config::GetInt("DefaultConnectionPort", DefaultPort));
+		uint16_t port = static_cast<uint16_t>(MEngine::Config::GetInt("DefaultConnectionPort", Globals::DefaultPort));
 		ConnectTo(ipv4String, port);
 		
 		if (outResponse != nullptr)
@@ -243,7 +243,7 @@ bool MainMenuSystem::ExecuteQuitCommand(const std::string* parameters, int32_t p
 
 bool MainMenuSystem::Host()
 {
-	bool result = Tubes::StartListener(static_cast<uint16_t>(MEngine::Config::GetInt("DefaultHostPort", DefaultPort)));
+	bool result = Tubes::StartListener(static_cast<uint16_t>(MEngine::Config::GetInt("DefaultHostPort", Globals::DefaultPort)));
 	if (result)
 	{
 		GlobalsBlackboard::GetInstance()->IsHost = true;

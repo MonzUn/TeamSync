@@ -42,7 +42,7 @@ private:
 #endif
 
 	// TODODB: Rename using m_ standard
-	Player* players[MIRAGE_MAX_PLAYERS] = { nullptr };
+	Player* players[Globals::MIRAGE_MAX_PLAYERS] = { nullptr };
 	PlayerID localPlayerID = UNASSIGNED_PLAYER_ID;
 
 	uint64_t delayedScreenshotcounter = 0;
