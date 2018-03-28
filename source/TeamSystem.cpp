@@ -319,7 +319,7 @@ void TeamSystem::HandleImageJobResults()
 
 		case ImageJobType::SplitImage:
 		{
-			if (finishedJob->ResultTextureID != INVALID_MENGINE_TEXTURE_ID)
+			if (finishedJob->ResultTextureID != MENGINE_INVALID_TEXTURE_ID)
 			{
 				players[finishedJob->ImageOwnerPlayerID]->SetImageTextureID(finishedJob->ImageSlot, finishedJob->ResultTextureID);
 
@@ -432,7 +432,7 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 								idMessage.Destroy();
 
 
-								if (players[playerID]->GetImageTextureID(PlayerImageSlot::Fullscreen) != INVALID_MENGINE_TEXTURE_ID)
+								if (players[playerID]->GetImageTextureID(PlayerImageSlot::Fullscreen) != MENGINE_INVALID_TEXTURE_ID)
 								{
 									PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, PlayerImageSlot::Fullscreen, MEngine::GetTextureData(players[playerID]->GetImageTextureID(PlayerImageSlot::Fullscreen)));
 									Tubes::SendToConnection(&updateMessage, messageSenders[i]);
@@ -443,7 +443,7 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 									for (int k = 0; k < PlayerImageSlot::Count - 1; ++k)
 									{
 										TextureID textureID = players[playerID]->GetImageTextureID(static_cast<PlayerImageSlot::PlayerImageSlot>(k));
-										if (textureID != INVALID_MENGINE_TEXTURE_ID)
+										if (textureID != MENGINE_INVALID_TEXTURE_ID)
 										{
 											PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, static_cast<PlayerImageSlot::PlayerImageSlot>(k), MEngine::GetTextureData(textureID));
 											Tubes::SendToConnection(&updateMessage, messageSenders[i]);

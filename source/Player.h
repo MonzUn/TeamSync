@@ -45,8 +45,8 @@ public:
 	Image(int32_t posX, int32_t posY, int32_t width, int32_t height)
 	{
 		m_EntityID = MEngine::CreateEntity();
-		MEngine::AddComponentsToEntity(MEngine::PosSizeComponent::GetComponentMask() | MEngine::TextureRenderingComponent::GetComponentMask(), m_EntityID);
-		MEngine::PosSizeComponent* posSizeComponent = static_cast<MEngine::PosSizeComponent*>(MEngine::GetComponentForEntity(MEngine::PosSizeComponent::GetComponentMask(), m_EntityID));
+		MEngine::AddComponentsToEntity(m_EntityID, MEngine::PosSizeComponent::GetComponentMask() | MEngine::TextureRenderingComponent::GetComponentMask());
+		MEngine::PosSizeComponent* posSizeComponent = static_cast<MEngine::PosSizeComponent*>(MEngine::GetComponent(m_EntityID, MEngine::PosSizeComponent::GetComponentMask()));
 		posSizeComponent->PosX		= posX;
 		posSizeComponent->PosY		= posY;
 		posSizeComponent->Width		= width;
@@ -60,30 +60,30 @@ public:
 
 	MEngine::TextureID GetTextureID() const
 	{
-		MEngine::TextureRenderingComponent* textureComponent = static_cast<MEngine::TextureRenderingComponent*>(MEngine::GetComponentForEntity(MEngine::TextureRenderingComponent::GetComponentMask(), m_EntityID));
+		MEngine::TextureRenderingComponent* textureComponent = static_cast<MEngine::TextureRenderingComponent*>(MEngine::GetComponent(m_EntityID, MEngine::TextureRenderingComponent::GetComponentMask()));
 		return textureComponent->TextureID;
 	}
 
 	void SetTextureID(MEngine::TextureID textureID)
 	{
-		MEngine::TextureRenderingComponent* textureComponent = static_cast<MEngine::TextureRenderingComponent*>(MEngine::GetComponentForEntity(MEngine::TextureRenderingComponent::GetComponentMask(), m_EntityID));
+		MEngine::TextureRenderingComponent* textureComponent = static_cast<MEngine::TextureRenderingComponent*>(MEngine::GetComponent(m_EntityID, MEngine::TextureRenderingComponent::GetComponentMask()));
 		textureComponent->TextureID = textureID;
 	}
 
 	bool GetRenderIgnore() const
 	{
-		MEngine::TextureRenderingComponent* textureComponent = static_cast<MEngine::TextureRenderingComponent*>(MEngine::GetComponentForEntity(MEngine::TextureRenderingComponent::GetComponentMask(), m_EntityID));
+		MEngine::TextureRenderingComponent* textureComponent = static_cast<MEngine::TextureRenderingComponent*>(MEngine::GetComponent(m_EntityID, MEngine::TextureRenderingComponent::GetComponentMask()));
 		return textureComponent->RenderIgnore;
 	}
 
 	void SetRenderIgnore(bool shouldIgnore)
 	{
-		MEngine::TextureRenderingComponent* textureComponent = static_cast<MEngine::TextureRenderingComponent*>(MEngine::GetComponentForEntity(MEngine::TextureRenderingComponent::GetComponentMask(), m_EntityID));
+		MEngine::TextureRenderingComponent* textureComponent = static_cast<MEngine::TextureRenderingComponent*>(MEngine::GetComponent(m_EntityID, MEngine::TextureRenderingComponent::GetComponentMask()));
 		textureComponent->RenderIgnore = shouldIgnore;
 	}
 
 private:
-	MEngine::EntityID m_EntityID = INVALID_MENGINE_ENTITY_ID;
+	MEngine::EntityID m_EntityID = MENGINE_INVALID_ENTITY_ID;
 };
 
 class Player
@@ -129,10 +129,10 @@ private: // TODODB: Rename member variables using m_ standard
 	Player::Image* defaultImage	= nullptr;
 	Player::Image* statusImage	= nullptr;
 
-	MEngine::TextureID statusActiveTextureID	= INVALID_MENGINE_TEXTURE_ID;
-	MEngine::TextureID statusInactiveTextureID	= INVALID_MENGINE_TEXTURE_ID;
+	MEngine::TextureID statusActiveTextureID	= MENGINE_INVALID_TEXTURE_ID;
+	MEngine::TextureID statusInactiveTextureID	= MENGINE_INVALID_TEXTURE_ID;
 
-	MEngine::EntityID m_NameTextBoxID = INVALID_MENGINE_ENTITY_ID;
+	MEngine::EntityID m_NameTextBoxID = MENGINE_INVALID_ENTITY_ID;
 	
 	// Default values for these variables are set in the Reset() function
 	PlayerID m_PlayerID;

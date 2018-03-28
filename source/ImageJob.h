@@ -28,5 +28,5 @@ struct ImageJob
 	void*			Pixels = nullptr;
 
 	PlayerImageSlot::PlayerImageSlot ImageSlot	= PlayerImageSlot::None;
-	MEngine::TextureID ResultTextureID			= INVALID_MENGINE_TEXTURE_ID;
+	MEngine::TextureID ResultTextureID			= MENGINE_INVALID_TEXTURE_ID;
 };

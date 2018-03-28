@@ -31,23 +31,23 @@ private:
 
 	void StartMPGameMode();
 
-	MEngine::EntityID m_HostButtonID							= INVALID_MENGINE_ENTITY_ID;
-	MEngine::EntityID m_ConnectButtonID							= INVALID_MENGINE_ENTITY_ID;
-	MEngine::EntityID m_QuitButtonID							= INVALID_MENGINE_ENTITY_ID;
-	MEngine::EntityID m_AboutButtonID							= INVALID_MENGINE_ENTITY_ID;
-	MEngine::EntityID m_DevBlogButtonID							= INVALID_MENGINE_ENTITY_ID;
-	MEngine::EntityID m_ControlsButtonID						= INVALID_MENGINE_ENTITY_ID;
-	MEngine::EntityID m_ReportBugButtonID						= INVALID_MENGINE_ENTITY_ID;
+	MEngine::EntityID m_HostButtonID							= MENGINE_INVALID_ENTITY_ID;
+	MEngine::EntityID m_ConnectButtonID							= MENGINE_INVALID_ENTITY_ID;
+	MEngine::EntityID m_QuitButtonID							= MENGINE_INVALID_ENTITY_ID;
+	MEngine::EntityID m_AboutButtonID							= MENGINE_INVALID_ENTITY_ID;
+	MEngine::EntityID m_DevBlogButtonID							= MENGINE_INVALID_ENTITY_ID;
+	MEngine::EntityID m_ControlsButtonID						= MENGINE_INVALID_ENTITY_ID;
+	MEngine::EntityID m_ReportBugButtonID						= MENGINE_INVALID_ENTITY_ID;
 
-	MEngine::EntityID m_ConnectIPInputTextBoxID					= INVALID_MENGINE_ENTITY_ID;
-	MEngine::EntityID m_ConnectPortInputTextBoxID				= INVALID_MENGINE_ENTITY_ID;
-	MEngine::EntityID m_PlayerNameInputTextBoxID				= INVALID_MENGINE_ENTITY_ID;
-	MEngine::EntityID m_ConnectIPInputTextBoxDescriptionID		= INVALID_MENGINE_ENTITY_ID;
-	MEngine::EntityID m_ConnectPortInputTextBoxDescriptionID	= INVALID_MENGINE_ENTITY_ID;
-	MEngine::EntityID m_PlayerNameDescriptionID					= INVALID_MENGINE_ENTITY_ID;
-	MEngine::EntityID m_AppTitleTextID							= INVALID_MENGINE_ENTITY_ID;
-	MEngine::EntityID m_VersionNumberTextID						= INVALID_MENGINE_ENTITY_ID;
-	MEngine::EntityID m_FeedbackTextID							= INVALID_MENGINE_ENTITY_ID;
+	MEngine::EntityID m_ConnectIPInputTextBoxID					= MENGINE_INVALID_ENTITY_ID;
+	MEngine::EntityID m_ConnectPortInputTextBoxID				= MENGINE_INVALID_ENTITY_ID;
+	MEngine::EntityID m_PlayerNameInputTextBoxID				= MENGINE_INVALID_ENTITY_ID;
+	MEngine::EntityID m_ConnectIPInputTextBoxDescriptionID		= MENGINE_INVALID_ENTITY_ID;
+	MEngine::EntityID m_ConnectPortInputTextBoxDescriptionID	= MENGINE_INVALID_ENTITY_ID;
+	MEngine::EntityID m_PlayerNameDescriptionID					= MENGINE_INVALID_ENTITY_ID;
+	MEngine::EntityID m_AppTitleTextID							= MENGINE_INVALID_ENTITY_ID;
+	MEngine::EntityID m_VersionNumberTextID						= MENGINE_INVALID_ENTITY_ID;
+	MEngine::EntityID m_FeedbackTextID							= MENGINE_INVALID_ENTITY_ID;
 
 	Tubes::ConnectionCallbackHandle m_OnConnectionHandle;
 	Tubes::ConnectionFailedCallbackHandle m_OnConnectionFailedHandle;

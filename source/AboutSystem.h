@@ -12,6 +12,6 @@ public:
 private:
 	void OpenMainMenu();
 
-	MEngine::EntityID m_BackButtonID	= INVALID_MENGINE_ENTITY_ID;
-	MEngine::EntityID m_AboutTextBoxID	= INVALID_MENGINE_ENTITY_ID;
+	MEngine::EntityID m_BackButtonID	= MENGINE_INVALID_ENTITY_ID;
+	MEngine::EntityID m_AboutTextBoxID	= MENGINE_INVALID_ENTITY_ID;
 };

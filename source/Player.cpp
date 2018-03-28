@@ -72,7 +72,7 @@ void Player::Activate(PlayerID playerID, PlayerConnectionType::PlayerConnectionT
 	SetCycledScreenshotPrimed(true);
 	statusImage->SetTextureID(statusActiveTextureID);
 
-	*static_cast<MEngine::TextComponent*>(MEngine::GetComponentForEntity(MEngine::TextComponent::GetComponentMask(), m_NameTextBoxID))->Text = playerName;
+	*static_cast<MEngine::TextComponent*>(MEngine::GetComponent(m_NameTextBoxID, MEngine::TextComponent::GetComponentMask()))->Text = playerName;
 	MEngine::ShowTextBox(m_NameTextBoxID);
 
 	m_IsActive = true;
@@ -86,7 +86,7 @@ void Player::Deactivate()
 		return;
 	}
 
-	static_cast<MEngine::PosSizeComponent*>(MEngine::GetComponentForEntity(MEngine::PosSizeComponent::GetComponentMask(), m_NameTextBoxID))->PosX = PositionX + UILayout::MULTIPLAYER_PLAYER_NAME_OFFSET_X;
+	static_cast<MEngine::PosSizeComponent*>(MEngine::GetComponent(m_NameTextBoxID, MEngine::PosSizeComponent::GetComponentMask()))->PosX = PositionX + UILayout::MULTIPLAYER_PLAYER_NAME_OFFSET_X;
 	MEngine::HideTextBox(m_NameTextBoxID);
 
 	Reset();
@@ -96,7 +96,7 @@ void Player::Deactivate()
 MEngine::TextureID Player::GetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImage) const
 {
 	if (!m_IsActive)
-		return INVALID_MENGINE_TEXTURE_ID;
+		return MENGINE_INVALID_TEXTURE_ID;
 
 	return images[playerImage]->GetTextureID();
 }
@@ -106,7 +106,7 @@ void Player::SetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImageSlot,
 	if (!m_IsActive)
 		return;
 
-	static_cast<MEngine::PosSizeComponent*>(MEngine::GetComponentForEntity(MEngine::PosSizeComponent::GetComponentMask(), m_NameTextBoxID))->PosX = PositionX + UILayout::MULTIPLAYER_PLAYER_NAME_SPLIT_IMAGE_OFFSET_X;
+	static_cast<MEngine::PosSizeComponent*>(MEngine::GetComponent(m_NameTextBoxID, MEngine::PosSizeComponent::GetComponentMask()))->PosX = PositionX + UILayout::MULTIPLAYER_PLAYER_NAME_SPLIT_IMAGE_OFFSET_X;
 
 	if(playerImageSlot != PlayerImageSlot::Fullscreen)
 		MEngine::ShowTextBox(m_NameTextBoxID);
@@ -116,13 +116,13 @@ void Player::SetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImageSlot,
 		UnloadScreenshotTextures();
 		MEngine::HideTextBox(m_NameTextBoxID);
 	}
-	else if (images[PlayerImageSlot::Fullscreen]->GetTextureID() != INVALID_MENGINE_TEXTURE_ID)
+	else if (images[PlayerImageSlot::Fullscreen]->GetTextureID() != MENGINE_INVALID_TEXTURE_ID)
 	{
 		MEngine::UnloadTexture(images[PlayerImageSlot::Fullscreen]->GetTextureID());
-		images[PlayerImageSlot::Fullscreen]->SetTextureID(INVALID_MENGINE_TEXTURE_ID);
+		images[PlayerImageSlot::Fullscreen]->SetTextureID(MENGINE_INVALID_TEXTURE_ID);
 	}
 		
-	if (images[playerImageSlot]->GetTextureID() != INVALID_MENGINE_TEXTURE_ID)
+	if (images[playerImageSlot]->GetTextureID() != MENGINE_INVALID_TEXTURE_ID)
 		MEngine::UnloadTexture(images[playerImageSlot]->GetTextureID());
 
 	images[playerImageSlot]->SetTextureID(textureID);
@@ -217,10 +217,10 @@ void Player::UnloadScreenshotTextures()
 {
 	for (int i = 0; i < PlayerImageSlot::Count; ++i)
 	{
-		if (images[i]->GetTextureID() != INVALID_MENGINE_TEXTURE_ID)
+		if (images[i]->GetTextureID() != MENGINE_INVALID_TEXTURE_ID)
 		{
 			MEngine::UnloadTexture(images[i]->GetTextureID());
-			images[i]->SetTextureID(INVALID_MENGINE_TEXTURE_ID);
+			images[i]->SetTextureID(MENGINE_INVALID_TEXTURE_ID);
 		}
 	}
 }

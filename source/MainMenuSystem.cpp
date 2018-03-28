@@ -255,17 +255,17 @@ bool MainMenuSystem::Host()
 
 void MainMenuSystem::Connect()
 {
-	const std::string& IPString = *static_cast<const MEngine::TextComponent*>(MEngine::GetComponentForEntity(MEngine::TextComponent::GetComponentMask(), m_ConnectIPInputTextBoxID))->Text;
-	const std::string& portString = *static_cast<const MEngine::TextComponent*>(MEngine::GetComponentForEntity(MEngine::TextComponent::GetComponentMask(), m_ConnectPortInputTextBoxID))->Text;
+	const std::string& IPString = *static_cast<const MEngine::TextComponent*>(MEngine::GetComponent(m_ConnectIPInputTextBoxID, MEngine::TextComponent::GetComponentMask()))->Text;
+	const std::string& portString = *static_cast<const MEngine::TextComponent*>(MEngine::GetComponent(m_ConnectPortInputTextBoxID, MEngine::TextComponent::GetComponentMask()))->Text;
 	int32_t port = MUtilityString::IsStringNumber(portString) ? atoi(portString.c_str()) : -1;
 	
 	if (Tubes::IsValidIPv4Address(IPString.c_str()) && port >= 0 && port <= std::numeric_limits<uint16_t>::max())
 	{
 		ConnectTo(IPString, port);
-		*static_cast<TextComponent*>(GetComponentForEntity(TextComponent::GetComponentMask(), m_FeedbackTextID))->Text = "Attempting connection";
+		*static_cast<TextComponent*>(GetComponent(m_FeedbackTextID, TextComponent::GetComponentMask()))->Text = "Attempting connection";
 	}
 	else
-		*static_cast<TextComponent*>(GetComponentForEntity(TextComponent::GetComponentMask(), m_FeedbackTextID))->Text = "Invalid connection parameter";
+		*static_cast<TextComponent*>(GetComponent(m_FeedbackTextID, TextComponent::GetComponentMask()))->Text = "Invalid connection parameter";
 }
 
 void MainMenuSystem::ConnectTo(const std::string& IP, uint16_t port)
@@ -315,7 +315,7 @@ void MainMenuSystem::OnConnectionFailed(const Tubes::ConnectionAttemptResultData
 	{
 	case Tubes::ConnectionAttemptResult::FAILED_TIMEOUT:
 		{
-			*static_cast<TextComponent*>(GetComponentForEntity(TextComponent::GetComponentMask(), m_FeedbackTextID))->Text = "Connection attempt timed out";
+			*static_cast<TextComponent*>(GetComponent(m_FeedbackTextID, TextComponent::GetComponentMask()))->Text = "Connection attempt timed out";
 		} break;
 
 		case Tubes::ConnectionAttemptResult::FAILED_INVALID_IP: // TODODB: Give user feedback
@@ -328,7 +328,7 @@ void MainMenuSystem::OnConnectionFailed(const Tubes::ConnectionAttemptResultData
 
 void MainMenuSystem::StartMPGameMode()
 {
-	GlobalsBlackboard::GetInstance()->LocalPlayerName = *static_cast<const TextComponent*>(GetComponentForEntity(TextComponent::GetComponentMask(), m_PlayerNameInputTextBoxID))->Text;
+	GlobalsBlackboard::GetInstance()->LocalPlayerName = *static_cast<const TextComponent*>(GetComponent(m_PlayerNameInputTextBoxID, TextComponent::GetComponentMask()))->Text;
 	Config::SetString("PlayerName", GlobalsBlackboard::GetInstance()->LocalPlayerName);
 	MEngine::RequestGameModeChange(GlobalsBlackboard::GetInstance()->MultiplayerGameModeID);
 }

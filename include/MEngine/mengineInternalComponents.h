@@ -10,7 +10,7 @@
 
 namespace MEngine
 {
-	enum class TextBoxFlags : uint32_t
+	enum class TextBoxFlags : MUtility::BitSet
 	{
 		None = 0,
 
@@ -19,18 +19,7 @@ namespace MEngine
 		OverwriteOnDefaultTextMatch = 1 << 2,
 		ResetToDefaultWhenEmpty		= 1 << 3,
 	};
-
-	// TODODB: Can we hide this using a custom underlying type defined in MUtility?
-	TextBoxFlags operator|(const TextBoxFlags& lhs, const TextBoxFlags& rhs);
-	TextBoxFlags operator&(const TextBoxFlags& lhs, const TextBoxFlags& rhs);
-	TextBoxFlags& operator|=(TextBoxFlags& lhs, const TextBoxFlags& rhs);
-	TextBoxFlags& operator&=(TextBoxFlags& lhs, const TextBoxFlags& rhs);
-	bool operator==(const TextBoxFlags& lhs, const TextBoxFlags& rhs);
-	bool operator!=(const TextBoxFlags& lhs, const TextBoxFlags& rhs);
-	bool operator==(const TextBoxFlags& lhs, const uint32_t& rhs);
-	bool operator!=(const TextBoxFlags& lhs, const uint32_t& rhs);
-	bool operator==(const uint32_t& lhs, const TextBoxFlags& rhs);
-	bool operator!=(const uint32_t& lhs, const TextBoxFlags& rhs);
+	CREATE_BITFLAG_OPERATOR_SIGNATURES(TextBoxFlags);
 
 	class PosSizeComponent : public ComponentBase<PosSizeComponent>
 	{
@@ -61,7 +50,7 @@ namespace MEngine
 	{
 	public:
 		bool RenderIgnore	= false;
-		TextureID TextureID = INVALID_MENGINE_TEXTURE_ID;
+		TextureID TextureID = MENGINE_INVALID_TEXTURE_ID;
 	};
 
 	class ButtonComponent : public ComponentBase<ButtonComponent>
@@ -75,13 +64,12 @@ namespace MEngine
 		std::function<void()>* Callback = nullptr; // TODODB: Attempt to make it possible to use any parameters and return type
 	};
 
-	// TODODB: Add text rendering alignment
 	class TextComponent : public ComponentBase<TextComponent>
 	{
 	public:
 		void Destroy() override;
 
-		MEngineFontID FontID			= INVALID_MENGINE_FONT_ID;
+		FontID FontID			= MENGINE_INVALID_FONT_ID;
 		std::string* Text				= nullptr;
 		const std::string* DefaultText	= nullptr;
 		TextAlignment Alignment			= TextAlignment::BottomLeft;

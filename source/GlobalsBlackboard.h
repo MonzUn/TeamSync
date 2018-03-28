@@ -6,11 +6,12 @@
 #include <string.h>
 
 // TODODB: Put these into a Globals namespace
+// TODODB: Add check on connection for version compatibility
 constexpr int32_t MIRAGE_MAX_PLAYERS	= 4;
 constexpr uint16_t DefaultPort			= 19200; // TODODB: Rename using UPPERCASE
-constexpr uint16_t APP_VERSION_SUPER	= 8;
-constexpr uint16_t APP_VERSION_MAJOR	= 0;
-constexpr uint16_t APP_VERSION_MINOR	= 0;
+constexpr uint16_t APP_VERSION_SUPER	= 0;
+constexpr uint16_t APP_VERSION_MAJOR	= 8;
+constexpr uint16_t APP_VERSION_MINOR	= 1;
 constexpr uint16_t APP_VERSION_PATCH	= 0;
 
 const std::string APP_VERSION_STRING = std::to_string(APP_VERSION_SUPER)
@@ -32,22 +33,22 @@ public:
 	HostSettings HostSettingsData;
 
 	// GameModes
-	MEngine::GameModeID	MainMenuGameModeID		= INVALID_MENGINE_GAME_MODE_ID;
-	MEngine::GameModeID	MultiplayerGameModeID	= INVALID_MENGINE_GAME_MODE_ID;
+	MEngine::GameModeID	MainMenuGameModeID		= MENGINE_INVALID_GAME_MODE_ID;
+	MEngine::GameModeID	MultiplayerGameModeID	= MENGINE_INVALID_GAME_MODE_ID;
 
 	// Systems
-	MEngine::SystemID MainMenuSystemID	= INVALID_MENGINE_SYSTEM_ID;
-	MEngine::SystemID AboutMenuSystemID = INVALID_MENGINE_SYSTEM_ID;
-	MEngine::SystemID TeamSystemID		= INVALID_MENGINE_SYSTEM_ID;
-	MEngine::SystemID LogSyncSystemID	= INVALID_MENGINE_SYSTEM_ID;
+	MEngine::SystemID MainMenuSystemID		= MENGINE_INVALID_SYSTEM_ID;
+	MEngine::SystemID AboutMenuSystemID		= MENGINE_INVALID_SYSTEM_ID;
+	MEngine::SystemID TeamSystemID			= MENGINE_INVALID_SYSTEM_ID;
+	MEngine::SystemID LogSyncSystemID		= MENGINE_INVALID_SYSTEM_ID;
 
 	// Fonts
-	MEngine::MEngineFontID	TitleFontID				= INVALID_MENGINE_FONT_ID;
-	MEngine::MEngineFontID	VersionFontID			= INVALID_MENGINE_FONT_ID;
-	MEngine::MEngineFontID	ConsoleInputFontID		= INVALID_MENGINE_FONT_ID;
-	MEngine::MEngineFontID	ConsoleOutputFontID		= INVALID_MENGINE_FONT_ID;
-	MEngine::MEngineFontID	ButtonFontID			= INVALID_MENGINE_FONT_ID;
-	MEngine::MEngineFontID	InputTextBoxFontID		= INVALID_MENGINE_FONT_ID;
-	MEngine::MEngineFontID	DescriptionFontID		= INVALID_MENGINE_FONT_ID;
-	MEngine::MEngineFontID	AboutFontID				= INVALID_MENGINE_FONT_ID;
+	MEngine::FontID	TitleFontID				= MENGINE_INVALID_FONT_ID;
+	MEngine::FontID	VersionFontID			= MENGINE_INVALID_FONT_ID;
+	MEngine::FontID	ConsoleInputFontID		= MENGINE_INVALID_FONT_ID;
+	MEngine::FontID	ConsoleOutputFontID		= MENGINE_INVALID_FONT_ID;
+	MEngine::FontID	ButtonFontID			= MENGINE_INVALID_FONT_ID;
+	MEngine::FontID	InputTextBoxFontID		= MENGINE_INVALID_FONT_ID;
+	MEngine::FontID	DescriptionFontID		= MENGINE_INVALID_FONT_ID;
+	MEngine::FontID	AboutFontID				= MENGINE_INVALID_FONT_ID;
 };
