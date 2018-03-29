@@ -42,13 +42,14 @@ namespace PlayerImageSlot
 class Image
 {
 public:
-	Image(int32_t posX, int32_t posY, int32_t width, int32_t height)
+	Image(int32_t posX, int32_t posY, int32_t posZ, int32_t width, int32_t height)
 	{
 		m_EntityID = MEngine::CreateEntity();
 		MEngine::AddComponentsToEntity(m_EntityID, MEngine::PosSizeComponent::GetComponentMask() | MEngine::TextureRenderingComponent::GetComponentMask());
 		MEngine::PosSizeComponent* posSizeComponent = static_cast<MEngine::PosSizeComponent*>(MEngine::GetComponent(m_EntityID, MEngine::PosSizeComponent::GetComponentMask()));
 		posSizeComponent->PosX		= posX;
 		posSizeComponent->PosY		= posY;
+		posSizeComponent->PosZ		= posZ;
 		posSizeComponent->Width		= width;
 		posSizeComponent->Height	= height;
 	};

@@ -18,24 +18,24 @@ Player::Player(int32_t posX, int32_t posY, int32_t width, int32_t height) :
 {
 	for (int i = 0; i < PlayerImageSlot::Count; ++i)
 	{
-		images[i] = new Image(PositionX + UILayout::ImagePosAndDimensions[i][0], PositionY + UILayout::ImagePosAndDimensions[i][1], UILayout::ImagePosAndDimensions[i][2], UILayout::ImagePosAndDimensions[i][3]);
+		images[i] = new Image(PositionX + UILayout::ImagePosAndDimensions[i][0], PositionY + UILayout::ImagePosAndDimensions[i][1], UILayout::ImagePosAndDimensions[i][2], UILayout::ImagePosAndDimensions[i][3], UILayout::ImagePosAndDimensions[i][4]);
 	}
 	
 	statusActiveTextureID	= MEngine::GetTextureFromPath("resources/graphics/Check.png");
 	statusInactiveTextureID = MEngine::GetTextureFromPath("resources/graphics/Cross.png");
 	
-	imageFrame = new Image(PositionX + UILayout::PLAYER_FRAME_RELATIVE_POS_X, PositionY + UILayout::PLAYER_FRAME_RELATIVE_POS_Y, UILayout::PLAYER_FRAME_WIDTH, UILayout::PLAYER_FRAME_HEIGHT);
+	imageFrame = new Image(PositionX + UILayout::PLAYER_FRAME_RELATIVE_POS_X, PositionY + UILayout::PLAYER_FRAME_RELATIVE_POS_Y, UILayout::PLAYER_FRAME_DEPTH, UILayout::PLAYER_FRAME_WIDTH, UILayout::PLAYER_FRAME_HEIGHT);
 	imageFrame->SetTextureID(MEngine::GetTextureFromPath("resources/graphics/PlayerFrame.png"));
 	
-	primeImage = new Image(PositionX + UILayout::PLAYER_PRIME_INDICATOR_RELATIVE_POS_X, PositionY + UILayout::PLAYER_PRIME_INDICATOR_RELATIVE_POS_Y, UILayout::PLAYER_PRIME_INDICATOR_WIDTH, UILayout::PLAYER_PRIME_INDICATOR_HEIGHT);
+	primeImage = new Image(PositionX + UILayout::PLAYER_PRIME_INDICATOR_RELATIVE_POS_X, PositionY + UILayout::PLAYER_PRIME_INDICATOR_RELATIVE_POS_Y, UILayout::PLAYER_PRIME_INDICATOR_DEPTH, UILayout::PLAYER_PRIME_INDICATOR_WIDTH, UILayout::PLAYER_PRIME_INDICATOR_HEIGHT);
 	primeImage->SetTextureID(MEngine::GetTextureFromPath("resources/graphics/RedDot.png")); // TODODB: Unload all the textures loaded here when there is a proper system for this in MEngine
 	
-	defaultImage = new Image(PositionX + UILayout::PLAYER_DEFAULT_IMAGE_RELATIVE_POS_X, PositionY + UILayout::PLAYER_DEFAULT_IMAGE_RELATIVE_POS_Y, UILayout::PLAYER_DEFAULT_IMAGE_WIDTH, UILayout::PLAYER_DEFAULT_IMAGE_HEIGHT);
+	defaultImage = new Image(PositionX + UILayout::PLAYER_DEFAULT_IMAGE_RELATIVE_POS_X, PositionY + UILayout::PLAYER_DEFAULT_IMAGE_RELATIVE_POS_Y, UILayout::PLAYER_DEFAULT_IMAGE_DEPTH, UILayout::PLAYER_DEFAULT_IMAGE_WIDTH, UILayout::PLAYER_DEFAULT_IMAGE_HEIGHT);
 	defaultImage->SetTextureID (MEngine::GetTextureFromPath("resources/graphics/Computer.png"));
 	
-	statusImage = new Image(PositionX + UILayout::PLAYER_STATUS_IMAGE_RELATIVE_POS_X, PositionY + UILayout::PLAYER_STATUS_IMAGE_RELATIVE_POS_Y, UILayout::PLAYER_STATUS_IMAGE_WIDTH, UILayout::PLAYER_STATUS_IMAGE_HEIGHT);
+	statusImage = new Image(PositionX + UILayout::PLAYER_STATUS_IMAGE_RELATIVE_POS_X, PositionY + UILayout::PLAYER_STATUS_IMAGE_RELATIVE_POS_Y, UILayout::PLAYER_STATUS_IMAGE_DEPTH, UILayout::PLAYER_STATUS_IMAGE_WIDTH, UILayout::PLAYER_STATUS_IMAGE_HEIGHT);
 
-	m_NameTextBoxID = MEngine::CreateTextBox(PositionX + UILayout::MULTIPLAYER_PLAYER_NAME_OFFSET_X, PositionY + UILayout::MULTIPLAYER_PLAYER_NAME_OFFSET_Y, UILayout::MULTIPLAYER_PLAYER_NAME_TEXT_BOX_WIDTH, UILayout::MULTIPLAYER_PLAYER_NAME_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->DescriptionFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, m_Name, MEngine::TextAlignment::BottomCentered);
+	m_NameTextBoxID = MEngine::CreateTextBox(PositionX + UILayout::MULTIPLAYER_PLAYER_NAME_OFFSET_X, PositionY + UILayout::MULTIPLAYER_PLAYER_NAME_OFFSET_Y, UILayout::MULTIPLAYER_PLAYER_NAME_TEXT_BOX_WIDTH, UILayout::MULTIPLAYER_PLAYER_NAME_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->DescriptionFontID, UILayout::MULTIPLAYER_PLAYER_NAME_TEXT_BOX_DEPTH, m_Name, MEngine::TextAlignment::BottomCentered);
 
 	Reset();
 }
