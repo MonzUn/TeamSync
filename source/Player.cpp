@@ -9,7 +9,8 @@
 
 #define LOG_CATEGORY_PLAYER "Player"
 
-// TODODB: Use namespace MEngine
+using namespace UILayout;
+using namespace MEngine;
 
 // ---------- PUBLIC ----------
 
@@ -18,24 +19,24 @@ Player::Player(int32_t posX, int32_t posY, int32_t width, int32_t height) :
 {
 	for (int i = 0; i < PlayerImageSlot::Count; ++i)
 	{
-		images[i] = new Image(PositionX + UILayout::ImagePosAndDimensions[i][0], PositionY + UILayout::ImagePosAndDimensions[i][1], UILayout::ImagePosAndDimensions[i][2], UILayout::ImagePosAndDimensions[i][3], UILayout::ImagePosAndDimensions[i][4]);
+		images[i] = new Image(PositionX + ImagePosAndDimensions[i][0], PositionY + ImagePosAndDimensions[i][1], ImagePosAndDimensions[i][2], ImagePosAndDimensions[i][3], ImagePosAndDimensions[i][4]);
 	}
 	
-	statusActiveTextureID	= MEngine::GetTextureFromPath("resources/graphics/Check.png");
-	statusInactiveTextureID = MEngine::GetTextureFromPath("resources/graphics/Cross.png");
+	statusActiveTextureID	= GetTextureFromPath("resources/graphics/Check.png");
+	statusInactiveTextureID = GetTextureFromPath("resources/graphics/Cross.png");
 	
-	imageFrame = new Image(PositionX + UILayout::PLAYER_FRAME_RELATIVE_POS_X, PositionY + UILayout::PLAYER_FRAME_RELATIVE_POS_Y, UILayout::PLAYER_FRAME_DEPTH, UILayout::PLAYER_FRAME_WIDTH, UILayout::PLAYER_FRAME_HEIGHT);
-	imageFrame->SetTextureID(MEngine::GetTextureFromPath("resources/graphics/PlayerFrame.png"));
+	imageFrame = new Image(PositionX + PLAYER_FRAME_RELATIVE_POS_X, PositionY + PLAYER_FRAME_RELATIVE_POS_Y, PLAYER_FRAME_DEPTH, PLAYER_FRAME_WIDTH, PLAYER_FRAME_HEIGHT);
+	imageFrame->SetTextureID(GetTextureFromPath("resources/graphics/PlayerFrame.png"));
 	
-	primeImage = new Image(PositionX + UILayout::PLAYER_PRIME_INDICATOR_RELATIVE_POS_X, PositionY + UILayout::PLAYER_PRIME_INDICATOR_RELATIVE_POS_Y, UILayout::PLAYER_PRIME_INDICATOR_DEPTH, UILayout::PLAYER_PRIME_INDICATOR_WIDTH, UILayout::PLAYER_PRIME_INDICATOR_HEIGHT);
-	primeImage->SetTextureID(MEngine::GetTextureFromPath("resources/graphics/RedDot.png")); // TODODB: Unload all the textures loaded here when there is a proper system for this in MEngine
+	primeImage = new Image(PositionX + PLAYER_PRIME_INDICATOR_RELATIVE_POS_X, PositionY + PLAYER_PRIME_INDICATOR_RELATIVE_POS_Y, PLAYER_PRIME_INDICATOR_DEPTH, PLAYER_PRIME_INDICATOR_WIDTH, PLAYER_PRIME_INDICATOR_HEIGHT);
+	primeImage->SetTextureID(GetTextureFromPath("resources/graphics/RedDot.png")); // TODODB: Unload all the textures loaded here when there is a proper system for this in MEngine
 	
-	defaultImage = new Image(PositionX + UILayout::PLAYER_DEFAULT_IMAGE_RELATIVE_POS_X, PositionY + UILayout::PLAYER_DEFAULT_IMAGE_RELATIVE_POS_Y, UILayout::PLAYER_DEFAULT_IMAGE_DEPTH, UILayout::PLAYER_DEFAULT_IMAGE_WIDTH, UILayout::PLAYER_DEFAULT_IMAGE_HEIGHT);
-	defaultImage->SetTextureID (MEngine::GetTextureFromPath("resources/graphics/Computer.png"));
+	defaultImage = new Image(PositionX + PLAYER_DEFAULT_IMAGE_RELATIVE_POS_X, PositionY + PLAYER_DEFAULT_IMAGE_RELATIVE_POS_Y, PLAYER_DEFAULT_IMAGE_DEPTH, PLAYER_DEFAULT_IMAGE_WIDTH, PLAYER_DEFAULT_IMAGE_HEIGHT);
+	defaultImage->SetTextureID(GetTextureFromPath("resources/graphics/Computer.png"));
 	
-	statusImage = new Image(PositionX + UILayout::PLAYER_STATUS_IMAGE_RELATIVE_POS_X, PositionY + UILayout::PLAYER_STATUS_IMAGE_RELATIVE_POS_Y, UILayout::PLAYER_STATUS_IMAGE_DEPTH, UILayout::PLAYER_STATUS_IMAGE_WIDTH, UILayout::PLAYER_STATUS_IMAGE_HEIGHT);
+	statusImage = new Image(PositionX + PLAYER_STATUS_IMAGE_RELATIVE_POS_X, PositionY + PLAYER_STATUS_IMAGE_RELATIVE_POS_Y, PLAYER_STATUS_IMAGE_DEPTH, PLAYER_STATUS_IMAGE_WIDTH, PLAYER_STATUS_IMAGE_HEIGHT);
 
-	m_NameTextBoxID = MEngine::CreateTextBox(PositionX + UILayout::MULTIPLAYER_PLAYER_NAME_OFFSET_X, PositionY + UILayout::MULTIPLAYER_PLAYER_NAME_OFFSET_Y, UILayout::MULTIPLAYER_PLAYER_NAME_TEXT_BOX_WIDTH, UILayout::MULTIPLAYER_PLAYER_NAME_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->DescriptionFontID, UILayout::MULTIPLAYER_PLAYER_NAME_TEXT_BOX_DEPTH, m_Name, MEngine::TextAlignment::BottomCentered);
+	m_NameTextBoxID = CreateTextBox(PositionX + MULTIPLAYER_PLAYER_NAME_OFFSET_X, PositionY + MULTIPLAYER_PLAYER_NAME_OFFSET_Y, MULTIPLAYER_PLAYER_NAME_TEXT_BOX_WIDTH, MULTIPLAYER_PLAYER_NAME_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->DescriptionFontID, MULTIPLAYER_PLAYER_NAME_TEXT_BOX_DEPTH, m_Name, TextAlignment::BottomCentered);
 
 	Reset();
 }
@@ -53,7 +54,7 @@ Player::~Player()
 	delete defaultImage;
 	delete statusImage;
 
-	MEngine::DestroyEntity(m_NameTextBoxID);
+	DestroyEntity(m_NameTextBoxID);
 }
 
 void Player::Activate(PlayerID playerID, PlayerConnectionType::PlayerConnectionType connectionType, Tubes::ConnectionID connectionID, const std::string& playerName)
@@ -72,8 +73,8 @@ void Player::Activate(PlayerID playerID, PlayerConnectionType::PlayerConnectionT
 	SetCycledScreenshotPrimed(true);
 	statusImage->SetTextureID(statusActiveTextureID);
 
-	*static_cast<MEngine::TextComponent*>(MEngine::GetComponent(m_NameTextBoxID, MEngine::TextComponent::GetComponentMask()))->Text = playerName;
-	MEngine::ShowTextBox(m_NameTextBoxID);
+	*static_cast<TextComponent*>(GetComponent(m_NameTextBoxID, TextComponent::GetComponentMask()))->Text = playerName;
+	ShowTextBox(m_NameTextBoxID);
 
 	m_IsActive = true;
 }
@@ -86,8 +87,8 @@ void Player::Deactivate()
 		return;
 	}
 
-	static_cast<MEngine::PosSizeComponent*>(MEngine::GetComponent(m_NameTextBoxID, MEngine::PosSizeComponent::GetComponentMask()))->PosX = PositionX + UILayout::MULTIPLAYER_PLAYER_NAME_OFFSET_X;
-	MEngine::HideTextBox(m_NameTextBoxID);
+	static_cast<PosSizeComponent*>(GetComponent(m_NameTextBoxID, PosSizeComponent::GetComponentMask()))->PosX = PositionX + MULTIPLAYER_PLAYER_NAME_OFFSET_X;
+	HideTextBox(m_NameTextBoxID);
 
 	Reset();
 	UnloadScreenshotTextures();
@@ -101,29 +102,29 @@ MEngine::TextureID Player::GetImageTextureID(PlayerImageSlot::PlayerImageSlot pl
 	return images[playerImage]->GetTextureID();
 }
 
-void Player::SetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImageSlot, MEngine::TextureID textureID)
+void Player::SetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImageSlot, TextureID textureID)
 {
 	if (!m_IsActive)
 		return;
 
-	static_cast<MEngine::PosSizeComponent*>(MEngine::GetComponent(m_NameTextBoxID, MEngine::PosSizeComponent::GetComponentMask()))->PosX = PositionX + UILayout::MULTIPLAYER_PLAYER_NAME_SPLIT_IMAGE_OFFSET_X;
+	static_cast<PosSizeComponent*>(GetComponent(m_NameTextBoxID, PosSizeComponent::GetComponentMask()))->PosX = PositionX + MULTIPLAYER_PLAYER_NAME_SPLIT_IMAGE_OFFSET_X;
 
 	if(playerImageSlot != PlayerImageSlot::Fullscreen)
-		MEngine::ShowTextBox(m_NameTextBoxID);
+		ShowTextBox(m_NameTextBoxID);
 
 	if (playerImageSlot == PlayerImageSlot::Fullscreen)
 	{
 		UnloadScreenshotTextures();
-		MEngine::HideTextBox(m_NameTextBoxID);
+		HideTextBox(m_NameTextBoxID);
 	}
 	else if (images[PlayerImageSlot::Fullscreen]->GetTextureID() != MENGINE_INVALID_TEXTURE_ID)
 	{
-		MEngine::UnloadTexture(images[PlayerImageSlot::Fullscreen]->GetTextureID());
+		UnloadTexture(images[PlayerImageSlot::Fullscreen]->GetTextureID());
 		images[PlayerImageSlot::Fullscreen]->SetTextureID(MENGINE_INVALID_TEXTURE_ID);
 	}
 		
 	if (images[playerImageSlot]->GetTextureID() != MENGINE_INVALID_TEXTURE_ID)
-		MEngine::UnloadTexture(images[playerImageSlot]->GetTextureID());
+		UnloadTexture(images[playerImageSlot]->GetTextureID());
 
 	images[playerImageSlot]->SetTextureID(textureID);
 	defaultImage->SetRenderIgnore(true);
@@ -219,7 +220,7 @@ void Player::UnloadScreenshotTextures()
 	{
 		if (images[i]->GetTextureID() != MENGINE_INVALID_TEXTURE_ID)
 		{
-			MEngine::UnloadTexture(images[i]->GetTextureID());
+			UnloadTexture(images[i]->GetTextureID());
 			images[i]->SetTextureID(MENGINE_INVALID_TEXTURE_ID);
 		}
 	}
