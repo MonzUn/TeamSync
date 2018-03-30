@@ -155,7 +155,7 @@ namespace UILayout
 
 	constexpr int32_t WEAPON_OFFSET_X							= 475;
 	constexpr int32_t WEAPON_OFFSET_Y							= 0;
-	constexpr int32_t WEAPON_WIDTH								= 475;
+	constexpr int32_t WEAPON_WIDTH								= 475 - PLAYER_FRAME_BORDER_SIZE;
 	constexpr int32_t WEAPON_HEIGHT								= PLAYER_HEIGHT;
 
 	constexpr int32_t FULLSCREEN_OFFSET_X						= 0;
