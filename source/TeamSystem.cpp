@@ -144,7 +144,7 @@ void TeamSystem::OnDisconnection(Tubes::ConnectionID connectionID)
 	Player* disconnectingPlayer = nullptr;
 	for (int i = 0; i < Globals::MIRAGE_MAX_PLAYERS; ++i)
 	{
-		if (players[i]->IsActive() && players[i]->GetPlayerConnectionID() == connectionID)
+		if (players[i]->IsActive() && players[i]->GetConnectionID() == connectionID)
 		{
 			disconnectingPlayer = players[i];
 			break;
@@ -411,7 +411,7 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 					players[newPlayerID]->Activate(newPlayerID, PlayerConnectionType::Direct, messageSenders[i], *playerInitMessage->PlayerName);
 
 					// Send the new player ID to all clients
-					PlayerInitializeMessage relayedInitMessage = PlayerInitializeMessage(newPlayerID, PlayerConnectionType::Local, players[newPlayerID]->GetPlayerName());
+					PlayerInitializeMessage relayedInitMessage = PlayerInitializeMessage(newPlayerID, PlayerConnectionType::Local, players[newPlayerID]->GetName());
 					Tubes::SendToConnection(&relayedInitMessage, messageSenders[i]); // Tell the new client its ID
 
 					relayedInitMessage.PlayerConnectionType = PlayerConnectionType::Relayed;
@@ -427,7 +427,7 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 							if (playerID != newPlayerID)
 							{
 								PlayerConnectionType::PlayerConnectionType connectionType = (playerID == localPlayerID ? PlayerConnectionType::Direct : PlayerConnectionType::Relayed);
-								PlayerInitializeMessage idMessage = PlayerInitializeMessage(playerID, connectionType, players[playerID]->GetPlayerName());
+								PlayerInitializeMessage idMessage = PlayerInitializeMessage(playerID, connectionType, players[playerID]->GetName());
 								Tubes::SendToConnection(&idMessage, messageSenders[i]);
 								idMessage.Destroy();
 
@@ -464,7 +464,7 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 					Tubes::SendToConnection(&hostSettingsMessage, messageSenders[i]);
 					hostSettingsMessage.Destroy();
 
-					MLOG_INFO("Added new player\nName = " << players[newPlayerID]->GetPlayerName() << "\nPlayerID = " << newPlayerID << "\nConnectionID = " << players[newPlayerID]->GetPlayerConnectionID() << "\nConnectionType = " << players[newPlayerID]->GetPlayerConnectionType(), LOG_CATEGORY_TEAM_SYSTEM);
+					MLOG_INFO("Added new player\nName = " << players[newPlayerID]->GetName() << "\nPlayerID = " << newPlayerID << "\nConnectionID = " << players[newPlayerID]->GetConnectionID() << "\nConnectionType = " << players[newPlayerID]->GetConnectionType(), LOG_CATEGORY_TEAM_SYSTEM);
 				}
 				else
 					Tubes::Disconnect(messageSenders[i]); // TODODB: Make these players observers instead
@@ -495,7 +495,7 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 				if (!players[playerID]->IsActive())
 				{
 					players[playerID]->Activate(playerID, connectionType, connectionID, playerName);
-					MLOG_INFO("Host informs of new player\nName = \"" << players[playerID]->GetPlayerName() << "\"\nPlayerID = " << playerID << "\nConnectionID = " << players[playerID]->GetPlayerConnectionID() << "\nConnectionType = " << players[playerID]->GetPlayerConnectionType(), LOG_CATEGORY_TEAM_SYSTEM);
+					MLOG_INFO("Host informs of new player\nName = \"" << players[playerID]->GetName() << "\"\nPlayerID = " << playerID << "\nConnectionID = " << players[playerID]->GetConnectionID() << "\nConnectionType = " << players[playerID]->GetConnectionType(), LOG_CATEGORY_TEAM_SYSTEM);
 				}
 				else
 					MLOG_WARNING("Received playerID message for playerID " << playerID + " but there is already a player assigned to that ID", LOG_CATEGORY_TEAM_SYSTEM);
@@ -526,7 +526,7 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 				{
 					if (players[i]->IsActive() && players[i]->GetPlayerID() == playerDisconnectMessage->PlayerID)
 					{
-						MLOG_INFO("Host informs of player disconenction\nName = \"" << players[i]->GetPlayerName() << "\"\nPlayerID = " << players[i]->GetPlayerID(), LOG_CATEGORY_TEAM_SYSTEM);
+						MLOG_INFO("Host informs of player disconenction\nName = \"" << players[i]->GetName() << "\"\nPlayerID = " << players[i]->GetPlayerID(), LOG_CATEGORY_TEAM_SYSTEM);
 						RemovePlayer(players[i]);
 					}
 				}
@@ -554,7 +554,7 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 				const LogUpdateMessage* logUpdateMessage = static_cast<const LogUpdateMessage*>(receivedMessages[i]);
 				for (int j = 0; j < Globals::MIRAGE_MAX_PLAYERS; ++j) // TODODB: Create utility function for getting a playerID from a conenctionID
 				{
-					if (players[j]->GetPlayerConnectionID() == messageSenders[i])
+					if (players[j]->GetConnectionID() == messageSenders[i])
 					{
 						players[j]->AppendRemoteLog(*logUpdateMessage->LogMessages);
 						break;
@@ -674,7 +674,7 @@ bool TeamSystem::ExecuteDisconnectCommand(const std::string* parameters, int32_t
 				return false;
 			}
 
-			if (players[playerIndex]->GetPlayerConnectionType() != PlayerConnectionType::Direct)
+			if (players[playerIndex]->GetConnectionType() != PlayerConnectionType::Direct)
 			{
 				if (outResponse != nullptr)
 					*outResponse = "Only directly connected players may be disconnected";
@@ -739,7 +739,7 @@ bool TeamSystem::DisconnectPlayer(PlayerID playerID)
 	bool result = false;
 	if (playerID != localPlayerID)
 	{
-		Tubes::Disconnect(players[playerID]->GetPlayerConnectionID()); // TODODB: Check result when it is availble
+		Tubes::Disconnect(players[playerID]->GetConnectionID()); // TODODB: Check result when it is availble
 		result = true;
 	}
 	return result;

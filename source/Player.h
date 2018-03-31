@@ -99,11 +99,10 @@ public:
 	MEngine::TextureID GetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImage) const;
 	void SetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImage, MEngine::TextureID textureID);
 
-	// TODODB: Omit "Player"; it's obvious from the context
 	PlayerID GetPlayerID() const;
-	Tubes::ConnectionID GetPlayerConnectionID() const;
-	PlayerConnectionType::PlayerConnectionType GetPlayerConnectionType() const;
-	const std::string& GetPlayerName() const;
+	Tubes::ConnectionID GetConnectionID() const;
+	PlayerConnectionType::PlayerConnectionType GetConnectionType() const;
+	const std::string& GetName() const;
 
 	const std::string& GetRemoteLog() const;
 	void AppendRemoteLog(const std::string& newLogMessages);

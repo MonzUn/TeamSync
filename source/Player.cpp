@@ -136,17 +136,17 @@ PlayerID Player::GetPlayerID() const
 	return m_PlayerID;
 }
 
-Tubes::ConnectionID Player::GetPlayerConnectionID() const
+Tubes::ConnectionID Player::GetConnectionID() const
 {
 	return m_ConnectionID;
 }
 
-PlayerConnectionType::PlayerConnectionType Player::GetPlayerConnectionType() const
+PlayerConnectionType::PlayerConnectionType Player::GetConnectionType() const
 {
 	return m_ConnectionType;
 }
 
-const std::string& Player::GetPlayerName() const
+const std::string& Player::GetName() const
 {
 	return m_Name;
 }
