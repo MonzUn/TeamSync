@@ -16,13 +16,16 @@
 #include <iostream>
 #include <stdlib.h>
 
+using namespace std::placeholders;
+
 using namespace UILayout;
-using namespace MEngine; // TODODB: Split this up into relevant types
-using namespace PredefinedColors;
+using namespace MEngine::PredefinedColors;
+using MEngine::TextureID;
+using MEngine::TextAlignment;
+using MEngine::TextBoxFlags;
+using MEngine::TextComponent;
 
 // TODODB: Add randomize button for names
-
-using namespace std::placeholders;
 
 // ---------- PUBLIC ----------
 
@@ -39,9 +42,9 @@ void MainMenuSystem::Initialize()
 	m_ControlsButtonID			= MEngine::CreateButton(CONTROLS_BUTTON_POS_X, CONTROLS_BUTTON_POS_Y, MAIN_MENU_SMALL_BUTTON_WIDTH, MAIN_MENU_SMALL_BUTTON_HEIGHT, std::bind(&MainMenuSystem::OpenControlsPage, this), MENGINE_DEFAULT_UI_BUTTON_DEPTH, BrowserButtonTextureID, GlobalsBlackboard::GetInstance()->ButtonFontID, "Controls");
 	m_ReportBugButtonID			= MEngine::CreateButton(REPORT_BUG_BUTTON_POS_X, REPORT_BUG_BUTTON_POS_Y, MAIN_MENU_SMALL_BUTTON_WIDTH, MAIN_MENU_SMALL_BUTTON_HEIGHT, std::bind(&MainMenuSystem::OpenIssueTrackerPage, this), MENGINE_DEFAULT_UI_BUTTON_DEPTH, BrowserButtonTextureID, GlobalsBlackboard::GetInstance()->ButtonFontID, "Report bug");
 	
-	m_ConnectIPInputTextBoxID	= MEngine::CreateTextBox(IP_TEXT_BOX_POS_X, IP_TEXT_BOX_POS_Y, IP_TEXT_BOX_WIDTH, MAIN_MENU_INPUT_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->InputTextBoxFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, Config::GetString("DefaultConnectionIP", "127.0.0.1"), MEngine::TextAlignment::BottomLeft, TEXT_BOX_EDIT_OVERWRITE_RESET_FLAG, Colors[WHITE], Colors[RED]);
-	m_ConnectPortInputTextBoxID	= MEngine::CreateTextBox(PORT_TEXT_BOX_POS_X, PORT_TEXT_BOX_POS_Y, PORT_TEXT_BOX_WIDTH, MAIN_MENU_INPUT_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->InputTextBoxFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, std::to_string(Config::GetInt("DefaultConnectionPort", Globals::DEFAULT_PORT)), MEngine::TextAlignment::BottomLeft, TEXT_BOX_EDIT_OVERWRITE_RESET_FLAG, Colors[WHITE], Colors[RED]);
-	m_PlayerNameInputTextBoxID	= MEngine::CreateTextBox(PLAYER_NAME_TEXT_BOX_POS_X, PLAYER_NAME_TEXT_BOX_POS_Y, MAIN_MENU_PLAYER_NAME_TEXT_BOX_WIDTH, MAIN_MENU_INPUT_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->InputTextBoxFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, Config::GetString("PlayerName", PredefinedNames::GetRandomName() + '-' + PredefinedNames::GetRandomName()), MEngine::TextAlignment::BottomLeft, TEXT_BOX_EDIT_OVERWRITE_RESET_FLAG, Colors[WHITE], Colors[RED]);
+	m_ConnectIPInputTextBoxID	= MEngine::CreateTextBox(IP_TEXT_BOX_POS_X, IP_TEXT_BOX_POS_Y, IP_TEXT_BOX_WIDTH, MAIN_MENU_INPUT_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->InputTextBoxFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, MEngine::Config::GetString("DefaultConnectionIP", "127.0.0.1"), MEngine::TextAlignment::BottomLeft, TEXT_BOX_EDIT_OVERWRITE_RESET_FLAG, Colors[WHITE], Colors[RED]);
+	m_ConnectPortInputTextBoxID	= MEngine::CreateTextBox(PORT_TEXT_BOX_POS_X, PORT_TEXT_BOX_POS_Y, PORT_TEXT_BOX_WIDTH, MAIN_MENU_INPUT_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->InputTextBoxFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, std::to_string(MEngine::Config::GetInt("DefaultConnectionPort", Globals::DEFAULT_PORT)), MEngine::TextAlignment::BottomLeft, TEXT_BOX_EDIT_OVERWRITE_RESET_FLAG, Colors[WHITE], Colors[RED]);
+	m_PlayerNameInputTextBoxID	= MEngine::CreateTextBox(PLAYER_NAME_TEXT_BOX_POS_X, PLAYER_NAME_TEXT_BOX_POS_Y, MAIN_MENU_PLAYER_NAME_TEXT_BOX_WIDTH, MAIN_MENU_INPUT_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->InputTextBoxFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, MEngine::Config::GetString("PlayerName", PredefinedNames::GetRandomName() + '-' + PredefinedNames::GetRandomName()), MEngine::TextAlignment::BottomLeft, TEXT_BOX_EDIT_OVERWRITE_RESET_FLAG, Colors[WHITE], Colors[RED]);
 	
 	m_ConnectIPInputTextBoxDescriptionID	= MEngine::CreateTextBox(IP_TEXT_BOX_POS_X, IP_TEXT_BOX_POS_Y - MAIN_MENU_INPUT_TEXT_BOX_HEIGHT - MAIN_MENU_INPUT_TEXT_BOX_TO_DESCRIPTION_SPACING, IP_TEXT_BOX_WIDTH, MAIN_MENU_INPUT_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->DescriptionFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, "IP address");
 	m_ConnectPortInputTextBoxDescriptionID	= MEngine::CreateTextBox(PORT_TEXT_BOX_POS_X, PORT_TEXT_BOX_POS_Y - MAIN_MENU_INPUT_TEXT_BOX_HEIGHT - MAIN_MENU_INPUT_TEXT_BOX_TO_DESCRIPTION_SPACING, PORT_TEXT_BOX_WIDTH, MAIN_MENU_INPUT_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->DescriptionFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, "Port");
@@ -262,10 +265,10 @@ void MainMenuSystem::Connect()
 	if (Tubes::IsValidIPv4Address(IPString.c_str()) && port >= 0 && port <= std::numeric_limits<uint16_t>::max())
 	{
 		ConnectTo(IPString, port);
-		*static_cast<TextComponent*>(GetComponent(m_FeedbackTextID, TextComponent::GetComponentMask()))->Text = "Attempting connection";
+		*static_cast<TextComponent*>(MEngine::GetComponent(m_FeedbackTextID, TextComponent::GetComponentMask()))->Text = "Attempting connection";
 	}
 	else
-		*static_cast<TextComponent*>(GetComponent(m_FeedbackTextID, TextComponent::GetComponentMask()))->Text = "Invalid connection parameter";
+		*static_cast<TextComponent*>(MEngine::GetComponent(m_FeedbackTextID, TextComponent::GetComponentMask()))->Text = "Invalid connection parameter";
 }
 
 void MainMenuSystem::ConnectTo(const std::string& IP, uint16_t port)
@@ -315,7 +318,7 @@ void MainMenuSystem::OnConnectionFailed(const Tubes::ConnectionAttemptResultData
 	{
 	case Tubes::ConnectionAttemptResult::FAILED_TIMEOUT:
 		{
-			*static_cast<TextComponent*>(GetComponent(m_FeedbackTextID, TextComponent::GetComponentMask()))->Text = "Connection attempt timed out";
+			*static_cast<TextComponent*>(MEngine::GetComponent(m_FeedbackTextID, TextComponent::GetComponentMask()))->Text = "Connection attempt timed out";
 		} break;
 
 		case Tubes::ConnectionAttemptResult::FAILED_INVALID_IP: // TODODB: Give user feedback
@@ -328,7 +331,7 @@ void MainMenuSystem::OnConnectionFailed(const Tubes::ConnectionAttemptResultData
 
 void MainMenuSystem::StartMPGameMode()
 {
-	GlobalsBlackboard::GetInstance()->LocalPlayerName = *static_cast<const TextComponent*>(GetComponent(m_PlayerNameInputTextBoxID, TextComponent::GetComponentMask()))->Text;
-	Config::SetString("PlayerName", GlobalsBlackboard::GetInstance()->LocalPlayerName);
+	GlobalsBlackboard::GetInstance()->LocalPlayerName = *static_cast<const TextComponent*>(MEngine::GetComponent(m_PlayerNameInputTextBoxID, TextComponent::GetComponentMask()))->Text;
+	MEngine::Config::SetString("PlayerName", GlobalsBlackboard::GetInstance()->LocalPlayerName);
 	MEngine::RequestGameModeChange(GlobalsBlackboard::GetInstance()->MultiplayerGameModeID);
 }
