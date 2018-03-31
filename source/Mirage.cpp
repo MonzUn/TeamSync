@@ -7,6 +7,7 @@
 #include "TeamSystem.h"
 #include "UILayout.h"
 #include <MEngine.h>
+#include <MengineTypes.h>
 #include <MEngineConsole.h>
 #include <MEngineInput.h>
 #include <MEngineSystemManager.h>
@@ -23,6 +24,7 @@
 #define LOG_CATEGORY_MIRAGE "MirageMain"
 
 using namespace MEngine::PredefinedColors;
+using MEngine::InitFlags;
 
 bool Mirage::Initialize()
 {
@@ -30,12 +32,20 @@ bool Mirage::Initialize()
 	MUtilityLog::Initialize();
 
 	std::string applicationName = "Mirage";
+	std::string windowTitle = applicationName;
 #if COMPILE_MODE == COMPILE_MODE_DEBUG
 	applicationName += " (PID=" + std::to_string(MUtility::GetPid()) + ")";
 #endif
-	if (!MEngine::Initialize(applicationName.c_str(), UILayout::APPLICATION_WINDOW_WIDTH, UILayout::APPLICATION_WINDOW_HEIGHT))
+	if (!MEngine::Initialize(applicationName.c_str(), InitFlags::StartWindowCentered | InitFlags::RememberWindowPosition))
 	{
 		MLOG_ERROR("Failed to initialize MEngine", LOG_CATEGORY_MIRAGE);
+		MUtilityLog::Shutdown();
+		return false;
+	}
+
+	if (!MEngine::CreateWindow(windowTitle.c_str(), 0, 0, UILayout::APPLICATION_WINDOW_WIDTH, UILayout::APPLICATION_WINDOW_HEIGHT))
+	{
+		MLOG_ERROR("Failed to create MEngine window", LOG_CATEGORY_MIRAGE);
 		MUtilityLog::Shutdown();
 		return false;
 	}
