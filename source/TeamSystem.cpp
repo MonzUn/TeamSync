@@ -31,13 +31,13 @@ void TeamSystem::Initialize()
 
 	for (int i = 0; i < Globals::MIRAGE_MAX_PLAYERS; ++i)
 	{
-		players[i] = new Player(UILayout::PlayerPositions[i][0], UILayout::PlayerPositions[i][1], UILayout::PLAYER_WIDTH, UILayout::PLAYER_HEIGHT);
+		m_Players[i] = new Player(UILayout::PlayerPositions[i][0], UILayout::PlayerPositions[i][1], UILayout::PLAYER_WIDTH, UILayout::PLAYER_HEIGHT);
 	}
 
 	if (GlobalsBlackboard::GetInstance()->IsHost)
 	{
-		localPlayerID = 0;
-		players[localPlayerID]->Activate(localPlayerID, PlayerConnectionType::Local, TUBES_INVALID_CONNECTION_ID, GlobalsBlackboard::GetInstance()->LocalPlayerName);
+		m_LocalPlayerID = 0;
+		m_Players[m_LocalPlayerID]->Activate(m_LocalPlayerID, PlayerConnectionType::Local, TUBES_INVALID_CONNECTION_ID, GlobalsBlackboard::GetInstance()->LocalPlayerName);
 		GlobalsBlackboard::GetInstance()->HostSettingsData.RequestsLogs = Config::GetBool("HostRequestsLogs", false);
 
 		if (GlobalsBlackboard::GetInstance()->HostSettingsData.RequestsLogs)
@@ -74,10 +74,10 @@ void TeamSystem::Shutdown()
 	// Remove players
 	for (int i = 0; i < Globals::MIRAGE_MAX_PLAYERS; ++i)
 	{
-		if(players[i]->GetPlayerID() != localPlayerID && GlobalsBlackboard::GetInstance()->IsHost && GlobalsBlackboard::GetInstance()->HostSettingsData.RequestsLogs)
-			players[i]->FlushRemoteLog(); // TODODB: Make this trigger on client disconnection instead
+		if(m_Players[i]->GetPlayerID() != m_LocalPlayerID && GlobalsBlackboard::GetInstance()->IsHost && GlobalsBlackboard::GetInstance()->HostSettingsData.RequestsLogs)
+			m_Players[i]->FlushRemoteLog(); // TODODB: Make this trigger on client disconnection instead
 
-		delete players[i];
+		delete m_Players[i];
 	}
 
 	// Reset Globals blackboard
@@ -112,7 +112,7 @@ PlayerID TeamSystem::FindFreePlayerSlot() const
 {
 	for (int i = 0; i < Globals::MIRAGE_MAX_PLAYERS; ++i)
 	{
-		if (!players[i]->IsActive())
+		if (!m_Players[i]->IsActive())
 			return i;
 	}
 
@@ -121,9 +121,9 @@ PlayerID TeamSystem::FindFreePlayerSlot() const
 
 void TeamSystem::RemovePlayer(Player* player)
 {
-	players[player->GetPlayerID()]->Deactivate();
-	if (player->GetPlayerID() == localPlayerID)
-		localPlayerID = UNASSIGNED_PLAYER_ID;
+	m_Players[player->GetPlayerID()]->Deactivate();
+	if (player->GetPlayerID() == m_LocalPlayerID)
+		m_LocalPlayerID = UNASSIGNED_PLAYER_ID;
 }
 
 void TeamSystem::OnConnection(Tubes::ConnectionID connectionID) // TODODB: Rework this to request player data from the connecting client and only create the player when that data ahs arrived
@@ -144,9 +144,9 @@ void TeamSystem::OnDisconnection(Tubes::ConnectionID connectionID)
 	Player* disconnectingPlayer = nullptr;
 	for (int i = 0; i < Globals::MIRAGE_MAX_PLAYERS; ++i)
 	{
-		if (players[i]->IsActive() && players[i]->GetConnectionID() == connectionID)
+		if (m_Players[i]->IsActive() && m_Players[i]->GetConnectionID() == connectionID)
 		{
-			disconnectingPlayer = players[i];
+			disconnectingPlayer = m_Players[i];
 			break;
 		}
 	}
@@ -165,12 +165,12 @@ void TeamSystem::OnDisconnection(Tubes::ConnectionID connectionID)
 		{
 			for (int i = 0; i < Globals::MIRAGE_MAX_PLAYERS; ++i)
 			{
-				if (players[i]->IsActive())
-					RemovePlayer(players[i]);
+				if (m_Players[i]->IsActive())
+					RemovePlayer(m_Players[i]);
 			}
 
-			delayedScreenshotcounter = 0;
-			awaitingDelayedScreenshot = false;
+			m_DelayedScreenshotCounter = 0;
+			m_AwaitingDelayedScreenshot = false;
 			RequestGameModeChange(GlobalsBlackboard::GetInstance()->MainMenuGameModeID);
 		}
 	}
@@ -228,49 +228,49 @@ void TeamSystem::ProcessImageJobs()
 
 void TeamSystem::HandleInput()
 {
-	if (MEngine::KeyReleased(MKEY_ANGLED_BRACKET) && localPlayerID != UNASSIGNED_PLAYER_ID) // Reset screenshot cycling
+	if (MEngine::KeyReleased(MKEY_ANGLED_BRACKET) && m_LocalPlayerID != UNASSIGNED_PLAYER_ID) // Reset screenshot cycling
 	{
-		PrimeCycledScreenshotForPlayer(localPlayerID);
+		PrimeCycledScreenshotForPlayer(m_LocalPlayerID);
 	}
 
-	if ((MEngine::KeyReleased(MKEY_TAB) || MEngine::KeyReleased(MKEY_I)) && !MEngine::WindowHasFocus() && !MEngine::KeyDown(MKEY_LEFT_ALT) && !MEngine::KeyDown(MKEY_RIGHT_ALT) && localPlayerID != UNASSIGNED_PLAYER_ID) // Take delayed screenshot
+	if ((MEngine::KeyReleased(MKEY_TAB) || MEngine::KeyReleased(MKEY_I)) && !MEngine::WindowHasFocus() && !MEngine::KeyDown(MKEY_LEFT_ALT) && !MEngine::KeyDown(MKEY_RIGHT_ALT) && m_LocalPlayerID != UNASSIGNED_PLAYER_ID) // Take delayed screenshot
 	{
-		if (!awaitingDelayedScreenshot)
+		if (!m_AwaitingDelayedScreenshot)
 		{
-			if (delayedScreenshotcounter % 2 == 0)
+			if (m_DelayedScreenshotCounter % 2 == 0)
 			{
-				screenshotTime = std::chrono::high_resolution_clock::now() + std::chrono::milliseconds(DELAYED_SCREENSHOT_WAIT_TIME_MILLISECONDS);
-				awaitingDelayedScreenshot = true;
+				m_ScreenshotTime = std::chrono::high_resolution_clock::now() + std::chrono::milliseconds(DELAYED_SCREENSHOT_WAIT_TIME_MILLISECONDS);
+				m_AwaitingDelayedScreenshot = true;
 			}
-			++delayedScreenshotcounter;
+			++m_DelayedScreenshotCounter;
 
-			players[localPlayerID]->SetCycledScreenshotPrimed(delayedScreenshotcounter % 2 == 0);
-			SignalFlagMessage message = SignalFlagMessage(MirageSignals::PRIME, delayedScreenshotcounter % 2 == 0, localPlayerID);
+			m_Players[m_LocalPlayerID]->SetCycledScreenshotPrimed(m_DelayedScreenshotCounter % 2 == 0);
+			SignalFlagMessage message = SignalFlagMessage(MirageSignals::PRIME, m_DelayedScreenshotCounter % 2 == 0, m_LocalPlayerID);
 			Tubes::SendToAll(&message);
 			message.Destroy();
 		}
 		else // Abort delayed screenshot
 		{
-			awaitingDelayedScreenshot = false;
-			PrimeCycledScreenshotForPlayer(localPlayerID);
+			m_AwaitingDelayedScreenshot = false;
+			PrimeCycledScreenshotForPlayer(m_LocalPlayerID);
 		}
 	}
 
-	if (MEngine::KeyReleased(MKEY_GRAVE) && !MEngine::WindowHasFocus() && localPlayerID != UNASSIGNED_PLAYER_ID && !awaitingDelayedScreenshot) // Take direct screenshot
+	if (MEngine::KeyReleased(MKEY_GRAVE) && !MEngine::WindowHasFocus() && m_LocalPlayerID != UNASSIGNED_PLAYER_ID && !m_AwaitingDelayedScreenshot) // Take direct screenshot
 	{
-		ImageJob* screenshotJob = new ImageJob(ImageJobType::TakeScreenshot, localPlayerID);
+		ImageJob* screenshotJob = new ImageJob(ImageJobType::TakeScreenshot, m_LocalPlayerID);
 		m_ImageJobQueue.Produce(screenshotJob);
 		m_ImageJobLockCondition.notify_one();
 	}
 
 	// Handle delayed screenshot
-	if (awaitingDelayedScreenshot && std::chrono::high_resolution_clock::now() >= screenshotTime)
+	if (m_AwaitingDelayedScreenshot && std::chrono::high_resolution_clock::now() >= m_ScreenshotTime)
 	{
-		ImageJob* screenshotJob = new ImageJob(ImageJobType::TakeCycledScreenshot, localPlayerID, delayedScreenshotcounter);
+		ImageJob* screenshotJob = new ImageJob(ImageJobType::TakeCycledScreenshot, m_LocalPlayerID, m_DelayedScreenshotCounter);
 		m_ImageJobQueue.Produce(screenshotJob);
 		m_ImageJobLockCondition.notify_one();
 
-		awaitingDelayedScreenshot = false;
+		m_AwaitingDelayedScreenshot = false;
 	}
 }
 
@@ -283,7 +283,7 @@ void TeamSystem::HandleImageJobResults()
 		{
 		case ImageJobType::TakeScreenshot:
 		{
-			players[finishedJob->ImageOwnerPlayerID]->SetImageTextureID(PlayerImageSlot::Fullscreen, finishedJob->ResultTextureID);
+			m_Players[finishedJob->ImageOwnerPlayerID]->SetImageTextureID(PlayerImageSlot::Fullscreen, finishedJob->ResultTextureID);
 
 			PlayerUpdateMessage message = PlayerUpdateMessage(finishedJob->ImageOwnerPlayerID, PlayerImageSlot::Fullscreen, MEngine::GetTextureData(finishedJob->ResultTextureID));
 			Tubes::SendToAll(&message);
@@ -292,7 +292,7 @@ void TeamSystem::HandleImageJobResults()
 
 		case ImageJobType::TakeCycledScreenshot:
 		{
-			if (delayedScreenshotcounter == finishedJob->DelayedScreenShotCounter) // Discard the screenshot if the cycle was inversed again while the screenshot was being taken
+			if (m_DelayedScreenshotCounter == finishedJob->DelayedScreenShotCounter) // Discard the screenshot if the cycle was inversed again while the screenshot was being taken
 			{
 				const MEngine::TextureData& textureData = MEngine::GetTextureData(finishedJob->ResultTextureID);
 				for (int i = 0; i < PlayerImageSlot::Count - 1; ++i)
@@ -311,8 +311,8 @@ void TeamSystem::HandleImageJobResults()
 
 		case ImageJobType::CreateImageFromData:
 		{
-			if (players[finishedJob->ImageOwnerPlayerID]->IsActive()) // Players may have been disconnected while the job was running
-				players[finishedJob->ImageOwnerPlayerID]->SetImageTextureID(finishedJob->ImageSlot, finishedJob->ResultTextureID);
+			if (m_Players[finishedJob->ImageOwnerPlayerID]->IsActive()) // Players may have been disconnected while the job was running
+				m_Players[finishedJob->ImageOwnerPlayerID]->SetImageTextureID(finishedJob->ImageSlot, finishedJob->ResultTextureID);
 
 			free(finishedJob->Pixels);
 		} break;
@@ -321,7 +321,7 @@ void TeamSystem::HandleImageJobResults()
 		{
 			if (finishedJob->ResultTextureID != MENGINE_INVALID_TEXTURE_ID)
 			{
-				players[finishedJob->ImageOwnerPlayerID]->SetImageTextureID(finishedJob->ImageSlot, finishedJob->ResultTextureID);
+				m_Players[finishedJob->ImageOwnerPlayerID]->SetImageTextureID(finishedJob->ImageSlot, finishedJob->ResultTextureID);
 
 				PlayerUpdateMessage message = PlayerUpdateMessage(finishedJob->ImageOwnerPlayerID, finishedJob->ImageSlot, MEngine::GetTextureData(finishedJob->ResultTextureID));
 				Tubes::SendToAll(&message);
@@ -354,15 +354,15 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 			{
 			case MirageSignals::PRIME:
 			{
-				if (players[signalFlagMessage->PlayerID]->IsActive())
-					players[signalFlagMessage->PlayerID]->SetCycledScreenshotPrimed(signalFlagMessage->Flag);
+				if (m_Players[signalFlagMessage->PlayerID]->IsActive())
+					m_Players[signalFlagMessage->PlayerID]->SetCycledScreenshotPrimed(signalFlagMessage->Flag);
 
-				if (signalFlagMessage->PlayerID == localPlayerID)
+				if (signalFlagMessage->PlayerID == m_LocalPlayerID)
 				{
-					if (signalFlagMessage->Flag && delayedScreenshotcounter % 2 != 0)
-						++delayedScreenshotcounter;
-					else if(!signalFlagMessage->Flag && delayedScreenshotcounter % 2 == 0)
-						++delayedScreenshotcounter;
+					if (signalFlagMessage->Flag && m_DelayedScreenshotCounter % 2 != 0)
+						++m_DelayedScreenshotCounter;
+					else if(!signalFlagMessage->Flag && m_DelayedScreenshotCounter % 2 == 0)
+						++m_DelayedScreenshotCounter;
 
 					MLOG_INFO("Cycled screenshot was primed remotely", LOG_CATEGORY_TEAM_SYSTEM);
 				}
@@ -408,10 +408,10 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 				PlayerID newPlayerID = FindFreePlayerSlot();
 				if (newPlayerID >= 0)
 				{
-					players[newPlayerID]->Activate(newPlayerID, PlayerConnectionType::Direct, messageSenders[i], *playerInitMessage->PlayerName);
+					m_Players[newPlayerID]->Activate(newPlayerID, PlayerConnectionType::Direct, messageSenders[i], *playerInitMessage->PlayerName);
 
 					// Send the new player ID to all clients
-					PlayerInitializeMessage relayedInitMessage = PlayerInitializeMessage(newPlayerID, PlayerConnectionType::Local, players[newPlayerID]->GetName());
+					PlayerInitializeMessage relayedInitMessage = PlayerInitializeMessage(newPlayerID, PlayerConnectionType::Local, m_Players[newPlayerID]->GetName());
 					Tubes::SendToConnection(&relayedInitMessage, messageSenders[i]); // Tell the new client its ID
 
 					relayedInitMessage.PlayerConnectionType = PlayerConnectionType::Relayed;
@@ -421,20 +421,20 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 					// Make the new client aware of the relayed clients and update the new clients view of the relayed clients 
 					for (int j = 0; j < Globals::MIRAGE_MAX_PLAYERS; ++j)
 					{
-						if (players[j]->IsActive())
+						if (m_Players[j]->IsActive())
 						{
-							PlayerID playerID = players[j]->GetPlayerID();
+							PlayerID playerID = m_Players[j]->GetPlayerID();
 							if (playerID != newPlayerID)
 							{
-								PlayerConnectionType::PlayerConnectionType connectionType = (playerID == localPlayerID ? PlayerConnectionType::Direct : PlayerConnectionType::Relayed);
-								PlayerInitializeMessage idMessage = PlayerInitializeMessage(playerID, connectionType, players[playerID]->GetName());
+								PlayerConnectionType::PlayerConnectionType connectionType = (playerID == m_LocalPlayerID ? PlayerConnectionType::Direct : PlayerConnectionType::Relayed);
+								PlayerInitializeMessage idMessage = PlayerInitializeMessage(playerID, connectionType, m_Players[playerID]->GetName());
 								Tubes::SendToConnection(&idMessage, messageSenders[i]);
 								idMessage.Destroy();
 
 
-								if (players[playerID]->GetImageTextureID(PlayerImageSlot::Fullscreen) != MENGINE_INVALID_TEXTURE_ID)
+								if (m_Players[playerID]->GetImageTextureID(PlayerImageSlot::Fullscreen) != MENGINE_INVALID_TEXTURE_ID)
 								{
-									PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, PlayerImageSlot::Fullscreen, MEngine::GetTextureData(players[playerID]->GetImageTextureID(PlayerImageSlot::Fullscreen)));
+									PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, PlayerImageSlot::Fullscreen, MEngine::GetTextureData(m_Players[playerID]->GetImageTextureID(PlayerImageSlot::Fullscreen)));
 									Tubes::SendToConnection(&updateMessage, messageSenders[i]);
 									updateMessage.Destroy();
 								}
@@ -442,7 +442,7 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 								{
 									for (int k = 0; k < PlayerImageSlot::Count - 1; ++k)
 									{
-										TextureID textureID = players[playerID]->GetImageTextureID(static_cast<PlayerImageSlot::PlayerImageSlot>(k));
+										TextureID textureID = m_Players[playerID]->GetImageTextureID(static_cast<PlayerImageSlot::PlayerImageSlot>(k));
 										if (textureID != MENGINE_INVALID_TEXTURE_ID)
 										{
 											PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, static_cast<PlayerImageSlot::PlayerImageSlot>(k), MEngine::GetTextureData(textureID));
@@ -452,7 +452,7 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 									}
 								}
 
-								SignalFlagMessage primeFlagMessage = SignalFlagMessage(MirageSignals::PRIME, players[playerID]->GetCycledScreenshotPrimed(), playerID);
+								SignalFlagMessage primeFlagMessage = SignalFlagMessage(MirageSignals::PRIME, m_Players[playerID]->GetCycledScreenshotPrimed(), playerID);
 								Tubes::SendToConnection(&primeFlagMessage, messageSenders[i]);
 								primeFlagMessage.Destroy();
 							}
@@ -464,7 +464,7 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 					Tubes::SendToConnection(&hostSettingsMessage, messageSenders[i]);
 					hostSettingsMessage.Destroy();
 
-					MLOG_INFO("Added new player\nName = " << players[newPlayerID]->GetName() << "\nPlayerID = " << newPlayerID << "\nConnectionID = " << players[newPlayerID]->GetConnectionID() << "\nConnectionType = " << players[newPlayerID]->GetConnectionType(), LOG_CATEGORY_TEAM_SYSTEM);
+					MLOG_INFO("Added new player\nName = " << m_Players[newPlayerID]->GetName() << "\nPlayerID = " << newPlayerID << "\nConnectionID = " << m_Players[newPlayerID]->GetConnectionID() << "\nConnectionType = " << m_Players[newPlayerID]->GetConnectionType(), LOG_CATEGORY_TEAM_SYSTEM);
 				}
 				else
 					Tubes::Disconnect(messageSenders[i]); // TODODB: Make these players observers instead
@@ -478,9 +478,9 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 				std::string playerName;
 				if (playerInitMessage->PlayerConnectionType == PlayerConnectionType::Local)
 				{
-					if (localPlayerID == UNASSIGNED_PLAYER_ID)
+					if (m_LocalPlayerID == UNASSIGNED_PLAYER_ID)
 					{
-						localPlayerID = playerID;
+						m_LocalPlayerID = playerID;
 						playerName = GlobalsBlackboard::GetInstance()->LocalPlayerName;
 					}
 					else
@@ -492,10 +492,10 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 					playerName = *playerInitMessage->PlayerName;
 				}
 
-				if (!players[playerID]->IsActive())
+				if (!m_Players[playerID]->IsActive())
 				{
-					players[playerID]->Activate(playerID, connectionType, connectionID, playerName);
-					MLOG_INFO("Host informs of new player\nName = \"" << players[playerID]->GetName() << "\"\nPlayerID = " << playerID << "\nConnectionID = " << players[playerID]->GetConnectionID() << "\nConnectionType = " << players[playerID]->GetConnectionType(), LOG_CATEGORY_TEAM_SYSTEM);
+					m_Players[playerID]->Activate(playerID, connectionType, connectionID, playerName);
+					MLOG_INFO("Host informs of new player\nName = \"" << m_Players[playerID]->GetName() << "\"\nPlayerID = " << playerID << "\nConnectionID = " << m_Players[playerID]->GetConnectionID() << "\nConnectionType = " << m_Players[playerID]->GetConnectionType(), LOG_CATEGORY_TEAM_SYSTEM);
 				}
 				else
 					MLOG_WARNING("Received playerID message for playerID " << playerID + " but there is already a player assigned to that ID", LOG_CATEGORY_TEAM_SYSTEM);
@@ -524,10 +524,10 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 				const PlayerDisconnectMessage* playerDisconnectMessage = static_cast<const PlayerDisconnectMessage*>(receivedMessages[i]);
 				for (int i = 0; i < Globals::MIRAGE_MAX_PLAYERS; ++i)
 				{
-					if (players[i]->IsActive() && players[i]->GetPlayerID() == playerDisconnectMessage->PlayerID)
+					if (m_Players[i]->IsActive() && m_Players[i]->GetPlayerID() == playerDisconnectMessage->PlayerID)
 					{
-						MLOG_INFO("Host informs of player disconenction\nName = \"" << players[i]->GetName() << "\"\nPlayerID = " << players[i]->GetPlayerID(), LOG_CATEGORY_TEAM_SYSTEM);
-						RemovePlayer(players[i]);
+						MLOG_INFO("Host informs of player disconenction\nName = \"" << m_Players[i]->GetName() << "\"\nPlayerID = " << m_Players[i]->GetPlayerID(), LOG_CATEGORY_TEAM_SYSTEM);
+						RemovePlayer(m_Players[i]);
 					}
 				}
 			}
@@ -554,9 +554,9 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 				const LogUpdateMessage* logUpdateMessage = static_cast<const LogUpdateMessage*>(receivedMessages[i]);
 				for (int j = 0; j < Globals::MIRAGE_MAX_PLAYERS; ++j) // TODODB: Create utility function for getting a playerID from a conenctionID
 				{
-					if (players[j]->GetConnectionID() == messageSenders[i])
+					if (m_Players[j]->GetConnectionID() == messageSenders[i])
 					{
-						players[j]->AppendRemoteLog(*logUpdateMessage->LogMessages);
+						m_Players[j]->AppendRemoteLog(*logUpdateMessage->LogMessages);
 						break;
 					}
 				}
@@ -603,9 +603,9 @@ bool TeamSystem::ExecutePrimeCycledScreenshotCommand(const std::string* paramete
 			return false;
 		}
 
-		if (playerID != localPlayerID)
+		if (playerID != m_LocalPlayerID)
 		{
-			if (players[playerID]->IsActive())
+			if (m_Players[playerID]->IsActive())
 			{
 				if (outResponse != nullptr)
 					*outResponse = "There was no player with id " + playerIDString;
@@ -619,7 +619,7 @@ bool TeamSystem::ExecutePrimeCycledScreenshotCommand(const std::string* paramete
 		}
 		else
 		{
-			PrimeCycledScreenshotForPlayer(localPlayerID);
+			PrimeCycledScreenshotForPlayer(m_LocalPlayerID);
 			result = true;
 			if (outResponse != nullptr)
 				*outResponse = "The cycled screenshot of the local player has been primed";
@@ -629,7 +629,7 @@ bool TeamSystem::ExecutePrimeCycledScreenshotCommand(const std::string* paramete
 	{
 		for (int i = 0; i < Globals::MIRAGE_MAX_PLAYERS; ++i)
 		{
-			if(players[i]->IsActive())
+			if(m_Players[i]->IsActive())
 				PrimeCycledScreenshotForPlayer(i);
 		}
 		result = true;
@@ -664,17 +664,17 @@ bool TeamSystem::ExecuteDisconnectCommand(const std::string* parameters, int32_t
 			return false;
 		}
 
-		if (playerIndex != localPlayerID)
+		if (playerIndex != m_LocalPlayerID)
 		{
 			disconnectSelf = false;
-			if (!players[playerIndex]->IsActive())
+			if (!m_Players[playerIndex]->IsActive())
 			{
 				if(outResponse != nullptr)
 					*outResponse = "There was no player with id " + std::to_string(playerIndex + 1);
 				return false;
 			}
 
-			if (players[playerIndex]->GetConnectionType() != PlayerConnectionType::Direct)
+			if (m_Players[playerIndex]->GetConnectionType() != PlayerConnectionType::Direct)
 			{
 				if (outResponse != nullptr)
 					*outResponse = "Only directly connected players may be disconnected";
@@ -723,12 +723,12 @@ bool TeamSystem::ExecuteDisconnectCommand(const std::string* parameters, int32_t
 
 void TeamSystem::PrimeCycledScreenshotForPlayer(PlayerID playerID)
 {
-	if (playerID == localPlayerID)
+	if (playerID == m_LocalPlayerID)
 	{
-		if (delayedScreenshotcounter % 2 != 0)
-			++delayedScreenshotcounter;
+		if (m_DelayedScreenshotCounter % 2 != 0)
+			++m_DelayedScreenshotCounter;
 	}
-	players[playerID]->SetCycledScreenshotPrimed(true);
+	m_Players[playerID]->SetCycledScreenshotPrimed(true);
 	SignalFlagMessage message = SignalFlagMessage(MirageSignals::PRIME, true, playerID);
 	Tubes::SendToAll(&message);
 	message.Destroy();
@@ -737,9 +737,9 @@ void TeamSystem::PrimeCycledScreenshotForPlayer(PlayerID playerID)
 bool TeamSystem::DisconnectPlayer(PlayerID playerID)
 {
 	bool result = false;
-	if (playerID != localPlayerID)
+	if (playerID != m_LocalPlayerID)
 	{
-		Tubes::Disconnect(players[playerID]->GetConnectionID()); // TODODB: Check result when it is availble
+		Tubes::Disconnect(m_Players[playerID]->GetConnectionID()); // TODODB: Check result when it is availble
 		result = true;
 	}
 	return result;
@@ -749,15 +749,15 @@ void TeamSystem::DisconnectAll()
 {
 	Tubes::DisconnectAll();
 	
-	localPlayerID = UNASSIGNED_PLAYER_ID;
+	m_LocalPlayerID = UNASSIGNED_PLAYER_ID;
 	for (int i = 0; i < Globals::MIRAGE_MAX_PLAYERS; ++i)
 	{
-		if (players[i]->IsActive())
-			RemovePlayer(players[i]);
+		if (m_Players[i]->IsActive())
+			RemovePlayer(m_Players[i]);
 	}
 
-	delayedScreenshotcounter = 0;
-	awaitingDelayedScreenshot = false;
+	m_DelayedScreenshotCounter = 0;
+	m_AwaitingDelayedScreenshot = false;
 }
 
 void TeamSystem::StopHosting()
@@ -767,11 +767,11 @@ void TeamSystem::StopHosting()
 	Tubes::StopAllListeners(); 
 	Tubes::DisconnectAll();
 
-	localPlayerID = UNASSIGNED_PLAYER_ID;
+	m_LocalPlayerID = UNASSIGNED_PLAYER_ID;
 	for (int i = 0; i < Globals::MIRAGE_MAX_PLAYERS; ++i)
 	{
-		if (players[i]->IsActive())
-			RemovePlayer(players[i]);
+		if (m_Players[i]->IsActive())
+			RemovePlayer(m_Players[i]);
 	}
 
 	MLOG_INFO("Hosted session stopped", LOG_CATEGORY_TEAM_SYSTEM);
@@ -784,10 +784,10 @@ void TeamSystem::RunDebugCode()
 	bool ContinuousScreenshots = false;
 
 	// Continuously request new cycled screenshots 
-	if (ContinuousScreenshots && !awaitingDelayedScreenshot && localPlayerID != UNASSIGNED_PLAYER_ID)
+	if (ContinuousScreenshots && !m_AwaitingDelayedScreenshot && m_LocalPlayerID != UNASSIGNED_PLAYER_ID)
 	{
-		screenshotTime = std::chrono::high_resolution_clock::now() + std::chrono::milliseconds(1000);
-		awaitingDelayedScreenshot = true;
+		m_ScreenshotTime = std::chrono::high_resolution_clock::now() + std::chrono::milliseconds(1000);
+		m_AwaitingDelayedScreenshot = true;
 	}
 }
 #endif

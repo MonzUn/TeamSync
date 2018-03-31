@@ -41,13 +41,12 @@ private:
 	void RunDebugCode();
 #endif
 
-	// TODODB: Rename using m_ standard
-	Player* players[Globals::MIRAGE_MAX_PLAYERS] = { nullptr };
-	PlayerID localPlayerID = UNASSIGNED_PLAYER_ID;
+	Player* m_Players[Globals::MIRAGE_MAX_PLAYERS] = { nullptr };
+	PlayerID m_LocalPlayerID = UNASSIGNED_PLAYER_ID;
 
-	uint64_t delayedScreenshotcounter = 0;
-	bool awaitingDelayedScreenshot = false;
-	std::chrono::time_point<std::chrono::steady_clock> screenshotTime;
+	uint64_t m_DelayedScreenshotCounter = 0;
+	bool m_AwaitingDelayedScreenshot = false;
+	std::chrono::time_point<std::chrono::steady_clock> m_ScreenshotTime;
 
 	std::atomic<bool>					m_RunImageJobThread = true;
 	std::thread							m_ImageJobThread;
