@@ -9,13 +9,14 @@
 #endif
 
 // --- Known memory leaks
+// TODODB: Small one time leak at remote client shutdown
 
 // --- Known log warnings
 
 // --- Known log errors
 // TODODB: Fix error "Attempted to get component at an inactive index; component name = "TextureRenderingComponent"" that occurs on whutdown from MP gameMode
 
-// Project TODO list
+// Project to do list
 // TODODB: Make the application UI scalable
 // TODODB: Make clipping and destination rects customizable from file
 // TODODB: Make clipping/destination rect setups selectable from main menu

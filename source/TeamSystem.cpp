@@ -126,7 +126,7 @@ void TeamSystem::RemovePlayer(Player* player)
 		m_LocalPlayerID = UNASSIGNED_PLAYER_ID;
 }
 
-void TeamSystem::OnConnection(Tubes::ConnectionID connectionID) // TODODB: Rework this to request player data from the connecting client and only create the player when that data ahs arrived
+void TeamSystem::OnConnection(Tubes::ConnectionID connectionID)
 {
 	if (!GlobalsBlackboard::GetInstance()->IsHost)
 	{

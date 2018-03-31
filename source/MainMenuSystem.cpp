@@ -273,7 +273,7 @@ void MainMenuSystem::Connect()
 
 void MainMenuSystem::ConnectTo(const std::string& IP, uint16_t port)
 {
-	Tubes::RequestConnection(IP, port); // TODODB: Give feedback when a connection fails (Requires a Tubes callback for failed connection attempts)
+	Tubes::RequestConnection(IP, port);
 }
 
 void MainMenuSystem::Quit()
