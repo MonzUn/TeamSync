@@ -8,7 +8,9 @@
 std::string GetAboutString();
 
 using namespace UILayout;
-using namespace MEngine; // TODODB: Split this up into relevant types
+using MEngine::TextureID;
+using MEngine::TextAlignment;
+using MEngine::TextBoxFlags;
 
 // ---------- PUBLIC ----------
 
