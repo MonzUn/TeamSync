@@ -8,12 +8,12 @@
 // TODODB: Add check on connection for version compatibility
 namespace Globals
 {
-	constexpr int32_t MIRAGE_MAX_PLAYERS = 4;
-	constexpr uint16_t DefaultPort = 19200; // TODODB: Rename using UPPERCASE
-	constexpr uint16_t APP_VERSION_SUPER = 0;
-	constexpr uint16_t APP_VERSION_MAJOR = 8;
-	constexpr uint16_t APP_VERSION_MINOR = 1;
-	constexpr uint16_t APP_VERSION_PATCH = 0;
+	constexpr int32_t	MIRAGE_MAX_PLAYERS	= 4;
+	constexpr uint16_t	DEFAULT_PORT		= 19200;
+	constexpr uint16_t	APP_VERSION_SUPER	= 0;
+	constexpr uint16_t	APP_VERSION_MAJOR	= 8;
+	constexpr uint16_t	APP_VERSION_MINOR	= 1;
+	constexpr uint16_t	APP_VERSION_PATCH	= 0;
 
 	const std::string APP_VERSION_STRING = std::to_string(APP_VERSION_SUPER)
 		+ '.' + std::to_string(APP_VERSION_MAJOR) + ((APP_VERSION_MINOR > 0 || APP_VERSION_PATCH > 0) ? '.' + std::to_string(APP_VERSION_MINOR) : "")
