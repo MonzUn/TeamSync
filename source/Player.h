@@ -114,23 +114,23 @@ public:
 
 	void FlushRemoteLog();
 
-private: // TODODB: Rename member variables using m_ standard
+private:
 	void Reset();
 	void UnloadScreenshotTextures();
 
-	int32_t PositionX	= -1;
-	int32_t PositionY	= -1;
-	int32_t Width		= -1;
-	int32_t Height		= -1;
+	int32_t m_PositionX	= -1;
+	int32_t m_PositionY	= -1;
+	int32_t m_Width		= -1;
+	int32_t m_Height	= -1;
 
-	Player::Image* images[PlayerImageSlot::Count] = { nullptr };
-	Player::Image* imageFrame	= nullptr;
-	Player::Image* primeImage	= nullptr;
-	Player::Image* defaultImage	= nullptr;
-	Player::Image* statusImage	= nullptr;
+	Player::Image* m_Images[PlayerImageSlot::Count] = { nullptr };
+	Player::Image* m_ImageFrame		= nullptr;
+	Player::Image* m_PrimeImage		= nullptr;
+	Player::Image* m_DefaultImage	= nullptr;
+	Player::Image* m_StatusImage	= nullptr;
 
-	MEngine::TextureID statusActiveTextureID	= MENGINE_INVALID_TEXTURE_ID;
-	MEngine::TextureID statusInactiveTextureID	= MENGINE_INVALID_TEXTURE_ID;
+	MEngine::TextureID m_StatusActiveTextureID	= MENGINE_INVALID_TEXTURE_ID;
+	MEngine::TextureID m_StatusInactiveTextureID	= MENGINE_INVALID_TEXTURE_ID;
 
 	MEngine::EntityID m_NameTextBoxID = MENGINE_INVALID_ENTITY_ID;
 	

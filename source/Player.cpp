@@ -15,28 +15,28 @@ using namespace MEngine;
 // ---------- PUBLIC ----------
 
 Player::Player(int32_t posX, int32_t posY, int32_t width, int32_t height) :
-	PositionX(posX), PositionY(posY), Width(width), Height(height)
+	m_PositionX(posX), m_PositionY(posY), m_Width(width), m_Height(height)
 {
 	for (int i = 0; i < PlayerImageSlot::Count; ++i)
 	{
-		images[i] = new Image(PositionX + ImagePosAndDimensions[i][0], PositionY + ImagePosAndDimensions[i][1], ImagePosAndDimensions[i][2], ImagePosAndDimensions[i][3], ImagePosAndDimensions[i][4]);
+		m_Images[i] = new Image(m_PositionX + ImagePosAndDimensions[i][0], m_PositionY + ImagePosAndDimensions[i][1], ImagePosAndDimensions[i][2], ImagePosAndDimensions[i][3], ImagePosAndDimensions[i][4]);
 	}
 	
-	statusActiveTextureID	= GetTextureFromPath("resources/graphics/Check.png");
-	statusInactiveTextureID = GetTextureFromPath("resources/graphics/Cross.png");
+	m_StatusActiveTextureID	= GetTextureFromPath("resources/graphics/Check.png");
+	m_StatusInactiveTextureID = GetTextureFromPath("resources/graphics/Cross.png");
 	
-	imageFrame = new Image(PositionX + PLAYER_FRAME_RELATIVE_POS_X, PositionY + PLAYER_FRAME_RELATIVE_POS_Y, PLAYER_FRAME_DEPTH, PLAYER_FRAME_WIDTH, PLAYER_FRAME_HEIGHT);
-	imageFrame->SetTextureID(GetTextureFromPath("resources/graphics/PlayerFrame.png"));
+	m_ImageFrame = new Image(m_PositionX + PLAYER_FRAME_RELATIVE_POS_X, m_PositionY + PLAYER_FRAME_RELATIVE_POS_Y, PLAYER_FRAME_DEPTH, PLAYER_FRAME_WIDTH, PLAYER_FRAME_HEIGHT);
+	m_ImageFrame->SetTextureID(GetTextureFromPath("resources/graphics/PlayerFrame.png"));
 	
-	primeImage = new Image(PositionX + PLAYER_PRIME_INDICATOR_RELATIVE_POS_X, PositionY + PLAYER_PRIME_INDICATOR_RELATIVE_POS_Y, PLAYER_PRIME_INDICATOR_DEPTH, PLAYER_PRIME_INDICATOR_WIDTH, PLAYER_PRIME_INDICATOR_HEIGHT);
-	primeImage->SetTextureID(GetTextureFromPath("resources/graphics/RedDot.png")); // TODODB: Unload all the textures loaded here when there is a proper system for this in MEngine
+	m_PrimeImage = new Image(m_PositionX + PLAYER_PRIME_INDICATOR_RELATIVE_POS_X, m_PositionY + PLAYER_PRIME_INDICATOR_RELATIVE_POS_Y, PLAYER_PRIME_INDICATOR_DEPTH, PLAYER_PRIME_INDICATOR_WIDTH, PLAYER_PRIME_INDICATOR_HEIGHT);
+	m_PrimeImage->SetTextureID(GetTextureFromPath("resources/graphics/RedDot.png")); // TODODB: Unload all the textures loaded here when there is a proper system for this in MEngine
 	
-	defaultImage = new Image(PositionX + PLAYER_DEFAULT_IMAGE_RELATIVE_POS_X, PositionY + PLAYER_DEFAULT_IMAGE_RELATIVE_POS_Y, PLAYER_DEFAULT_IMAGE_DEPTH, PLAYER_DEFAULT_IMAGE_WIDTH, PLAYER_DEFAULT_IMAGE_HEIGHT);
-	defaultImage->SetTextureID(GetTextureFromPath("resources/graphics/Computer.png"));
+	m_DefaultImage = new Image(m_PositionX + PLAYER_DEFAULT_IMAGE_RELATIVE_POS_X, m_PositionY + PLAYER_DEFAULT_IMAGE_RELATIVE_POS_Y, PLAYER_DEFAULT_IMAGE_DEPTH, PLAYER_DEFAULT_IMAGE_WIDTH, PLAYER_DEFAULT_IMAGE_HEIGHT);
+	m_DefaultImage->SetTextureID(GetTextureFromPath("resources/graphics/Computer.png"));
 	
-	statusImage = new Image(PositionX + PLAYER_STATUS_IMAGE_RELATIVE_POS_X, PositionY + PLAYER_STATUS_IMAGE_RELATIVE_POS_Y, PLAYER_STATUS_IMAGE_DEPTH, PLAYER_STATUS_IMAGE_WIDTH, PLAYER_STATUS_IMAGE_HEIGHT);
+	m_StatusImage = new Image(m_PositionX + PLAYER_STATUS_IMAGE_RELATIVE_POS_X, m_PositionY + PLAYER_STATUS_IMAGE_RELATIVE_POS_Y, PLAYER_STATUS_IMAGE_DEPTH, PLAYER_STATUS_IMAGE_WIDTH, PLAYER_STATUS_IMAGE_HEIGHT);
 
-	m_NameTextBoxID = CreateTextBox(PositionX + MULTIPLAYER_PLAYER_NAME_OFFSET_X, PositionY + MULTIPLAYER_PLAYER_NAME_OFFSET_Y, MULTIPLAYER_PLAYER_NAME_TEXT_BOX_WIDTH, MULTIPLAYER_PLAYER_NAME_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->DescriptionFontID, MULTIPLAYER_PLAYER_NAME_TEXT_BOX_DEPTH, m_Name, TextAlignment::BottomCentered);
+	m_NameTextBoxID = CreateTextBox(m_PositionX + MULTIPLAYER_PLAYER_NAME_OFFSET_X, m_PositionY + MULTIPLAYER_PLAYER_NAME_OFFSET_Y, MULTIPLAYER_PLAYER_NAME_TEXT_BOX_WIDTH, MULTIPLAYER_PLAYER_NAME_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->DescriptionFontID, MULTIPLAYER_PLAYER_NAME_TEXT_BOX_DEPTH, m_Name, TextAlignment::BottomCentered);
 
 	Reset();
 }
@@ -47,12 +47,12 @@ Player::~Player()
 
 	for (int i = 0; i < PlayerImageSlot::Count; ++i)
 	{
-		delete images[i];
+		delete m_Images[i];
 	}
-	delete imageFrame;
-	delete primeImage;
-	delete defaultImage;
-	delete statusImage;
+	delete m_ImageFrame;
+	delete m_PrimeImage;
+	delete m_DefaultImage;
+	delete m_StatusImage;
 
 	DestroyEntity(m_NameTextBoxID);
 }
@@ -71,7 +71,7 @@ void Player::Activate(PlayerID playerID, PlayerConnectionType::PlayerConnectionT
 	m_Name				= playerName;
 	m_RemoteLog			= "";
 	SetCycledScreenshotPrimed(true);
-	statusImage->SetTextureID(statusActiveTextureID);
+	m_StatusImage->SetTextureID(m_StatusActiveTextureID);
 
 	*static_cast<TextComponent*>(GetComponent(m_NameTextBoxID, TextComponent::GetComponentMask()))->Text = playerName;
 	ShowTextBox(m_NameTextBoxID);
@@ -87,7 +87,7 @@ void Player::Deactivate()
 		return;
 	}
 
-	static_cast<PosSizeComponent*>(GetComponent(m_NameTextBoxID, PosSizeComponent::GetComponentMask()))->PosX = PositionX + MULTIPLAYER_PLAYER_NAME_OFFSET_X;
+	static_cast<PosSizeComponent*>(GetComponent(m_NameTextBoxID, PosSizeComponent::GetComponentMask()))->PosX = m_PositionX + MULTIPLAYER_PLAYER_NAME_OFFSET_X;
 	HideTextBox(m_NameTextBoxID);
 
 	Reset();
@@ -99,7 +99,7 @@ MEngine::TextureID Player::GetImageTextureID(PlayerImageSlot::PlayerImageSlot pl
 	if (!m_IsActive)
 		return MENGINE_INVALID_TEXTURE_ID;
 
-	return images[playerImage]->GetTextureID();
+	return m_Images[playerImage]->GetTextureID();
 }
 
 void Player::SetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImageSlot, TextureID textureID)
@@ -107,7 +107,7 @@ void Player::SetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImageSlot,
 	if (!m_IsActive)
 		return;
 
-	static_cast<PosSizeComponent*>(GetComponent(m_NameTextBoxID, PosSizeComponent::GetComponentMask()))->PosX = PositionX + MULTIPLAYER_PLAYER_NAME_SPLIT_IMAGE_OFFSET_X;
+	static_cast<PosSizeComponent*>(GetComponent(m_NameTextBoxID, PosSizeComponent::GetComponentMask()))->PosX = m_PositionX + MULTIPLAYER_PLAYER_NAME_SPLIT_IMAGE_OFFSET_X;
 
 	if(playerImageSlot != PlayerImageSlot::Fullscreen)
 		ShowTextBox(m_NameTextBoxID);
@@ -117,18 +117,18 @@ void Player::SetImageTextureID(PlayerImageSlot::PlayerImageSlot playerImageSlot,
 		UnloadScreenshotTextures();
 		HideTextBox(m_NameTextBoxID);
 	}
-	else if (images[PlayerImageSlot::Fullscreen]->GetTextureID() != MENGINE_INVALID_TEXTURE_ID)
+	else if (m_Images[PlayerImageSlot::Fullscreen]->GetTextureID() != MENGINE_INVALID_TEXTURE_ID)
 	{
-		UnloadTexture(images[PlayerImageSlot::Fullscreen]->GetTextureID());
-		images[PlayerImageSlot::Fullscreen]->SetTextureID(MENGINE_INVALID_TEXTURE_ID);
+		UnloadTexture(m_Images[PlayerImageSlot::Fullscreen]->GetTextureID());
+		m_Images[PlayerImageSlot::Fullscreen]->SetTextureID(MENGINE_INVALID_TEXTURE_ID);
 	}
 		
-	if (images[playerImageSlot]->GetTextureID() != MENGINE_INVALID_TEXTURE_ID)
-		UnloadTexture(images[playerImageSlot]->GetTextureID());
+	if (m_Images[playerImageSlot]->GetTextureID() != MENGINE_INVALID_TEXTURE_ID)
+		UnloadTexture(m_Images[playerImageSlot]->GetTextureID());
 
-	images[playerImageSlot]->SetTextureID(textureID);
-	defaultImage->SetRenderIgnore(true);
-	statusImage->SetRenderIgnore(true);
+	m_Images[playerImageSlot]->SetTextureID(textureID);
+	m_DefaultImage->SetRenderIgnore(true);
+	m_StatusImage->SetRenderIgnore(true);
 }
 
 PlayerID Player::GetPlayerID() const
@@ -174,7 +174,7 @@ bool Player::GetCycledScreenshotPrimed() const
 void Player::SetCycledScreenshotPrimed(bool primed)
 {
 	m_CycledScreenshotPrimed = primed;
-	primeImage->SetRenderIgnore(!primed);
+	m_PrimeImage->SetRenderIgnore(!primed);
 }
 
 void Player::FlushRemoteLog()
@@ -207,9 +207,9 @@ void Player::Reset()
 	m_IsActive			= false;
 	// TODODB: Reset remoteLog and name here instead when remote logs are being flushed on disconnection instead
 
-	defaultImage->SetRenderIgnore(false);
-	statusImage->SetRenderIgnore(false);
-	statusImage->SetTextureID(statusInactiveTextureID);
+	m_DefaultImage->SetRenderIgnore(false);
+	m_StatusImage->SetRenderIgnore(false);
+	m_StatusImage->SetTextureID(m_StatusInactiveTextureID);
 
 	SetCycledScreenshotPrimed(false);
 }
@@ -218,10 +218,10 @@ void Player::UnloadScreenshotTextures()
 {
 	for (int i = 0; i < PlayerImageSlot::Count; ++i)
 	{
-		if (images[i]->GetTextureID() != MENGINE_INVALID_TEXTURE_ID)
+		if (m_Images[i]->GetTextureID() != MENGINE_INVALID_TEXTURE_ID)
 		{
-			UnloadTexture(images[i]->GetTextureID());
-			images[i]->SetTextureID(MENGINE_INVALID_TEXTURE_ID);
+			UnloadTexture(m_Images[i]->GetTextureID());
+			m_Images[i]->SetTextureID(MENGINE_INVALID_TEXTURE_ID);
 		}
 	}
 }
