@@ -16,6 +16,8 @@
 #include <iostream>
 #include <stdlib.h>
 
+#define LOG_CATEGORY_MAIN_MENU_SYSTEM "MainMenuSystem"
+
 using namespace std::placeholders;
 
 using namespace UILayout;
@@ -54,8 +56,7 @@ void MainMenuSystem::Initialize()
 	m_VersionNumberTextID	= MEngine::CreateTextBox(APP_VERSION_NUMBER_TEXT_BOX_POS_X, APP_VERSION_NUMBER_TEXT_BOX_POS_Y, APP_VERSION_NUMBER_TEXT_BOX_WIDTH, APP_VERSION_NUMBER_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->VersionFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, Globals::APP_VERSION_STRING, TextAlignment::TopCentered);
 	m_FeedbackTextID		= MEngine::CreateTextBox(MAIN_MENU_FEEDBACK_TEXT_POS_X, MAIN_MENU_FEEDBACK_TEXT_POS_Y, MAIN_MENU_FEEDBACK_TEXT_WIDTH, MAIN_MENU_FEEDBACK_TEXT_HEIGHT, GlobalsBlackboard::GetInstance()->DescriptionFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, "", TextAlignment::CenterCentered);
 
-	m_OnConnectionHandle		= Tubes::RegisterConnectionCallback(std::bind(&MainMenuSystem::OnConnection, this, _1));
-	m_OnConnectionFailedHandle	= Tubes::RegisterConnectionFailedCallback(std::bind(&MainMenuSystem::OnConnectionFailed, this, _1));
+	m_OnConnectionHandle	= Tubes::RegisterConnectionCallback(std::bind(&MainMenuSystem::OnConnection, this, _1));
 
 	RegisterCommands();
 }
@@ -85,7 +86,6 @@ void MainMenuSystem::Shutdown()
 	MEngine::UnregisterAllCommands();
 
 	Tubes::UnregisterConnectionCallback(m_OnConnectionHandle);
-	Tubes::UnregisterConnectionFailedCallback(m_OnConnectionFailedHandle);
 
 	System::Shutdown();
 }
@@ -302,30 +302,42 @@ void MainMenuSystem::OpenIssueTrackerPage() const
 	MUtility::OpenBrowserOnURL("https://github.com/MonzUn/Mirage/issues");
 }
 
-void MainMenuSystem::OnConnection(Tubes::ConnectionID connectionID)
+void MainMenuSystem::OnConnection(const Tubes::ConnectionAttemptResultData& connectionResult)
 {
-	MEngine::Config::SetString("DefaultConnectionIP", Tubes::GetAddressOfConnection(connectionID));
-	MEngine::Config::SetInt("DefaultConnectionPort", Tubes::GetPortOfConnection(connectionID));
-
-	GlobalsBlackboard::GetInstance()->ConnectionID = connectionID;
-
-	StartMPGameMode();
-}
-
-void MainMenuSystem::OnConnectionFailed(const Tubes::ConnectionAttemptResultData& result)
-{
-	switch (result.Result)
+	switch (connectionResult.Result)
 	{
-	case Tubes::ConnectionAttemptResult::FAILED_TIMEOUT:
+		case Tubes::ConnectionAttemptResult::SUCCESS_OUTGOING:
+		{
+			MEngine::Config::SetString("DefaultConnectionIP", Tubes::GetAddressOfConnection(connectionResult.ID));
+			MEngine::Config::SetInt("DefaultConnectionPort", Tubes::GetPortOfConnection(connectionResult.ID));
+
+			GlobalsBlackboard::GetInstance()->ConnectionID = connectionResult.ID;
+
+			StartMPGameMode();
+		} break;
+
+		case Tubes::ConnectionAttemptResult::FAILED_TIMEOUT:
 		{
 			*static_cast<TextComponent*>(MEngine::GetComponent(m_FeedbackTextID, TextComponent::GetComponentMask()))->Text = "Connection attempt timed out";
 		} break;
 
-		case Tubes::ConnectionAttemptResult::FAILED_INVALID_IP: // TODODB: Give user feedback
-		case Tubes::ConnectionAttemptResult::FAILED_INVALID_PORT: // TODODB Give user feedback
+		
+		case Tubes::ConnectionAttemptResult::SUCCESS_INCOMING:
+		{
+			MLOG_WARNING("Received incoming connection in main menu", LOG_CATEGORY_MAIN_MENU_SYSTEM);
+		} break;
+		
+
+		// These never occur since we validate the IP and port before sending it to Tubes
+		case Tubes::ConnectionAttemptResult::FAILED_INVALID_IP:
+		case Tubes::ConnectionAttemptResult::FAILED_INVALID_PORT:
 		case Tubes::ConnectionAttemptResult::INVALID:
-	default:
-		break;
+		{
+			MLOG_WARNING("Received unexpected connection attempt result", LOG_CATEGORY_MAIN_MENU_SYSTEM);
+		} break;
+
+		default:
+			break;
 	}
 }
 

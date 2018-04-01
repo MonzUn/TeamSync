@@ -26,8 +26,7 @@ private:
 	void OpenControlsPage() const;
 	void OpenIssueTrackerPage() const;
 
-	void OnConnection(Tubes::ConnectionID connectionID);
-	void OnConnectionFailed(const Tubes::ConnectionAttemptResultData& result);
+	void OnConnection(const Tubes::ConnectionAttemptResultData& connectionResult);
 
 	void StartMPGameMode();
 
@@ -50,5 +49,4 @@ private:
 	MEngine::EntityID m_FeedbackTextID							= MENGINE_INVALID_ENTITY_ID;
 
 	Tubes::ConnectionCallbackHandle m_OnConnectionHandle;
-	Tubes::ConnectionFailedCallbackHandle m_OnConnectionFailedHandle;
 };

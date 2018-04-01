@@ -126,17 +126,40 @@ void TeamSystem::RemovePlayer(Player* player)
 		m_LocalPlayerID = UNASSIGNED_PLAYER_ID;
 }
 
-void TeamSystem::OnConnection(Tubes::ConnectionID connectionID)
+void TeamSystem::OnConnection(const Tubes::ConnectionAttemptResultData& connectionResult)
 {
-	if (!GlobalsBlackboard::GetInstance()->IsHost)
+	switch (connectionResult.Result)
 	{
-		MLOG_WARNING("Connection callback triggered in client mode", LOG_CATEGORY_TEAM_SYSTEM);
-		return;
-	}
+	case Tubes::ConnectionAttemptResult::SUCCESS_INCOMING:
+		{
+			if (!GlobalsBlackboard::GetInstance()->IsHost)
+			{
+				MLOG_WARNING("Incominc connection received in client mode", LOG_CATEGORY_TEAM_SYSTEM);
+				return;
+			}
 
-	RequestMessageMessage* requestMessage = new RequestMessageMessage(MirageMessages::PLAYER_INITIALIZE);
-	Tubes::SendToConnection(requestMessage, connectionID);
-	requestMessage->Destroy();
+			RequestMessageMessage* requestMessage = new RequestMessageMessage(MirageMessages::PLAYER_INITIALIZE);
+			Tubes::SendToConnection(requestMessage, connectionResult.ID);
+			requestMessage->Destroy();
+		} break;
+
+		case Tubes::ConnectionAttemptResult::SUCCESS_OUTGOING:
+		{
+			MLOG_WARNING("An outgoing connection was made while in session mode", LOG_CATEGORY_TEAM_SYSTEM);
+		} break;
+
+		case Tubes::ConnectionAttemptResult::FAILED_INTERNAL_ERROR:
+		case Tubes::ConnectionAttemptResult::FAILED_INVALID_IP:
+		case Tubes::ConnectionAttemptResult::FAILED_INVALID_PORT:
+		case Tubes::ConnectionAttemptResult::FAILED_TIMEOUT:
+		case Tubes::ConnectionAttemptResult::INVALID:
+		{
+			MLOG_WARNING("Received unexpected connection result", LOG_CATEGORY_TEAM_SYSTEM);
+		} break;
+
+		default:
+			break;
+	}
 }
 
 void TeamSystem::OnDisconnection(Tubes::ConnectionID connectionID)

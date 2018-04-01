@@ -20,7 +20,7 @@ private:
 	PlayerID FindFreePlayerSlot() const;
 	void RemovePlayer(Player* player);
 
-	void OnConnection(Tubes::ConnectionID connectionID);
+	void OnConnection(const Tubes::ConnectionAttemptResultData& connectionResult);
 	void OnDisconnection(Tubes::ConnectionID connectionID);
 
 	void ProcessImageJobs();
