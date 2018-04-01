@@ -43,6 +43,7 @@ void MainMenuSystem::Initialize()
 	m_DevBlogButtonID			= MEngine::CreateButton(DEV_BLOG_BUTTON_POS_X, DEV_BLOG_BUTTON_POS_Y, MAIN_MENU_SMALL_BUTTON_WIDTH, MAIN_MENU_SMALL_BUTTON_HEIGHT, std::bind(&MainMenuSystem::OpenDevBlog, this), MENGINE_DEFAULT_UI_BUTTON_DEPTH, BrowserButtonTextureID, GlobalsBlackboard::GetInstance()->ButtonFontID, "DevBlog");
 	m_ControlsButtonID			= MEngine::CreateButton(CONTROLS_BUTTON_POS_X, CONTROLS_BUTTON_POS_Y, MAIN_MENU_SMALL_BUTTON_WIDTH, MAIN_MENU_SMALL_BUTTON_HEIGHT, std::bind(&MainMenuSystem::OpenControlsPage, this), MENGINE_DEFAULT_UI_BUTTON_DEPTH, BrowserButtonTextureID, GlobalsBlackboard::GetInstance()->ButtonFontID, "Controls");
 	m_ReportBugButtonID			= MEngine::CreateButton(REPORT_BUG_BUTTON_POS_X, REPORT_BUG_BUTTON_POS_Y, MAIN_MENU_SMALL_BUTTON_WIDTH, MAIN_MENU_SMALL_BUTTON_HEIGHT, std::bind(&MainMenuSystem::OpenIssueTrackerPage, this), MENGINE_DEFAULT_UI_BUTTON_DEPTH, BrowserButtonTextureID, GlobalsBlackboard::GetInstance()->ButtonFontID, "Report bug");
+	m_UpdateButtonID			= MEngine::CreateButton(UPDATE_BUTTON_POS_X, UPDATE_BUTTON_POS_Y, MAIN_MENU_SMALL_BUTTON_WIDTH, MAIN_MENU_SMALL_BUTTON_HEIGHT, std::bind(&MainMenuSystem::OpenDownloadPage, this), MENGINE_DEFAULT_UI_BUTTON_DEPTH, BrowserButtonTextureID, GlobalsBlackboard::GetInstance()->ButtonFontID, "Update");
 	
 	m_ConnectIPInputTextBoxID	= MEngine::CreateTextBox(IP_TEXT_BOX_POS_X, IP_TEXT_BOX_POS_Y, IP_TEXT_BOX_WIDTH, MAIN_MENU_INPUT_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->InputTextBoxFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, MEngine::Config::GetString("DefaultConnectionIP", "127.0.0.1"), MEngine::TextAlignment::BottomLeft, TEXT_BOX_EDIT_OVERWRITE_RESET_FLAG, Colors[WHITE], Colors[RED]);
 	m_ConnectPortInputTextBoxID	= MEngine::CreateTextBox(PORT_TEXT_BOX_POS_X, PORT_TEXT_BOX_POS_Y, PORT_TEXT_BOX_WIDTH, MAIN_MENU_INPUT_TEXT_BOX_HEIGHT, GlobalsBlackboard::GetInstance()->InputTextBoxFontID, MENGINE_DEFAULT_UI_TEXTBOX_DEPTH, std::to_string(MEngine::Config::GetInt("DefaultConnectionPort", Globals::DEFAULT_PORT)), MEngine::TextAlignment::BottomLeft, TEXT_BOX_EDIT_OVERWRITE_RESET_FLAG, Colors[WHITE], Colors[RED]);
@@ -70,6 +71,7 @@ void MainMenuSystem::Shutdown()
 	MEngine::DestroyEntity(m_DevBlogButtonID);
 	MEngine::DestroyEntity(m_ControlsButtonID);
 	MEngine::DestroyEntity(m_ReportBugButtonID);
+	MEngine::DestroyEntity(m_UpdateButtonID);
 	
 	MEngine::DestroyEntity(m_ConnectIPInputTextBoxID);
 	MEngine::DestroyEntity(m_ConnectPortInputTextBoxID);
@@ -99,6 +101,7 @@ void MainMenuSystem::Suspend()
 	MEngine::HideButton(m_DevBlogButtonID);
 	MEngine::HideButton(m_ControlsButtonID);
 	MEngine::HideButton(m_ReportBugButtonID);
+	MEngine::HideButton(m_UpdateButtonID);
 
 	MEngine::HideTextBox(m_ConnectIPInputTextBoxID);
 	MEngine::HideTextBox(m_ConnectPortInputTextBoxID);
@@ -125,6 +128,7 @@ void MainMenuSystem::Resume()
 	MEngine::ShowButton(m_DevBlogButtonID);
 	MEngine::ShowButton(m_ControlsButtonID);
 	MEngine::ShowButton(m_ReportBugButtonID);
+	MEngine::ShowButton(m_UpdateButtonID);
 			 
 	MEngine::ShowTextBox(m_ConnectIPInputTextBoxID);
 	MEngine::ShowTextBox(m_ConnectPortInputTextBoxID);
@@ -300,6 +304,11 @@ void MainMenuSystem::OpenControlsPage() const
 void MainMenuSystem::OpenIssueTrackerPage() const
 {
 	MUtility::OpenBrowserOnURL("https://github.com/MonzUn/Mirage/issues");
+}
+
+void MainMenuSystem::OpenDownloadPage() const
+{
+	MUtility::OpenBrowserOnURL("https://github.com/MonzUn/Mirage/releases");
 }
 
 void MainMenuSystem::OnConnection(const Tubes::ConnectionAttemptResultData& connectionResult)
