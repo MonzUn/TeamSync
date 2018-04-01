@@ -30,19 +30,19 @@ if(MSVC)
 endif(MSVC)
 
 # Include directory
-file(RELATIVE_PATH IncludeDirectoryRelative ${Mirage_SOURCE_DIR} ${ProjectRootAbsolute}/include)
+file(RELATIVE_PATH IncludeDirectoryRelative ${${PROJECT_NAME}_SOURCE_DIR} "${ProjectRootAbsolute}/include")
 get_filename_component(IncludeDirectoryAbsolute ${IncludeDirectoryRelative} ABSOLUTE)
 
 # Debug library directory
-file(RELATIVE_PATH DebugLibraryDirectoryRelative ${Mirage_SOURCE_DIR} ${ProjectRootAbsolute}/lib/debug/x64)
+file(RELATIVE_PATH DebugLibraryDirectoryRelative ${${PROJECT_NAME}_SOURCE_DIR} "${ProjectRootAbsolute}/lib/debug/x64")
 get_filename_component(DebugLibraryDirectoryAbsolute ${DebugLibraryDirectoryRelative} ABSOLUTE)
 
 # Release library directory
-file(RELATIVE_PATH ReleaseLibraryDirectoryRelative ${Mirage_SOURCE_DIR} ${ProjectRootAbsolute}/lib/release/x64)
+file(RELATIVE_PATH ReleaseLibraryDirectoryRelative ${${PROJECT_NAME}_SOURCE_DIR} "${ProjectRootAbsolute}/lib/release/x64")
 get_filename_component(ReleaseLibraryDirectoryAbsolute ${ReleaseLibraryDirectoryRelative} ABSOLUTE)
 
 # Shared library directory
-file(RELATIVE_PATH SharedLibraryDirectoryRelative ${Mirage_SOURCE_DIR} ${ProjectRootAbsolute}/lib/shared/x64)
+file(RELATIVE_PATH SharedLibraryDirectoryRelative ${${PROJECT_NAME}_SOURCE_DIR} "${ProjectRootAbsolute}/lib/shared/x64")
 get_filename_component(SharedLibraryDirectoryAbsolute ${SharedLibraryDirectoryRelative} ABSOLUTE)
 
 # Find SDL2
@@ -70,7 +70,7 @@ message("[${PROJECT_NAME}] - Found SDL_FontCache debug libs at path ${SDL_FontCa
 message("[${PROJECT_NAME}] - Found SDL_FontCache release libs at path ${SDL_FontCacheReleaseLibrary}")
 
 # Find MUtility
-set(MUtilityLocalIncludePath ${IncludeDirectoryAbsolute}/MUtility)
+set(MUtilityLocalIncludePath "${IncludeDirectoryAbsolute}/MUtility")
 set(MUtilityLocalDebugLibPath "${DebugLibraryDirectoryAbsolute}/MUtility")
 set(MUtilityLocalReleaseLibPath "${ReleaseLibraryDirectoryAbsolute}/MUtility")
 
@@ -96,7 +96,7 @@ find_library(MUtilityReleaseLibrary NAMES MUtility PATHS ${MUtilityReleaseLibs})
 message("[${PROJECT_NAME}] - Found MUtility release libs at path ${MUtilityReleaseLibrary}")
 
 # Find MEngine
-set(MEngineLocalIncludePath ${IncludeDirectoryAbsolute}/MEngine)
+set(MEngineLocalIncludePath "${IncludeDirectoryAbsolute}/MEngine")
 set(MEngineLocalDebugLibPath "${DebugLibraryDirectoryAbsolute}/MEngine")
 set(MEngineLocalReleaseLibPath "${ReleaseLibraryDirectoryAbsolute}/MEngine")
 
@@ -122,7 +122,7 @@ find_library(MEngineReleaseLibrary NAMES MEngine PATHS ${MEngineReleaseLibs})
 message("[${PROJECT_NAME}] - Found MEngine release libs at path ${MEngineReleaseLibrary}")
 
 # Find Tubes
-set(TubesLocalIncludePath ${IncludeDirectoryAbsolute}/Tubes)
+set(TubesLocalIncludePath "${IncludeDirectoryAbsolute}/Tubes")
 set(TubesLocalDebugLibPath "${DebugLibraryDirectoryAbsolute}/Tubes")
 set(TubesLocalReleaseLibPath "${ReleaseLibraryDirectoryAbsolute}/Tubes")
 
@@ -189,15 +189,15 @@ target_link_libraries(${PROJECT_NAME} debug ${SDL2Libraries} debug ${SDL_FontCac
 target_link_libraries(${PROJECT_NAME} optimized ${SDL2Libraries} optimized ${SDL_FontCacheReleaseLibrary} optimized ${MUtilityReleaseLibrary} optimized ${MEngineReleaseLibrary} optimized ${TubesReleaseLibrary})
 
 # Add postbuild scripts that moves DLL files to the directory of the executable
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${ConfigurationBasedExternalPathAbsolute} ${OutputDirectoryAbsolute}/$<CONFIGURATION>)
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${SharedExternalsPathAbsolute} ${OutputDirectoryAbsolute}/$<CONFIGURATION>)
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${ConfigurationBasedExternalPathAbsolute} "${OutputDirectoryAbsolute}/$<CONFIGURATION>")
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${SharedExternalsPathAbsolute} "${OutputDirectoryAbsolute}/$<CONFIGURATION>")
 
 # Add postbuild scripts
 # Move resources to the directory of the executable
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${ResourcePathAbsolute} ${OutputDirectoryAbsolute}/$<CONFIGURATION>/resources)
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${ResourcePathAbsolute} "${OutputDirectoryAbsolute}/$<CONFIGURATION>/resources")
 
 # Move License folder to the directory of the executable
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${LicensePathAbsolute} ${OutputDirectoryAbsolute}/$<CONFIGURATION>/license)
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${LicensePathAbsolute} "${OutputDirectoryAbsolute}/$<CONFIGURATION>/license")
 
 if(MUtilityRootPath)
 	add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${MUtilityIncludePath} ${MUtilityLocalIncludePath})
