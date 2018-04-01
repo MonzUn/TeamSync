@@ -129,9 +129,8 @@ namespace UILayout
 	constexpr int32_t MULTIPLAYER_PLAYER_NAME_TEXT_BOX_HEIGHT		= 25;
 	constexpr int32_t MULTIPLAYER_PLAYER_NAME_TEXT_BOX_DEPTH		= 4;
 	constexpr int32_t MULTIPLAYER_PLAYER_NAME_OFFSET_X				= 300 + (MULTIPLAYER_PLAYER_NAME_TEXT_BOX_WIDTH / 2); // TODODB: Magic number more or less
+	constexpr int32_t MULTIPLAYER_PLAYER_NAME_OFFSET_Y				= 10;
 	constexpr int32_t MULTIPLAYER_PLAYER_NAME_SPLIT_IMAGE_OFFSET_X	= 280; // TODODB: Magic number more or less
-	
-	constexpr int32_t MULTIPLAYER_PLAYER_NAME_OFFSET_Y			= 10;
 
 	// ImagePosAndDimensions
 	constexpr int32_t IMAGE_DEPTH								= 5;
@@ -193,7 +192,7 @@ namespace UILayout
 	constexpr int32_t CUT_1440P_BACKPACK_STAT_HEIGHT			= 256;
 	constexpr int32_t CUT_1440P_WEAPON_OFFSET_X					= 1748;
 	constexpr int32_t CUT_1440P_WEAPON_OFFSET_Y					= 185;
-	constexpr int32_t CUT_1440P_WEAPON_WIDTH					= 635;
+	constexpr int32_t CUT_1440P_WEAPON_WIDTH					= 640;
 	constexpr int32_t CUT_1440P_WEAPON_HEIGHT					= 1095;
 
 	// CutPositions1080P
@@ -219,7 +218,7 @@ namespace UILayout
 	constexpr int32_t CUT_1080P_BACKPACK_STAT_HEIGHT			= 191;
 	constexpr int32_t CUT_1080P_WEAPON_OFFSET_X					= 1311;
 	constexpr int32_t CUT_1080P_WEAPON_OFFSET_Y					= 140;
-	constexpr int32_t CUT_1080P_WEAPON_WIDTH					= 477;
+	constexpr int32_t CUT_1080P_WEAPON_WIDTH					= 480;
 	constexpr int32_t CUT_1080P_WEAPON_HEIGHT					= 820;
 
 	const int32_t PlayerPositions[Globals::MIRAGE_MAX_PLAYERS][2]
