@@ -26,6 +26,7 @@ private:
 	void OpenControlsPage() const;
 	void OpenIssueTrackerPage() const;
 	void OpenDownloadPage() const;
+	void RandomizeName();
 
 	void OnConnection(const Tubes::ConnectionAttemptResultData& connectionResult);
 
@@ -39,6 +40,7 @@ private:
 	MEngine::EntityID m_ControlsButtonID						= MENGINE_INVALID_ENTITY_ID;
 	MEngine::EntityID m_ReportBugButtonID						= MENGINE_INVALID_ENTITY_ID;
 	MEngine::EntityID m_UpdateButtonID							= MENGINE_INVALID_ENTITY_ID;
+	MEngine::EntityID m_RandomeizeNameButtonID					= MENGINE_INVALID_ENTITY_ID;
 
 	MEngine::EntityID m_ConnectIPInputTextBoxID					= MENGINE_INVALID_ENTITY_ID;
 	MEngine::EntityID m_ConnectPortInputTextBoxID				= MENGINE_INVALID_ENTITY_ID;
