@@ -162,12 +162,12 @@ void TeamSystem::OnConnection(const Tubes::ConnectionAttemptResultData& connecti
 	}
 }
 
-void TeamSystem::OnDisconnection(Tubes::ConnectionID connectionID)
+void TeamSystem::OnDisconnection(const Tubes::DisconnectionData& disconnectionData)
 {
 	Player* disconnectingPlayer = nullptr;
 	for (int i = 0; i < Globals::MIRAGE_MAX_PLAYERS; ++i)
 	{
-		if (m_Players[i]->IsActive() && m_Players[i]->GetConnectionID() == connectionID)
+		if (m_Players[i]->IsActive() && m_Players[i]->GetConnectionID() == disconnectionData.ID)
 		{
 			disconnectingPlayer = m_Players[i];
 			break;
@@ -601,8 +601,10 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 
 void TeamSystem::RegisterCommands()
 {
+	// TODODB: Add using statement for placeholders
 	MEngine::RegisterCommand("prime", std::bind(&TeamSystem::ExecutePrimeCycledScreenshotCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), "Primes the screenshot cycle of one or all players\nParam 1(optional): Player ID - The player for which to prime the cycle (All player's cycles will be primed if this paramter is not supplied)");
 	MEngine::RegisterCommand("disconnect", std::bind(&TeamSystem::ExecuteDisconnectCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), "Disconnects one or all players\nParam 1(optional): Player ID - The player to disconnect. Disconnecting oneself as host will terminate the hosted session (The local player will be disconnected if this parameter is not supplied.)");
+	MEngine::RegisterCommand("connectioninfo", std::bind(&TeamSystem::ExecuteConnectionInfoCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), "Outputs information about the directly connected clients");
 }
 
 bool TeamSystem::ExecutePrimeCycledScreenshotCommand(const std::string* parameters, int32_t parameterCount, std::string* outResponse)
@@ -740,6 +742,36 @@ bool TeamSystem::ExecuteDisconnectCommand(const std::string* parameters, int32_t
 				*outResponse = "All connected clients have been disconnected";
 		}
 	}
+
+	return result;
+}
+
+bool TeamSystem::ExecuteConnectionInfoCommand(const std::string* parameters, int32_t parameterCount, std::string* outResponse)
+{
+	bool result = false;
+	if (parameterCount == 0)
+	{
+		if (Tubes::GetConnectionCount() > 0)
+		{
+			for (int i = 0; i < Globals::MIRAGE_MAX_PLAYERS; ++i)
+			{
+				const Player* player = m_Players[i];
+				if (player->IsActive() && player->GetConnectionType() != PlayerConnectionType::Local)
+				{
+					Tubes::ConnectionInfo connectionInfo = Tubes::GetConnectionInfo(player->GetConnectionID());
+					if(!outResponse->empty())
+						*outResponse += "\n\n";
+					*outResponse += player->GetName() + " connection info:\nConnection ID: " + std::to_string(connectionInfo.ID) + "\nAddress: " + connectionInfo.Address + "\nPort: " + std::to_string(connectionInfo.Port);
+
+				}
+			}
+			result = true;
+		}
+		else
+			*outResponse = "No clients connected";
+	}
+	else if (outResponse != nullptr)
+		*outResponse = "Wrong number of parameters supplied";
 
 	return result;
 }

@@ -21,7 +21,7 @@ private:
 	void RemovePlayer(Player* player);
 
 	void OnConnection(const Tubes::ConnectionAttemptResultData& connectionResult);
-	void OnDisconnection(Tubes::ConnectionID connectionID);
+	void OnDisconnection(const Tubes::DisconnectionData& disconnectionData);
 
 	void ProcessImageJobs();
 	void HandleInput();
@@ -31,6 +31,7 @@ private:
 	void RegisterCommands();
 	bool ExecutePrimeCycledScreenshotCommand(const std::string* parameters, int32_t parameterCount, std::string* outResponse);
 	bool ExecuteDisconnectCommand(const std::string* parameters, int32_t parameterCount, std::string* outResponse);
+	bool ExecuteConnectionInfoCommand(const std::string* parameters, int32_t parameterCount, std::string* outResponse);
 
 	void PrimeCycledScreenshotForPlayer(PlayerID playerID);
 	bool DisconnectPlayer(PlayerID playerID);
