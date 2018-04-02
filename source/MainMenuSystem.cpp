@@ -270,13 +270,13 @@ void MainMenuSystem::Connect()
 	const std::string& portString = *static_cast<const MEngine::TextComponent*>(MEngine::GetComponent(m_ConnectPortInputTextBoxID, MEngine::TextComponent::GetComponentMask()))->Text;
 	int32_t port = MUtilityString::IsStringNumber(portString) ? atoi(portString.c_str()) : -1;
 	
-	if (Tubes::IsValidIPv4Address(IPString.c_str()) && port >= 0 && port <= std::numeric_limits<uint16_t>::max())
+	if (port >= 0 && port <= std::numeric_limits<uint16_t>::max())
 	{
-		ConnectTo(IPString, port);
 		*static_cast<TextComponent*>(MEngine::GetComponent(m_FeedbackTextID, TextComponent::GetComponentMask()))->Text = "Attempting connection";
+		ConnectTo(IPString, port);
 	}
 	else
-		*static_cast<TextComponent*>(MEngine::GetComponent(m_FeedbackTextID, TextComponent::GetComponentMask()))->Text = "Invalid connection parameter";
+		*static_cast<TextComponent*>(MEngine::GetComponent(m_FeedbackTextID, TextComponent::GetComponentMask()))->Text = "Invalid port supplied";
 }
 
 void MainMenuSystem::ConnectTo(const std::string& IP, uint16_t port)
@@ -345,10 +345,16 @@ void MainMenuSystem::OnConnection(const Tubes::ConnectionAttemptResultData& conn
 			MLOG_WARNING("Received incoming connection in main menu", LOG_CATEGORY_MAIN_MENU_SYSTEM);
 		} break;
 		
-
-		// These never occur since we validate the IP and port before sending it to Tubes
 		case Tubes::ConnectionAttemptResult::FAILED_INVALID_IP:
+		{
+			*static_cast<TextComponent*>(MEngine::GetComponent(m_FeedbackTextID, TextComponent::GetComponentMask()))->Text = "Invalid IPv4 address supplied";
+		} break;
+
 		case Tubes::ConnectionAttemptResult::FAILED_INVALID_PORT:
+		{
+			*static_cast<TextComponent*>(MEngine::GetComponent(m_FeedbackTextID, TextComponent::GetComponentMask()))->Text = "Invalid port supplied";
+		} break;
+
 		case Tubes::ConnectionAttemptResult::INVALID:
 		{
 			MLOG_WARNING("Received unexpected connection attempt result", LOG_CATEGORY_MAIN_MENU_SYSTEM);
