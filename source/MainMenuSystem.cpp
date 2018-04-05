@@ -87,8 +87,6 @@ void MainMenuSystem::Shutdown()
 	MEngine::DestroyEntity(m_VersionNumberTextID);
 	MEngine::DestroyEntity(m_FeedbackTextID);
 
-	MEngine::UnregisterAllCommands();
-
 	Tubes::UnregisterConnectionCallback(m_OnConnectionHandle);
 
 	System::Shutdown();
@@ -116,8 +114,6 @@ void MainMenuSystem::Suspend()
 	MEngine::HideTextBox(m_VersionNumberTextID);
 	MEngine::HideTextBox(m_PlayerNameInputTextBoxID);
 	MEngine::HideTextBox(m_FeedbackTextID);
-
-	MEngine::UnregisterAllCommands();
 
 	System::Suspend();
 }
@@ -154,9 +150,11 @@ void MainMenuSystem::Resume()
 
 void MainMenuSystem::RegisterCommands()
 {
-	RegisterCommand("host", std::bind(&MainMenuSystem::ExecuteHostcommand, this, _1, _2, _3), "Hosts a new session\nParam 1(optional): Port - The port on which to listen for remote clients (Will be read from config if this parameter is not supplied)");
-	RegisterCommand("connect", std::bind(&MainMenuSystem::ExecuteConnectCommand, this, _1, _2, _3), "Requests a connection to the specified IP\nParam 1: - IPv4 Address of the remote client\nParam 2(optional): Port - The port on which the remote client is expected to listen (Will be read from config if this parameter is not supplied)");
-	RegisterCommand("quit", std::bind(&MainMenuSystem::ExecuteQuitCommand, this, _1, _2, _3), "Exits the application"); // TODODB: Move this command to global scope
+	if(!MEngine::CommandExists("quit"))
+		RegisterGlobalCommand("quit", std::bind(&MainMenuSystem::ExecuteQuitCommand, this, _1, _2, _3), "Exits the application");
+
+	RegisterSystemCommand(GetID(), "host", std::bind(&MainMenuSystem::ExecuteHostcommand, this, _1, _2, _3), "Hosts a new session\nParam 1(optional): Port - The port on which to listen for remote clients (Will be read from config if this parameter is not supplied)");
+	RegisterSystemCommand(GetID(), "connect", std::bind(&MainMenuSystem::ExecuteConnectCommand, this, _1, _2, _3), "Requests a connection to the specified IP\nParam 1: - IPv4 Address of the remote client\nParam 2(optional): Port - The port on which the remote client is expected to listen (Will be read from config if this parameter is not supplied)");
 }
 
 bool MainMenuSystem::ExecuteHostcommand(const std::string* parameters, int32_t parameterCount, std::string* outResponse)
@@ -243,6 +241,9 @@ bool MainMenuSystem::ExecuteQuitCommand(const std::string* parameters, int32_t p
 	bool result = false;
 	if (parameterCount == 0)
 	{
+		if (outResponse != nullptr)
+			*outResponse = "Bye!";
+
 		Quit();
 		result = true;
 	}

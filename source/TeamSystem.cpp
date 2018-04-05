@@ -91,8 +91,6 @@ void TeamSystem::Shutdown()
 	if(MEngine::IsTextInputActive())
 		MEngine::StopTextInput();
 
-	UnregisterAllCommands();
-
 	System::Shutdown();
 }
 
@@ -602,9 +600,9 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 void TeamSystem::RegisterCommands()
 {
 	// TODODB: Add using statement for placeholders
-	MEngine::RegisterCommand("prime", std::bind(&TeamSystem::ExecutePrimeCycledScreenshotCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), "Primes the screenshot cycle of one or all players\nParam 1(optional): Player ID - The player for which to prime the cycle (All player's cycles will be primed if this paramter is not supplied)");
-	MEngine::RegisterCommand("disconnect", std::bind(&TeamSystem::ExecuteDisconnectCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), "Disconnects one or all players\nParam 1(optional): Player ID - The player to disconnect. Disconnecting oneself as host will terminate the hosted session (The local player will be disconnected if this parameter is not supplied.)");
-	MEngine::RegisterCommand("connectioninfo", std::bind(&TeamSystem::ExecuteConnectionInfoCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), "Outputs information about the directly connected clients");
+	MEngine::RegisterGameModeCommand(GlobalsBlackboard::GetInstance()->MultiplayerGameModeID, "prime", std::bind(&TeamSystem::ExecutePrimeCycledScreenshotCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), "Primes the screenshot cycle of one or all players\nParam 1(optional): Player ID - The player for which to prime the cycle (All player's cycles will be primed if this paramter is not supplied)");
+	MEngine::RegisterGameModeCommand(GlobalsBlackboard::GetInstance()->MultiplayerGameModeID, "disconnect", std::bind(&TeamSystem::ExecuteDisconnectCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), "Disconnects one or all players\nParam 1(optional): Player ID - The player to disconnect. Disconnecting oneself as host will terminate the hosted session (The local player will be disconnected if this parameter is not supplied.)");
+	MEngine::RegisterGameModeCommand(GlobalsBlackboard::GetInstance()->MultiplayerGameModeID, "connectioninfo", std::bind(&TeamSystem::ExecuteConnectionInfoCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), "Outputs information about the directly connected clients");
 }
 
 bool TeamSystem::ExecutePrimeCycledScreenshotCommand(const std::string* parameters, int32_t parameterCount, std::string* outResponse)
