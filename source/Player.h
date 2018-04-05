@@ -84,7 +84,7 @@ public:
 	}
 
 private:
-	MEngine::EntityID m_EntityID = MENGINE_INVALID_ENTITY_ID;
+	MEngine::EntityID m_EntityID;
 };
 
 class Player
@@ -129,10 +129,10 @@ private:
 	Player::Image* m_DefaultImage	= nullptr;
 	Player::Image* m_StatusImage	= nullptr;
 
-	MEngine::TextureID m_StatusActiveTextureID	= MENGINE_INVALID_TEXTURE_ID;
-	MEngine::TextureID m_StatusInactiveTextureID	= MENGINE_INVALID_TEXTURE_ID;
+	MEngine::TextureID m_StatusActiveTextureID;
+	MEngine::TextureID m_StatusInactiveTextureID;
 
-	MEngine::EntityID m_NameTextBoxID = MENGINE_INVALID_ENTITY_ID;
+	MEngine::EntityID m_NameTextBoxID;
 	
 	// Default values for these variables are set in the Reset() function
 	PlayerID m_PlayerID;

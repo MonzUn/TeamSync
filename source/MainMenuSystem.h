@@ -32,25 +32,25 @@ private:
 
 	void StartMPGameMode();
 
-	MEngine::EntityID m_HostButtonID							= MENGINE_INVALID_ENTITY_ID;
-	MEngine::EntityID m_ConnectButtonID							= MENGINE_INVALID_ENTITY_ID;
-	MEngine::EntityID m_QuitButtonID							= MENGINE_INVALID_ENTITY_ID;
-	MEngine::EntityID m_AboutButtonID							= MENGINE_INVALID_ENTITY_ID;
-	MEngine::EntityID m_DevBlogButtonID							= MENGINE_INVALID_ENTITY_ID;
-	MEngine::EntityID m_ControlsButtonID						= MENGINE_INVALID_ENTITY_ID;
-	MEngine::EntityID m_ReportBugButtonID						= MENGINE_INVALID_ENTITY_ID;
-	MEngine::EntityID m_UpdateButtonID							= MENGINE_INVALID_ENTITY_ID;
-	MEngine::EntityID m_RandomeizeNameButtonID					= MENGINE_INVALID_ENTITY_ID;
+	MEngine::EntityID m_HostButtonID;
+	MEngine::EntityID m_ConnectButtonID;
+	MEngine::EntityID m_QuitButtonID;
+	MEngine::EntityID m_AboutButtonID;
+	MEngine::EntityID m_DevBlogButtonID;
+	MEngine::EntityID m_ControlsButtonID;
+	MEngine::EntityID m_ReportBugButtonID;
+	MEngine::EntityID m_UpdateButtonID;
+	MEngine::EntityID m_RandomeizeNameButtonID;
 
-	MEngine::EntityID m_ConnectIPInputTextBoxID					= MENGINE_INVALID_ENTITY_ID;
-	MEngine::EntityID m_ConnectPortInputTextBoxID				= MENGINE_INVALID_ENTITY_ID;
-	MEngine::EntityID m_PlayerNameInputTextBoxID				= MENGINE_INVALID_ENTITY_ID;
-	MEngine::EntityID m_ConnectIPInputTextBoxDescriptionID		= MENGINE_INVALID_ENTITY_ID;
-	MEngine::EntityID m_ConnectPortInputTextBoxDescriptionID	= MENGINE_INVALID_ENTITY_ID;
-	MEngine::EntityID m_PlayerNameDescriptionID					= MENGINE_INVALID_ENTITY_ID;
-	MEngine::EntityID m_AppTitleTextID							= MENGINE_INVALID_ENTITY_ID;
-	MEngine::EntityID m_VersionNumberTextID						= MENGINE_INVALID_ENTITY_ID;
-	MEngine::EntityID m_FeedbackTextID							= MENGINE_INVALID_ENTITY_ID;
+	MEngine::EntityID m_ConnectIPInputTextBoxID;
+	MEngine::EntityID m_ConnectPortInputTextBoxID;
+	MEngine::EntityID m_PlayerNameInputTextBoxID;
+	MEngine::EntityID m_ConnectIPInputTextBoxDescriptionID;
+	MEngine::EntityID m_ConnectPortInputTextBoxDescriptionID;
+	MEngine::EntityID m_PlayerNameDescriptionID;
+	MEngine::EntityID m_AppTitleTextID;
+	MEngine::EntityID m_VersionNumberTextID;
+	MEngine::EntityID m_FeedbackTextID;
 
 	Tubes::ConnectionCallbackHandle m_OnConnectionHandle;
 };
