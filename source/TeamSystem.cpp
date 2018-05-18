@@ -249,12 +249,28 @@ void TeamSystem::ProcessImageJobs()
 
 void TeamSystem::HandleInput()
 {
-	if (MEngine::KeyReleased(MKEY_ANGLED_BRACKET) && m_LocalPlayerID != UNASSIGNED_PLAYER_ID) // Reset screenshot cycling
+	// Reset screenshot cycling
+	if (MEngine::KeyReleased(MKEY_ANGLED_BRACKET) && m_LocalPlayerID != UNASSIGNED_PLAYER_ID)
 	{
 		PrimeCycledScreenshotForPlayer(m_LocalPlayerID);
+
+		// If command key is held; prime all players
+		if (MEngine::KeyDown(MKEY_LEFT_ALT))
+		{
+			for(int i = 0; i < Globals::MIRAGE_MAX_PLAYERS; ++i)
+			{
+				if (m_Players[i]->IsActive())
+				{
+					SignalFlagMessage message = SignalFlagMessage(MirageSignals::PRIME, true, m_Players[i]->GetPlayerID());
+					Tubes::SendToAll(&message);
+					message.Destroy();
+				}
+			}
+		}
 	}
 
-	if ((MEngine::KeyReleased(MKEY_TAB) || MEngine::KeyReleased(MKEY_I)) && !MEngine::WindowHasFocus() && !MEngine::KeyDown(MKEY_LEFT_ALT) && !MEngine::KeyDown(MKEY_RIGHT_ALT) && m_LocalPlayerID != UNASSIGNED_PLAYER_ID) // Take delayed screenshot
+	// Take delayed screenshot
+	if ((MEngine::KeyReleased(MKEY_TAB) || MEngine::KeyReleased(MKEY_I)) && !MEngine::WindowHasFocus() && !MEngine::KeyDown(MKEY_LEFT_ALT) && !MEngine::KeyDown(MKEY_RIGHT_ALT) && m_LocalPlayerID != UNASSIGNED_PLAYER_ID)
 	{
 		if (!m_AwaitingDelayedScreenshot)
 		{
@@ -277,7 +293,8 @@ void TeamSystem::HandleInput()
 		}
 	}
 
-	if (MEngine::KeyReleased(MKEY_GRAVE) && !MEngine::WindowHasFocus() && m_LocalPlayerID != UNASSIGNED_PLAYER_ID && !m_AwaitingDelayedScreenshot) // Take direct screenshot
+	// Take direct screenshot
+	if (MEngine::KeyReleased(MKEY_GRAVE) && !MEngine::WindowHasFocus() && m_LocalPlayerID != UNASSIGNED_PLAYER_ID && !m_AwaitingDelayedScreenshot)
 	{
 		ImageJob* screenshotJob = new ImageJob(ImageJobType::TakeScreenshot, m_LocalPlayerID);
 		m_ImageJobQueue.Produce(screenshotJob);
