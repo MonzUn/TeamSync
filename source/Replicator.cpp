@@ -53,6 +53,7 @@ Byte* Replicator::SerializeMessage(const Message* message, MessageSize* outMessa
 			WriteUint32(signalFlagMessage->Signal);
 			WriteBool(signalFlagMessage->Flag);
 			WriteInt32(signalFlagMessage->PlayerID);
+			WriteMemory(&signalFlagMessage->IDData, sizeof(SignalFlagMessage::Data));
 		} break;
 
 		case REQUEST_MESSAGE:
@@ -73,7 +74,7 @@ Byte* Replicator::SerializeMessage(const Message* message, MessageSize* outMessa
 		{
 			const PlayerUpdateMessage* playerUpdateMessage = static_cast<const PlayerUpdateMessage*>(message);
 			WriteInt32(playerUpdateMessage->PlayerID);
-			WriteInt32(playerUpdateMessage->ImageSlot);
+			WriteInt32(playerUpdateMessage->ComponentID);
 			WriteInt32(playerUpdateMessage->Width);
 			WriteInt32(playerUpdateMessage->Height);
 			WriteInt32(playerUpdateMessage->ImageByteSize);
@@ -150,14 +151,16 @@ Message* Replicator::DeserializeMessage(const Byte* const buffer)
 
 		case SIGNAL_FLAG:
 		{
-			int32_t playerID;
 			uint32_t signal;
 			bool flag;
+			int32_t playerID;
+			int32_t data;
 			ReadUint32(signal);
 			ReadBool(flag);
 			ReadInt32(playerID);
+			ReadInt32(data);
 
-			deserializedMessage = new SignalFlagMessage(static_cast<MirageSignals::Signal>(signal), flag, playerID);
+			deserializedMessage = new SignalFlagMessage(static_cast<MirageSignals::Signal>(signal), flag, playerID, data);
 		} break;
 
 		case REQUEST_MESSAGE:

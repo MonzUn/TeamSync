@@ -1,8 +1,9 @@
 #include "AboutSystem.h"
 #include "UILayout.h"
-#include <MengineSystemManager.h>
 #include <MengineEntityFactory.h>
 #include <MengineGraphics.h>
+#include <MengineSystemManager.h>
+#include <MengineTypes.h>
 #include <MengineUtility.h>
 
 std::string GetAboutString();

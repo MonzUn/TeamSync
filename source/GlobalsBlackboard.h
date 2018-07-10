@@ -28,10 +28,11 @@ struct HostSettings
 class GlobalsBlackboard : public MUtility::Singleton<GlobalsBlackboard>
 {
 public:
-	bool ShouldQuit = false;
-	bool IsHost = false;
-	Tubes::ConnectionID ConnectionID = TUBES_INVALID_CONNECTION_ID;
-	std::string LocalPlayerName = "INVALID_NAME";
+	bool ShouldQuit		= false;
+	bool IsHost			= false;
+	int32_t SelectedMirageAppCount		= 1; // TODODB: This should be set to the amount of mirage apps selected via the main menu
+	Tubes::ConnectionID ConnectionID	= TUBES_INVALID_CONNECTION_ID;
+	std::string LocalPlayerName			= "INVALID_NAME";
 	HostSettings HostSettingsData;
 
 	// GameModes

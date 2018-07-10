@@ -3,8 +3,9 @@
 #include "GlobalsBlackboard.h"
 #include "LogSyncSystem.h"
 #include "MainMenuSystem.h"
+#include "MirParser.h"
+#include "ImageSynchronizerApp.h"
 #include "Replicator.h"
-#include "TeamSystem.h"
 #include "UILayout.h"
 #include <MEngine.h>
 #include <MengineTypes.h>
@@ -26,13 +27,19 @@
 using namespace MEngine::PredefinedColors;
 using MEngine::InitFlags;
 
+std::vector<MirageApp*> m_MirageApps;
+
+void Shutdown();
+
+// ---------- PUBLIC ----------
+
 bool Mirage::Initialize()
 {
 	// Base setup
 	MUtilityLog::Initialize();
 
 	std::string applicationName = "Mirage";
-	std::string windowTitle = applicationName;
+	const std::string& windowTitle = applicationName;
 #if COMPILE_MODE == COMPILE_MODE_DEBUG
 	applicationName += " (PID=" + std::to_string(MUtility::GetPid()) + ")";
 #endif
@@ -69,9 +76,16 @@ bool Mirage::Initialize()
 	MEngine::InitializeConsole(GlobalsBlackboard::GetInstance()->ConsoleInputFontID, GlobalsBlackboard::GetInstance()->ConsoleOutputFontID);
 
 	// Systems
+	for (int i = 0; i < GlobalsBlackboard::GetInstance()->SelectedMirageAppCount; ++i) // TODODB: Read meta data and file path of all selected apps and have it ready here so it can be used when creating the app objects
+	{
+		// TODODB: Replace test code with actual data from the UI and files
+		MirageApp* app = nullptr; // TODODB: Should the parser maybe create the MirageApp instance as well?
+		MirParser::ParseMirFile("resources/mirages/ImageSynchronizer.mir", MirParser::ParseMode::Full, app);
+		//m_MirageApps.push_back(new ImageSynchronizerApp("ImageSynchronizer", "1.0", MirageAppType::ImageSynchronizer));
+	}
+
 	GlobalsBlackboard::GetInstance()->MainMenuSystemID	= MEngine::RegisterSystem(new MainMenuSystem());
 	GlobalsBlackboard::GetInstance()->AboutMenuSystemID = MEngine::RegisterSystem(new AboutSystem());
-	GlobalsBlackboard::GetInstance()->TeamSystemID		= MEngine::RegisterSystem(new TeamSystem());
 	GlobalsBlackboard::GetInstance()->LogSyncSystemID	= MEngine::RegisterSystem(new LogSyncSystem());
 
 	// GameModes
@@ -98,10 +112,23 @@ void Mirage::Run()
 		MEngine::Render();
 	}
 
+	Shutdown();
+
 	MEngine::Shutdown();
 	Tubes::Shutdown();
 	
 	GlobalsBlackboard::Destroy();
 
 	MUtilityLog::Shutdown();
+}
+
+// ---------- LOCAL ----------
+
+void Shutdown()
+{
+	for (int i = 0; i < m_MirageApps.size(); ++i)
+	{
+	 	delete m_MirageApps[i];
+	}
+	m_MirageApps.clear();
 }

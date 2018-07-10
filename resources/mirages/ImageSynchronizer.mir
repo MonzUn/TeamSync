@@ -1,0 +1,48 @@
+# Test meta data full line comment
+Name = ImageSynchronizer # Max 30 characters
+Version = 1.0
+Type = ImageSynchronizer
+
+ImageGroup
+{
+	PosX = 0
+	PosY = 0
+	Width = 100
+	Height = 100
+
+	Image # Test body comment
+	{
+		PosX = 10
+		PosY = 10
+		PosZ = 1
+		Width = 30
+		Height = 30
+		ClipPosX = 0
+		ClipPosY = 0
+		ClipWidth = 100
+		ClipHeight = 100
+	}
+
+	Image
+	{
+		PosX = 100
+		PosY = 100
+		PosZ = 1
+		Width = 30
+		Height = 30
+		ClipPosX = 500
+		ClipPosY = 500
+		ClipWidth = 100
+		ClipHeight = 100
+	}
+}
+
+Image
+{
+	PosX = 100
+	PosY = 100
+	PosZ = 1
+	Width = 30
+	Height = 30
+	Resource = Check.png
+}

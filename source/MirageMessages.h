@@ -37,12 +37,20 @@ struct SignalMessage : MirageMessage
 
 struct SignalFlagMessage : MirageMessage
 {
-	SignalFlagMessage(MirageSignals::Signal signal, bool flag, int32_t playerID) : MirageMessage(MirageMessages::SIGNAL_FLAG), Signal(signal), Flag(flag), PlayerID(playerID)
-	{}
+	union Data
+	{
+		int32_t ImageGroupID;
+	};
+
+	SignalFlagMessage(MirageSignals::Signal signal, bool flag, int32_t playerID, int32_t IDInfo) : MirageMessage(MirageMessages::SIGNAL_FLAG), Signal(signal), Flag(flag), PlayerID(playerID)
+	{
+		memcpy(&IDData, &IDInfo, sizeof(Data));
+	}
 
 	MirageSignals::Signal Signal;
 	bool Flag;
 	int32_t PlayerID;
+	Data IDData;
 };
 
 struct RequestMessageMessage : MirageMessage
@@ -71,12 +79,12 @@ struct PlayerInitializeMessage : MirageMessage
 
 struct PlayerUpdateMessage : MirageMessage
 {
-	PlayerUpdateMessage(int32_t playerID, int32_t imageSlot, int32_t width, int32_t height, void* pixels) : MirageMessage(MirageMessages::PLAYER_UPDATE), PlayerID(playerID), ImageSlot(imageSlot), Width(width), Height(height), Pixels(pixels)
+	PlayerUpdateMessage(int32_t playerID, int32_t componentID, int32_t width, int32_t height, void* pixels) : MirageMessage(MirageMessages::PLAYER_UPDATE), PlayerID(playerID), ComponentID(componentID), Width(width), Height(height), Pixels(pixels)
 	{
 		ImageByteSize = Width * Height * MENGINE_BYTES_PER_PIXEL; // * 4 bytes per pixel due to RGBA format
 	}
 
-	PlayerUpdateMessage(int32_t playerID, int32_t imageSlot, const MEngine::TextureData& textureData) : MirageMessage(MirageMessages::PLAYER_UPDATE), PlayerID(playerID), ImageSlot(imageSlot)
+	PlayerUpdateMessage(int32_t playerID, int32_t componentID, const MEngine::TextureData& textureData) : MirageMessage(MirageMessages::PLAYER_UPDATE), PlayerID(playerID), ComponentID(componentID)
 	{
 		Width = textureData.Width;
 		Height = textureData.Height;
@@ -91,7 +99,7 @@ struct PlayerUpdateMessage : MirageMessage
 	}
 
 	int32_t PlayerID;
-	int32_t ImageSlot;
+	int32_t ComponentID;
 	int32_t Width;
 	int32_t Height;
 	int32_t ImageByteSize;
