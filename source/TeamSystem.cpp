@@ -628,7 +628,7 @@ bool TeamSystem::ExecutePrimeCycledScreenshotCommand(const std::string* paramete
 	if (parameterCount == 1) // Prime inputed player id
 	{
 		std::string playerIDString = parameters[0];
-		if (!MUtilityString::IsStringNumber(playerIDString))
+		if (!MUtility::IsStringNumber(playerIDString))
 		{
 			if (outResponse != nullptr)
 				*outResponse = "The supplied playerID was not a number";
@@ -689,7 +689,7 @@ bool TeamSystem::ExecuteDisconnectCommand(const std::string* parameters, int32_t
 	if (parameterCount == 1)
 	{
 		std::string playerIDString = parameters[0];
-		if (!MUtilityString::IsStringNumber(playerIDString))
+		if (!MUtility::IsStringNumber(playerIDString))
 		{
 			if(outResponse != nullptr)
 				*outResponse = "The supplied playerID was not a number";

@@ -269,7 +269,7 @@ void MainMenuSystem::Connect()
 {
 	const std::string& IPString = *static_cast<const MEngine::TextComponent*>(MEngine::GetComponent(m_ConnectIPInputTextBoxID, MEngine::TextComponent::GetComponentMask()))->Text;
 	const std::string& portString = *static_cast<const MEngine::TextComponent*>(MEngine::GetComponent(m_ConnectPortInputTextBoxID, MEngine::TextComponent::GetComponentMask()))->Text;
-	int32_t port = MUtilityString::IsStringNumber(portString) ? atoi(portString.c_str()) : -1;
+	int32_t port = MUtility::IsStringNumber(portString) ? atoi(portString.c_str()) : -1;
 	
 	if (port >= 0 && port <= std::numeric_limits<uint16_t>::max())
 	{
