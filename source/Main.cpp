@@ -2,10 +2,11 @@
 #include <MUtilityPlatformDefinitions.h>
 
 #if PLATFORM == PLATFORM_WINDOWS
-#define _CRTDBG_MAP_ALLOC  
+#define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>  
 #include <crtdbg.h>  
 #include <MUtilityWindowsInclude.h>
+#pragma comment(lib, "d3d11.lib")
 #endif
 
 // --- Known memory leaks

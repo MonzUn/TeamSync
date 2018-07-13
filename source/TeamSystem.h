@@ -2,9 +2,13 @@
 #include "Player.h"
 #include "GlobalsBlackboard.h"
 #include "MUtilityLocklessQueue.h"
+#include <MengineGraphics.h>
 #include <MEngineSystem.h>
 #include <thread>
 #include <condition_variable>
+#include <d3d11.h>
+#include <dxgi1_2.h>
+#include <wrl/client.h> // For ComPtr
 
 enum class ImageJobType;
 struct ImageJob;
@@ -17,6 +21,9 @@ public:
 	void UpdatePresentationLayer(float deltaTime) override;
 
 private:
+	bool InitScreenCapture();
+	MEngine::TextureID CaptureScreen();
+
 	PlayerID FindFreePlayerSlot() const;
 	void RemovePlayer(Player* player);
 
@@ -59,4 +66,11 @@ private:
 
 	Tubes::ConnectionCallbackHandle		m_OnConnectionHandle;
 	Tubes::DisconnectionCallbackHandle	m_OnDisconnectionHandle;
+
+	// ScreenCapture
+	Microsoft::WRL::ComPtr<ID3D11Device> m_Device = nullptr;
+	ID3D11DeviceContext* m_DeviceContext = nullptr;
+	IDXGIOutputDuplication* m_OutputDup = nullptr;
+	D3D11_TEXTURE2D_DESC m_TextureDesc;
+	int32_t m_OutputDupCapturedImages = -1;
 };

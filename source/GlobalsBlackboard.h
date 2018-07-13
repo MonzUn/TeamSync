@@ -12,7 +12,7 @@ namespace Globals
 	constexpr uint16_t	DEFAULT_PORT		= 19200;
 	constexpr uint16_t	APP_VERSION_SUPER	= 0;
 	constexpr uint16_t	APP_VERSION_MAJOR	= 8;
-	constexpr uint16_t	APP_VERSION_MINOR	= 2;
+	constexpr uint16_t	APP_VERSION_MINOR	= 3;
 	constexpr uint16_t	APP_VERSION_PATCH	= 0;
 
 	const std::string APP_VERSION_STRING = std::to_string(APP_VERSION_SUPER)

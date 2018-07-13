@@ -18,6 +18,7 @@
 #define DELAYED_SCREENSHOT_WAIT_TIME_MILLISECONDS 150
 
 using namespace MEngine;
+using Microsoft::WRL::ComPtr;
 
 // ---------- PUBLIC ----------
 
@@ -45,6 +46,7 @@ void TeamSystem::Initialize()
 	}
 
 	RegisterCommands();
+	InitScreenCapture();
 }
 
 void TeamSystem::Shutdown()
@@ -105,6 +107,178 @@ void TeamSystem::UpdatePresentationLayer(float deltaTime)
 }
 
 // ---------- PRIVATE ----------
+
+bool TeamSystem::InitScreenCapture()
+{
+	HRESULT result = E_FAIL;
+	m_OutputDupCapturedImages = 0;
+
+	D3D_FEATURE_LEVEL featureLevels = D3D_FEATURE_LEVEL_11_0;
+	D3D_FEATURE_LEVEL featureLevel;
+	result = D3D11CreateDevice(
+		nullptr,
+		D3D_DRIVER_TYPE_HARDWARE,
+		nullptr,
+		0,
+		&featureLevels,
+		1,
+		D3D11_SDK_VERSION,
+		&m_Device,
+		&featureLevel,
+		&m_DeviceContext);
+	if (FAILED(result) || !m_Device)
+	{
+		MLOG_ERROR("Failed to create D3DDevice; error = " << result, LOG_CATEGORY_TEAM_SYSTEM);
+		return false;
+	}
+
+	// Get DXGI device
+	ComPtr<IDXGIDevice> DxgiDevice;
+	result = m_Device.As(&DxgiDevice);
+	if (FAILED(result))
+	{		
+		MLOG_ERROR("Failed to get DXGI device; error = " << result, LOG_CATEGORY_TEAM_SYSTEM);
+		return false;
+	}
+
+	// Get DXGI adapter
+	ComPtr<IDXGIAdapter> DxgiAdapter;
+	result = DxgiDevice->GetParent(__uuidof(IDXGIAdapter), &DxgiAdapter);
+	if (FAILED(result))
+	{
+		MLOG_ERROR("Failed to get DXGI adapter; error = " << result, LOG_CATEGORY_TEAM_SYSTEM);
+		return false;
+	}
+
+	DxgiDevice.Reset();
+
+	// Get output
+	UINT Output = 0;
+	ComPtr<IDXGIOutput> lDxgiOutput;
+	result = DxgiAdapter->EnumOutputs(Output, &lDxgiOutput);
+	if (FAILED(result))
+	{
+		MLOG_ERROR("Failed to get DXGI output; error = " << result, LOG_CATEGORY_TEAM_SYSTEM);
+		return false;
+	}
+
+	DxgiAdapter.Reset();
+
+	DXGI_OUTPUT_DESC outputDesc;
+	result = lDxgiOutput->GetDesc(&outputDesc);
+	if (FAILED(result))
+	{
+		MLOG_ERROR("Failed to get DXGI output description; error = " << result, LOG_CATEGORY_TEAM_SYSTEM);
+		return false;
+	}
+
+	ComPtr<IDXGIOutput1> DxgiOutput1;
+	result = lDxgiOutput.As(&DxgiOutput1);
+
+	if (FAILED(result))
+	{
+		MLOG_ERROR("Failed to get DXGI output1; error = " << result, LOG_CATEGORY_TEAM_SYSTEM);
+		return false;
+	}
+
+	lDxgiOutput.Reset();
+
+	// Create desktop duplication
+	result = DxgiOutput1->DuplicateOutput(m_Device.Get(), &m_OutputDup);
+	if (FAILED(result))
+	{
+		MLOG_ERROR("Failed to create output duplication; error = " << result, LOG_CATEGORY_TEAM_SYSTEM);
+		return false;
+	}
+
+	DxgiOutput1.Reset();
+
+	// Create GUI drawing texture
+	DXGI_OUTDUPL_DESC outputDupDesc;
+	m_OutputDup->GetDesc(&outputDupDesc);
+
+	// Create CPU access texture
+	m_TextureDesc.Width = outputDupDesc.ModeDesc.Width;
+	m_TextureDesc.Height = outputDupDesc.ModeDesc.Height;
+	m_TextureDesc.Format = outputDupDesc.ModeDesc.Format;
+	m_TextureDesc.ArraySize = 1;
+	m_TextureDesc.BindFlags = 0;
+	m_TextureDesc.MiscFlags = 0;
+	m_TextureDesc.SampleDesc.Count = 1;
+	m_TextureDesc.SampleDesc.Quality = 0;
+	m_TextureDesc.MipLevels = 1;
+	m_TextureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_READ;
+	m_TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_STAGING;
+
+	return true;
+}
+
+MEngine::TextureID TeamSystem::CaptureScreen()
+{		
+	HRESULT result = E_FAIL;
+	ComPtr<IDXGIResource> desktopResource = nullptr;
+	DXGI_OUTDUPL_FRAME_INFO frameInfo;
+	ID3D11Texture2D* currentTexture = nullptr;
+	ComPtr<ID3D11Resource> image;
+
+	result = m_OutputDup->AcquireNextFrame(INFINITE, &frameInfo, &desktopResource);
+	if (FAILED(result))
+	{
+		if (result == DXGI_ERROR_ACCESS_LOST) 
+		{
+			// The duplication variables need to be re-acquired
+			m_OutputDup->Release();
+			InitScreenCapture();
+
+			// Make another attempt
+			result = m_OutputDup->AcquireNextFrame(INFINITE, &frameInfo, &desktopResource);
+			if (FAILED(result))
+				return MEngine::TextureID::Invalid();
+		}
+		
+		if (FAILED(result))
+		{
+			MLOG_ERROR("Failed to acquire next frame; error = " << result, LOG_CATEGORY_TEAM_SYSTEM);
+			return MEngine::TextureID::Invalid();
+		}
+	}
+	++m_OutputDupCapturedImages;
+
+	if (m_OutputDupCapturedImages == 1) // Sometimes the first image after a reset fails
+	{
+		m_OutputDup->ReleaseFrame();
+		m_OutputDup->AcquireNextFrame(INFINITE, &frameInfo, &desktopResource);
+	}
+
+	result = desktopResource.As(&image);
+	if (FAILED(result))
+	{
+		MLOG_ERROR("An error occured while capturing image; error = " << result, LOG_CATEGORY_TEAM_SYSTEM);
+		return MEngine::TextureID::Invalid();
+	}
+
+	// Copy image into a newly created CPU access texture
+	result = m_Device->CreateTexture2D(&m_TextureDesc, nullptr, &currentTexture);
+	if (FAILED(result) || !currentTexture)
+	{
+		result = m_OutputDup->ReleaseFrame();
+		MLOG_ERROR("Failed to copy image data to access texture; error = " << result, LOG_CATEGORY_TEAM_SYSTEM);
+		return MEngine::TextureID::Invalid();
+	}
+
+	D3D11_MAPPED_SUBRESOURCE resource;
+	m_DeviceContext->CopyResource(currentTexture, image.Get());
+	UINT subresource = D3D11CalcSubresource(0, 0, 0);
+	m_DeviceContext->Map(currentTexture, subresource, D3D11_MAP_READ, 0, &resource);
+	m_DeviceContext->Unmap(currentTexture, 0);
+	currentTexture->Release();
+	result = m_OutputDup->ReleaseFrame();
+	if (FAILED(result))
+		MLOG_WARNING("Failed to release frame after copying image data; this may cause leaks; error = " << result, LOG_CATEGORY_TEAM_SYSTEM);
+
+	MEngine::TextureData textureData = MEngine::TextureData(m_TextureDesc.Width, m_TextureDesc.Height, resource.pData);
+	return MEngine::CreateTextureFromTextureData(textureData, true);
+}
 
 PlayerID TeamSystem::FindFreePlayerSlot() const
 {
@@ -211,8 +385,16 @@ void TeamSystem::ProcessImageJobs()
 			case ImageJobType::TakeScreenshot:
 			case ImageJobType::TakeCycledScreenshot:
 			{
-				job->ResultTextureID = MEngine::CaptureScreenToTexture(true);
-				m_ImageJobResultQueue.Produce(job);
+				job->ResultTextureID = CaptureScreen();
+				if (job->ResultTextureID != MEngine::TextureID::Invalid())
+				{
+					m_ImageJobResultQueue.Produce(job);
+				}
+				else
+				{
+					MLOG_WARNING("Failed to capture screen; no image will be produced", LOG_CATEGORY_TEAM_SYSTEM);
+					delete job;
+				}
 			} break;
 
 			case ImageJobType::CreateImageFromData:
