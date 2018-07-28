@@ -66,6 +66,8 @@ std::string GetAboutString()
 		+ "---------- Credits ----------"
 		+ "\n\n"
 		+ "Developer - Daniel \"MonzUn\" Bengtsson"
+		+ "\n"
+		+ "Testers - yukyduky & SwedenZero(On Twitch!)"
 		+ "\n\n"
 		+ "---------- Special thanks ----------"
 		+ "\n\n"
