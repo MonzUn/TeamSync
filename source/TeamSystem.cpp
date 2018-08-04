@@ -542,30 +542,49 @@ void TeamSystem::HandleImageJobResults()
 		{
 		case ImageJobType::TakeScreenshot:
 		{
-			m_Players[finishedJob->ImageOwnerPlayerID]->SetImageTextureID(PlayerImageSlot::Fullscreen, finishedJob->ResultTextureID);
+			if (finishedJob->ResultTextureID != TextureID::Invalid())
+			{
+				const MEngine::TextureData& textureData = MEngine::GetTextureData(finishedJob->ResultTextureID);
+				if (textureData.Pixels != nullptr)
+				{
+					m_Players[finishedJob->ImageOwnerPlayerID]->SetImageTextureID(PlayerImageSlot::Fullscreen, finishedJob->ResultTextureID);
 
-			PlayerUpdateMessage message = PlayerUpdateMessage(finishedJob->ImageOwnerPlayerID, PlayerImageSlot::Fullscreen, MEngine::GetTextureData(finishedJob->ResultTextureID));
-			Tubes::SendToAll(&message);
-			message.Destroy();
+					PlayerUpdateMessage message = PlayerUpdateMessage(finishedJob->ImageOwnerPlayerID, PlayerImageSlot::Fullscreen, textureData);
+					Tubes::SendToAll(&message);
+					message.Destroy();
+				}
+			}
 		} break;
 
 		case ImageJobType::TakeCycledScreenshot:
 		{
-			if (m_DelayedScreenshotCounter == finishedJob->DelayedScreenShotCounter) // Discard the screenshot if the cycle was inversed again while the screenshot was being taken
+			if (finishedJob->ResultTextureID != TextureID::Invalid())
 			{
-				const MEngine::TextureData& textureData = MEngine::GetTextureData(finishedJob->ResultTextureID);
-				for (int i = 0; i < PlayerImageSlot::Count - 1; ++i)
+				if (m_DelayedScreenshotCounter == finishedJob->DelayedScreenShotCounter) // Discard the screenshot if the cycle was inversed again while the screenshot was being taken
 				{
-					void* pixelsCopy = malloc(textureData.Width * textureData.Height * MENGINE_BYTES_PER_PIXEL);
-					memcpy(pixelsCopy, textureData.Pixels, textureData.Width * textureData.Height * MENGINE_BYTES_PER_PIXEL); // Job will get destroyed; make a copy of the pixel data for the asynchronous job
-					ImageJob* splitJob = new ImageJob(ImageJobType::SplitImage, finishedJob->ImageOwnerPlayerID, static_cast<PlayerImageSlot::PlayerImageSlot>(i), textureData.Width, textureData.Height, pixelsCopy);
-					m_ImageJobQueue.Produce(splitJob);
+					const MEngine::TextureData& textureData = MEngine::GetTextureData(finishedJob->ResultTextureID);
+					if (textureData.Pixels != nullptr)
+					{
+						for (int i = 0; i < PlayerImageSlot::Count - 1; ++i)
+						{
+							void* pixelsCopy = malloc(textureData.Width * textureData.Height * MENGINE_BYTES_PER_PIXEL);
+							memcpy(pixelsCopy, textureData.Pixels, textureData.Width * textureData.Height * MENGINE_BYTES_PER_PIXEL); // Job will get destroyed; make a copy of the pixel data for the asynchronous job
+							ImageJob* splitJob = new ImageJob(ImageJobType::SplitImage, finishedJob->ImageOwnerPlayerID, static_cast<PlayerImageSlot::PlayerImageSlot>(i), textureData.Width, textureData.Height, pixelsCopy);
+							m_ImageJobQueue.Produce(splitJob);
+						}
+						MEngine::UnloadTexture(finishedJob->ResultTextureID);
+						m_ImageJobLockCondition.notify_one();
+					}
+					else
+						MLOG_ERROR("Received invalid texture data", LOG_CATEGORY_TEAM_SYSTEM);
 				}
-				MEngine::UnloadTexture(finishedJob->ResultTextureID);
-				m_ImageJobLockCondition.notify_one();
+				else
+					MEngine::UnloadTexture(finishedJob->ResultTextureID);
 			}
 			else
-				MEngine::UnloadTexture(finishedJob->ResultTextureID);
+			{
+				MLOG_WARNING("Cycled screenshot job contained invalid texture ID; no image will be produced", LOG_CATEGORY_TEAM_SYSTEM);
+			}
 		} break;
 
 		case ImageJobType::CreateImageFromData:
@@ -580,11 +599,15 @@ void TeamSystem::HandleImageJobResults()
 		{
 			if (finishedJob->ResultTextureID.IsValid())
 			{
-				m_Players[finishedJob->ImageOwnerPlayerID]->SetImageTextureID(finishedJob->ImageSlot, finishedJob->ResultTextureID);
+				const MEngine::TextureData& textureData = MEngine::GetTextureData(finishedJob->ResultTextureID);
+				if (textureData.Pixels != nullptr)
+				{
+					m_Players[finishedJob->ImageOwnerPlayerID]->SetImageTextureID(finishedJob->ImageSlot, finishedJob->ResultTextureID);
 
-				PlayerUpdateMessage message = PlayerUpdateMessage(finishedJob->ImageOwnerPlayerID, finishedJob->ImageSlot, MEngine::GetTextureData(finishedJob->ResultTextureID));
-				Tubes::SendToAll(&message);
-				message.Destroy();
+					PlayerUpdateMessage message = PlayerUpdateMessage(finishedJob->ImageOwnerPlayerID, finishedJob->ImageSlot, MEngine::GetTextureData(finishedJob->ResultTextureID));
+					Tubes::SendToAll(&message);
+					message.Destroy();
+				}
 			}
 			free(finishedJob->Pixels);
 		} break;
@@ -693,9 +716,15 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 
 								if (m_Players[playerID]->GetImageTextureID(PlayerImageSlot::Fullscreen).IsValid())
 								{
-									PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, PlayerImageSlot::Fullscreen, MEngine::GetTextureData(m_Players[playerID]->GetImageTextureID(PlayerImageSlot::Fullscreen)));
-									Tubes::SendToConnection(&updateMessage, messageSenders[i]);
-									updateMessage.Destroy();
+									const MEngine::TextureData& textureData = MEngine::GetTextureData(m_Players[playerID]->GetImageTextureID(PlayerImageSlot::Fullscreen));
+									if (textureData.Pixels != nullptr)
+									{
+										PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, PlayerImageSlot::Fullscreen, textureData);
+										Tubes::SendToConnection(&updateMessage, messageSenders[i]);
+										updateMessage.Destroy();
+									}
+									else
+										MLOG_ERROR("Failed to get pixels of fullscreen screenshot texture with ID " << m_Players[playerID]->GetImageTextureID(PlayerImageSlot::Fullscreen), LOG_CATEGORY_TEAM_SYSTEM);
 								}
 								else
 								{
@@ -704,9 +733,15 @@ void TeamSystem::HandleIncomingNetworkCommunication()
 										TextureID textureID = m_Players[playerID]->GetImageTextureID(static_cast<PlayerImageSlot::PlayerImageSlot>(k));
 										if (textureID.IsValid())
 										{
-											PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, static_cast<PlayerImageSlot::PlayerImageSlot>(k), MEngine::GetTextureData(textureID));
-											Tubes::SendToConnection(&updateMessage, messageSenders[i]);
-											updateMessage.Destroy();
+											const MEngine::TextureData& textureData = MEngine::GetTextureData(textureID);
+											if (textureData.Pixels != nullptr)
+											{
+												PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, static_cast<PlayerImageSlot::PlayerImageSlot>(k), textureData);
+												Tubes::SendToConnection(&updateMessage, messageSenders[i]);
+												updateMessage.Destroy();
+											}
+											else
+												MLOG_ERROR("Failed to get pixels of split screenshot texture with ID " << textureID, LOG_CATEGORY_TEAM_SYSTEM);
 										}
 									}
 								}

@@ -55,6 +55,7 @@ private:
 
 	bool m_ScreenCaptureInitialized = false;
 	bool m_AwaitingDelayedScreenshot = false;
+	uint64_t m_DelayedScreenshotCounter = 0;
 	std::chrono::time_point<std::chrono::steady_clock> m_ScreenshotTime;
 
 	IDXGIOutputDuplication* m_OutputDup = nullptr;
