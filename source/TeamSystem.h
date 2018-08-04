@@ -21,7 +21,8 @@ public:
 	void UpdatePresentationLayer(float deltaTime) override;
 
 private:
-	bool InitScreenCapture();
+	bool InitializeScreenCapture();
+	void ShutdownScreenCapture();
 	MEngine::TextureID CaptureScreen();
 
 	PlayerID FindFreePlayerSlot() const;
@@ -52,9 +53,13 @@ private:
 	Player* m_Players[Globals::MIRAGE_MAX_PLAYERS] = { nullptr };
 	PlayerID m_LocalPlayerID = UNASSIGNED_PLAYER_ID;
 
-	uint64_t m_DelayedScreenshotCounter = 0;
+	bool m_ScreenCaptureInitialized = false;
 	bool m_AwaitingDelayedScreenshot = false;
 	std::chrono::time_point<std::chrono::steady_clock> m_ScreenshotTime;
+
+	IDXGIOutputDuplication* m_OutputDup = nullptr;
+	Microsoft::WRL::ComPtr<ID3D11Device> m_Device = nullptr;
+	ID3D11DeviceContext* m_DeviceContext = nullptr;
 
 	std::atomic<bool>					m_RunImageJobThread = true;
 	std::thread							m_ImageJobThread;
@@ -66,11 +71,4 @@ private:
 
 	Tubes::ConnectionCallbackHandle		m_OnConnectionHandle;
 	Tubes::DisconnectionCallbackHandle	m_OnDisconnectionHandle;
-
-	// ScreenCapture
-	Microsoft::WRL::ComPtr<ID3D11Device> m_Device = nullptr;
-	ID3D11DeviceContext* m_DeviceContext = nullptr;
-	IDXGIOutputDuplication* m_OutputDup = nullptr;
-	D3D11_TEXTURE2D_DESC m_TextureDesc;
-	int32_t m_OutputDupCapturedImages = -1;
 };

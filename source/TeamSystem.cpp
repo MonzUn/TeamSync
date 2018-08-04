@@ -10,12 +10,15 @@
 #include <MengineUtility.h>
 #include <MUtilityLog.h>
 #include <MUtilityString.h>
+#include <MUtilitySystem.h>
 #include <MUtilityThreading.h>
 #include <Tubes.h>
 #include <iostream>
 
 #define LOG_CATEGORY_TEAM_SYSTEM "TeamSystem"
 #define DELAYED_SCREENSHOT_WAIT_TIME_MILLISECONDS 150
+#define SCREENSHOT_SINGLE_ATTEMPT_TIMEOUT_MILLISECONDS 1000
+#define SCREENSHOT_ATTEMPT_TIMEOUT_MILLISECONDS 3000
 
 using namespace MEngine;
 using Microsoft::WRL::ComPtr;
@@ -46,7 +49,9 @@ void TeamSystem::Initialize()
 	}
 
 	RegisterCommands();
-	InitScreenCapture();
+	m_ScreenCaptureInitialized = InitializeScreenCapture();
+
+	MUtilityLog::SetOutputTrigger(MUtilityLogOutputTrigger::Log);
 }
 
 void TeamSystem::Shutdown()
@@ -93,6 +98,7 @@ void TeamSystem::Shutdown()
 	if(MEngine::IsTextInputActive())
 		MEngine::StopTextInput();
 
+	ShutdownScreenCapture();
 	System::Shutdown();
 }
 
@@ -108,10 +114,9 @@ void TeamSystem::UpdatePresentationLayer(float deltaTime)
 
 // ---------- PRIVATE ----------
 
-bool TeamSystem::InitScreenCapture()
+bool TeamSystem::InitializeScreenCapture()
 {
 	HRESULT result = E_FAIL;
-	m_OutputDupCapturedImages = 0;
 
 	D3D_FEATURE_LEVEL featureLevels = D3D_FEATURE_LEVEL_11_0;
 	D3D_FEATURE_LEVEL featureLevel;
@@ -128,155 +133,189 @@ bool TeamSystem::InitScreenCapture()
 		&m_DeviceContext);
 	if (FAILED(result) || !m_Device)
 	{
-		MLOG_ERROR("Failed to create D3DDevice; error = " << result, LOG_CATEGORY_TEAM_SYSTEM);
+		MLOG_ERROR("Failed to create D3DDevice;\nError Code = " << MUtility::GetHResultErrorCodeString(result) << "\nError Description = " << MUtility::GetHResultErrorDescriptionString(result), LOG_CATEGORY_TEAM_SYSTEM);
+		ShutdownScreenCapture();
 		return false;
 	}
+	
 
 	// Get DXGI device
-	ComPtr<IDXGIDevice> DxgiDevice;
-	result = m_Device.As(&DxgiDevice);
+	IDXGIDevice* dxgiDevice = nullptr;
+	HRESULT hr = m_Device->QueryInterface(__uuidof(IDXGIDevice), reinterpret_cast<void**>(&dxgiDevice));
 	if (FAILED(result))
-	{		
-		MLOG_ERROR("Failed to get DXGI device; error = " << result, LOG_CATEGORY_TEAM_SYSTEM);
+	{
+		MLOG_ERROR("Failed to get DXGI device;\nError Code = " << MUtility::GetHResultErrorCodeString(result) << "\nError Description = " << MUtility::GetHResultErrorDescriptionString(result), LOG_CATEGORY_TEAM_SYSTEM);
+		ShutdownScreenCapture();
 		return false;
 	}
 
 	// Get DXGI adapter
-	ComPtr<IDXGIAdapter> DxgiAdapter;
-	result = DxgiDevice->GetParent(__uuidof(IDXGIAdapter), &DxgiAdapter);
+	IDXGIAdapter* dxgiAdapter = nullptr;
+	result = dxgiDevice->GetParent(__uuidof(IDXGIAdapter), reinterpret_cast<void**>(&dxgiAdapter));
+	dxgiDevice->Release();
+	dxgiDevice = nullptr;
 	if (FAILED(result))
 	{
-		MLOG_ERROR("Failed to get DXGI adapter; error = " << result, LOG_CATEGORY_TEAM_SYSTEM);
+		MLOG_ERROR("Failed to get DXGI adapter;\nError Code = " << MUtility::GetHResultErrorCodeString(result) << "\nError Description = " << MUtility::GetHResultErrorDescriptionString(result), LOG_CATEGORY_TEAM_SYSTEM);
+		ShutdownScreenCapture();
 		return false;
 	}
-
-	DxgiDevice.Reset();
 
 	// Get output
-	UINT Output = 0;
-	ComPtr<IDXGIOutput> lDxgiOutput;
-	result = DxgiAdapter->EnumOutputs(Output, &lDxgiOutput);
+	UINT Output = 0; // TODODB: Make this selectable
+	IDXGIOutput* dxgiOutput = nullptr;
+	result = dxgiAdapter->EnumOutputs(Output, &dxgiOutput);
+	dxgiAdapter->Release();
+	dxgiAdapter = nullptr;
 	if (FAILED(result))
 	{
-		MLOG_ERROR("Failed to get DXGI output; error = " << result, LOG_CATEGORY_TEAM_SYSTEM);
+		MLOG_ERROR("Failed to get DXGI output;\nError Code = " << MUtility::GetHResultErrorCodeString(result) << "\nError Description = " << MUtility::GetHResultErrorDescriptionString(result), LOG_CATEGORY_TEAM_SYSTEM);
+		ShutdownScreenCapture();
 		return false;
 	}
 
-	DxgiAdapter.Reset();
-
-	DXGI_OUTPUT_DESC outputDesc;
-	result = lDxgiOutput->GetDesc(&outputDesc);
+	IDXGIOutput1* dxgiOutput1;
+	result = dxgiOutput->QueryInterface(__uuidof(dxgiOutput), reinterpret_cast<void**>(&dxgiOutput1));
+	dxgiOutput->Release();
+	dxgiOutput = nullptr;
 	if (FAILED(result))
 	{
-		MLOG_ERROR("Failed to get DXGI output description; error = " << result, LOG_CATEGORY_TEAM_SYSTEM);
+		MLOG_ERROR("Failed to get DXGI output1;\nError Code = " << MUtility::GetHResultErrorCodeString(result) << "\nError Description = " << MUtility::GetHResultErrorDescriptionString(result), LOG_CATEGORY_TEAM_SYSTEM);
+		ShutdownScreenCapture();
 		return false;
 	}
-
-	ComPtr<IDXGIOutput1> DxgiOutput1;
-	result = lDxgiOutput.As(&DxgiOutput1);
-
-	if (FAILED(result))
-	{
-		MLOG_ERROR("Failed to get DXGI output1; error = " << result, LOG_CATEGORY_TEAM_SYSTEM);
-		return false;
-	}
-
-	lDxgiOutput.Reset();
 
 	// Create desktop duplication
-	result = DxgiOutput1->DuplicateOutput(m_Device.Get(), &m_OutputDup);
+	result = dxgiOutput1->DuplicateOutput(m_Device.Get(), &m_OutputDup);
+	dxgiOutput1->Release();
+	dxgiOutput1 = nullptr;
 	if (FAILED(result))
 	{
-		MLOG_ERROR("Failed to create output duplication; error = " << result, LOG_CATEGORY_TEAM_SYSTEM);
+		MLOG_ERROR("Failed to create output duplication;\nError Code = " << MUtility::GetHResultErrorCodeString(result) << "\nError Description = " << MUtility::GetHResultErrorDescriptionString(result), LOG_CATEGORY_TEAM_SYSTEM);
+		ShutdownScreenCapture();
 		return false;
 	}
-
-	DxgiOutput1.Reset();
-
-	// Create GUI drawing texture
-	DXGI_OUTDUPL_DESC outputDupDesc;
-	m_OutputDup->GetDesc(&outputDupDesc);
-
-	// Create CPU access texture
-	m_TextureDesc.Width = outputDupDesc.ModeDesc.Width;
-	m_TextureDesc.Height = outputDupDesc.ModeDesc.Height;
-	m_TextureDesc.Format = outputDupDesc.ModeDesc.Format;
-	m_TextureDesc.ArraySize = 1;
-	m_TextureDesc.BindFlags = 0;
-	m_TextureDesc.MiscFlags = 0;
-	m_TextureDesc.SampleDesc.Count = 1;
-	m_TextureDesc.SampleDesc.Quality = 0;
-	m_TextureDesc.MipLevels = 1;
-	m_TextureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_READ;
-	m_TextureDesc.Usage = D3D11_USAGE::D3D11_USAGE_STAGING;
 
 	return true;
 }
 
-MEngine::TextureID TeamSystem::CaptureScreen()
-{		
-	HRESULT result = E_FAIL;
-	ComPtr<IDXGIResource> desktopResource = nullptr;
-	DXGI_OUTDUPL_FRAME_INFO frameInfo;
-	ID3D11Texture2D* currentTexture = nullptr;
-	ComPtr<ID3D11Resource> image;
-
-	result = m_OutputDup->AcquireNextFrame(INFINITE, &frameInfo, &desktopResource);
-	if (FAILED(result))
+void TeamSystem::ShutdownScreenCapture()
+{
+	if (m_OutputDup)
 	{
-		if (result == DXGI_ERROR_ACCESS_LOST) 
-		{
-			// The duplication variables need to be re-acquired
-			m_OutputDup->Release();
-			InitScreenCapture();
-
-			// Make another attempt
-			result = m_OutputDup->AcquireNextFrame(INFINITE, &frameInfo, &desktopResource);
-			if (FAILED(result))
-				return MEngine::TextureID::Invalid();
-		}
-		
-		if (FAILED(result))
-		{
-			MLOG_ERROR("Failed to acquire next frame; error = " << result, LOG_CATEGORY_TEAM_SYSTEM);
-			return MEngine::TextureID::Invalid();
-		}
+		m_OutputDup->Release();
+		m_OutputDup = nullptr;
 	}
-	++m_OutputDupCapturedImages;
 
-	if (m_OutputDupCapturedImages == 1) // Sometimes the first image after a reset fails
+	if (m_Device)
+	{
+		m_Device->Release();
+		m_Device = nullptr;
+	}
+}
+
+MEngine::TextureID TeamSystem::CaptureScreen()
+{
+	if (!m_ScreenCaptureInitialized)
+	{
+		MLOG_WARNING("Attempted to capture screen without ScreenCapture being initialized", LOG_CATEGORY_TEAM_SYSTEM);
+		return MEngine::TextureID::Invalid();
+	}
+
+	HRESULT result = E_FAIL;
+	DXGI_OUTDUPL_FRAME_INFO frameInfo;
+	memset(&frameInfo, 0, sizeof(DXGI_OUTDUPL_FRAME_INFO));
+	IDXGIResource* desktopResource = nullptr;
+	ID3D11Texture2D* copyTexture = nullptr;
+
+	int32_t attemptCounter = 0;
+	DWORD startTicks = GetTickCount();
+	do // Loop until we get a non empty frame
 	{
 		m_OutputDup->ReleaseFrame();
-		m_OutputDup->AcquireNextFrame(INFINITE, &frameInfo, &desktopResource);
-	}
+		result = m_OutputDup->AcquireNextFrame(SCREENSHOT_SINGLE_ATTEMPT_TIMEOUT_MILLISECONDS, &frameInfo, &desktopResource);
+		if (FAILED(result))
+		{
+			if (result == DXGI_ERROR_ACCESS_LOST) // Access may be lost when changing from/to fullscreen mode(any application); when this happens we need to reacquire the outputdup
+			{
+				m_OutputDup->ReleaseFrame();
+				ShutdownScreenCapture();
+				m_ScreenCaptureInitialized = InitializeScreenCapture();
+				if (m_ScreenCaptureInitialized)
+				{
+					result = m_OutputDup->AcquireNextFrame(SCREENSHOT_SINGLE_ATTEMPT_TIMEOUT_MILLISECONDS, &frameInfo, &desktopResource);
+				}
+				else
+				{
+					MLOG_ERROR("Failed to reinitialize screen capture after access was lost", LOG_CATEGORY_TEAM_SYSTEM);
+					return MEngine::TextureID::Invalid();
+				}
+			}
 
-	result = desktopResource.As(&image);
+			if (FAILED(result))
+			{
+				MLOG_ERROR("Failed to acquire next frame;\nError Code = " << MUtility::GetHResultErrorCodeString(result) << "\nError Description = " << MUtility::GetHResultErrorDescriptionString(result), LOG_CATEGORY_TEAM_SYSTEM); // TODODB: Make a function for reporting hresult errors in this manner
+				return MEngine::TextureID::Invalid();
+			}
+		}
+		attemptCounter++;
+
+		if (GetTickCount() - startTicks > SCREENSHOT_ATTEMPT_TIMEOUT_MILLISECONDS)
+		{
+			MLOG_ERROR("Screencapture timed out after " << attemptCounter << " attempts", LOG_CATEGORY_TEAM_SYSTEM);
+			return MEngine::TextureID::Invalid();
+		}
+
+	} while(frameInfo.TotalMetadataBufferSize <= 0 || frameInfo.LastPresentTime.QuadPart <= 0);
+
+	// Query for IDXGIResource interface
+	result = desktopResource->QueryInterface(__uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&copyTexture));
+	desktopResource->Release();
+	desktopResource = nullptr;
 	if (FAILED(result))
 	{
-		MLOG_ERROR("An error occured while capturing image; error = " << result, LOG_CATEGORY_TEAM_SYSTEM);
+		MLOG_ERROR("Failed to acquire texture from resource;\nError Code = " << MUtility::GetHResultErrorCodeString(result) << "\nError Description = " << MUtility::GetHResultErrorDescriptionString(result), LOG_CATEGORY_TEAM_SYSTEM);
 		return MEngine::TextureID::Invalid();
 	}
 
-	// Copy image into a newly created CPU access texture
-	result = m_Device->CreateTexture2D(&m_TextureDesc, nullptr, &currentTexture);
-	if (FAILED(result) || !currentTexture)
+	// Create CPU access texture
+	D3D11_TEXTURE2D_DESC copyTextureDesc;
+	copyTexture->GetDesc(&copyTextureDesc);
+
+	D3D11_TEXTURE2D_DESC textureDesc;
+	textureDesc.Width = copyTextureDesc.Width;
+	textureDesc.Height = copyTextureDesc.Height;
+	textureDesc.Format = copyTextureDesc.Format;
+	textureDesc.ArraySize = copyTextureDesc.ArraySize;
+	textureDesc.BindFlags = 0;
+	textureDesc.MiscFlags = 0;
+	textureDesc.SampleDesc = copyTextureDesc.SampleDesc;
+	textureDesc.MipLevels = copyTextureDesc.MipLevels;
+	textureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_READ;
+	textureDesc.Usage = D3D11_USAGE::D3D11_USAGE_STAGING;
+
+	ID3D11Texture2D* stagingTexture = nullptr;
+	result = m_Device->CreateTexture2D(&textureDesc, nullptr, &stagingTexture);
+	if (FAILED(result) || stagingTexture == nullptr)
 	{
-		result = m_OutputDup->ReleaseFrame();
-		MLOG_ERROR("Failed to copy image data to access texture; error = " << result, LOG_CATEGORY_TEAM_SYSTEM);
+		MLOG_ERROR("Failed to copy image data to access texture;\nError Code = " << MUtility::GetHResultErrorCodeString(result) << "\nError Description = " << MUtility::GetHResultErrorDescriptionString(result), LOG_CATEGORY_TEAM_SYSTEM);
 		return MEngine::TextureID::Invalid();
 	}
 
-	D3D11_MAPPED_SUBRESOURCE resource;
-	m_DeviceContext->CopyResource(currentTexture, image.Get());
-	UINT subresource = D3D11CalcSubresource(0, 0, 0);
-	m_DeviceContext->Map(currentTexture, subresource, D3D11_MAP_READ, 0, &resource);
-	m_DeviceContext->Unmap(currentTexture, 0);
-	currentTexture->Release();
-	result = m_OutputDup->ReleaseFrame();
-	if (FAILED(result))
-		MLOG_WARNING("Failed to release frame after copying image data; this may cause leaks; error = " << result, LOG_CATEGORY_TEAM_SYSTEM);
+	// Copy the image data from VRAM to RAM and store it as a MEngineTexture
+	D3D11_MAPPED_SUBRESOURCE mappedResource;
+	m_DeviceContext->CopyResource(stagingTexture, copyTexture);
+	copyTexture->Release();
+	copyTexture = nullptr;
 
-	MEngine::TextureData textureData = MEngine::TextureData(m_TextureDesc.Width, m_TextureDesc.Height, resource.pData);
+	m_DeviceContext->Map(stagingTexture, 0, D3D11_MAP_READ, 0, &mappedResource);	
+	MEngine::TextureData textureData = MEngine::TextureData(textureDesc.Width, textureDesc.Height, mappedResource.pData);
+	m_DeviceContext->Unmap(stagingTexture, 0);
+
+	stagingTexture->Release();
+	stagingTexture = nullptr;
+	m_OutputDup->ReleaseFrame();
+
 	return MEngine::CreateTextureFromTextureData(textureData, true);
 }
 
