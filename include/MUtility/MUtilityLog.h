@@ -6,6 +6,7 @@
 #include <sstream>
 #include <vector>
 
+// TODODB: Make MLOG_DEBUG write to a separate category so that category doesn't have to be specified when writing debug logs
 #ifndef MUTILITY_DISABLE_LOGGING
 
 	#if COMPILE_MODE == COMPILE_MODE_DEBUG
@@ -54,6 +55,12 @@ enum class MUtilityLogMode
 	Debug
 };
 
+enum class MUtilityLogOutputTrigger
+{
+	Shutdown,
+	Log,
+};
+
 namespace MUtilityLog
 {
 	void Initialize();
@@ -75,4 +82,7 @@ namespace MUtilityLog
 	std::string GetLog(const std::string& category);
 	std::string GetAllInterestLog();
 	std::string GetFullLog();
+
+	MUtilityLogOutputTrigger GetOutputTrigger();
+	void SetOutputTrigger(MUtilityLogOutputTrigger newTrigger);
 };

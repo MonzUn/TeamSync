@@ -5,6 +5,6 @@ namespace MEngine
 	namespace Settings
 	{
 		static bool HighLogLevel	= false;
-		static bool PrintKeys		= false;
+		static bool PrintKeys		= true;
 	}
 }
