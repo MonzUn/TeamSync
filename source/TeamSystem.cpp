@@ -345,7 +345,7 @@ void TeamSystem::OnConnection(const Tubes::ConnectionAttemptResultData& connecti
 		{
 			if (!GlobalsBlackboard::GetInstance()->IsHost)
 			{
-				MLOG_WARNING("Incominc connection received in client mode", LOG_CATEGORY_TEAM_SYSTEM);
+				MLOG_WARNING("Incoming connection received in client mode", LOG_CATEGORY_TEAM_SYSTEM);
 				return;
 			}
 

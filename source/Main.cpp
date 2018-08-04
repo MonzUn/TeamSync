@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
 	//_CrtSetBreakAlloc(2514);
 #endif
 
-	srand(static_cast<uint32_t>(time(NULL))); // TODODB: Replace when MEngine has a built in Randomizer
+	srand(static_cast<uint32_t>(time(nullptr))); // TODODB: Replace when MEngine has a built in Randomizer
 
 	Mirage mirage;
 
