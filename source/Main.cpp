@@ -22,6 +22,7 @@
 // TODODB: Make clipping and destination rects customizable from file
 // TODODB: Make clipping/destination rect setups selectable from main menu
 // TODODB: Remove window border and make it possible to move the app between screens via UI/Console
+// TODODB: Get rid of "shared" in externals folder
 #if PLATFORM == PLATFORM_WINDOWS
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 #else

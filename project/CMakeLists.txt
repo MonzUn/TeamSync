@@ -42,29 +42,30 @@ get_filename_component(DebugLibraryDirectoryAbsolute ${DebugLibraryDirectoryRela
 file(RELATIVE_PATH ReleaseLibraryDirectoryRelative ${${PROJECT_NAME}_SOURCE_DIR} "${ProjectRootAbsolute}/lib/release/x64")
 get_filename_component(ReleaseLibraryDirectoryAbsolute ${ReleaseLibraryDirectoryRelative} ABSOLUTE)
 
-# Shared library directory
-file(RELATIVE_PATH SharedLibraryDirectoryRelative ${${PROJECT_NAME}_SOURCE_DIR} "${ProjectRootAbsolute}/lib/shared/x64")
-get_filename_component(SharedLibraryDirectoryAbsolute ${SharedLibraryDirectoryRelative} ABSOLUTE)
-
 # Find SDL2
-set(SDL2LibraryDirectoryAbsolute "${SharedLibraryDirectoryAbsolute}/SDL2")
+set(SDL_DebugLibraryDirectoryAbsolute "${DebugLibraryDirectoryAbsolute}/SDL2")
+set(SDL_ReleaseLibraryDirectoryAbsolute "${ReleaseLibraryDirectoryAbsolute}/SDL2")
+find_library(SDL2LibraryDebug NAMES SDL2 PATHS ${SDL_DebugLibraryDirectoryAbsolute})
+find_library(SDL2LibraryRelease NAMES SDL2 PATHS ${SDL_ReleaseLibraryDirectoryAbsolute})
+set(SDL2Libraries ${SDL2LibraryDebug};${SDL2LibraryRelease})
+message("[${PROJECT_NAME}] - Found SDL2 debug libs at path ${SDL2LibraryDebug}")
+message("[${PROJECT_NAME}] - Found SDL2 release libs at path ${SDL2LibraryRelease}")
 
-find_library(SDL2Library NAMES SDL2 PATHS ${SDL2LibraryDirectoryAbsolute})
-set(SDL2Libraries ${SDL2Library})
-message("[${PROJECT_NAME}] - Found SDL2 base libs at path ${SDL2Library}")
+find_library(SDL2ImageLibraryDebug NAMES SDL2_image PATHS ${SDL_DebugLibraryDirectoryAbsolute})
+find_library(SDL2ImageLibraryRelease NAMES SDL2_image PATHS ${SDL_ReleaseLibraryDirectoryAbsolute})
+list(APPEND SDL2Libraries ${SDL2ImageLibraryDebug};${SDL2ImageLibraryRelease})
+message("[${PROJECT_NAME}] - Found SDL2_image debug libs at path ${SDL2ImageLibraryDebug}")
+message("[${PROJECT_NAME}] - Found SDL2_image release libs at path ${SDL2ImageLibraryRelease}")
 
-find_library(SDL2imageLibrary NAMES SDL2_image PATHS ${SDL2LibraryDirectoryAbsolute})
-list(APPEND SDL2Libraries ${SDL2imageLibrary})
-message("[${PROJECT_NAME}] - Found SDL2 image libs at path ${SDL2imageLibrary}")
-
-find_library(SDL2_ttfLibrary NAMES SDL2_ttf PATHS ${SDL2LibraryDirectoryAbsolute})
-list(APPEND SDL2Libraries ${SDL2_ttfLibrary})
-message("[${PROJECT_NAME}] - Found SDL2_ttf libs at path ${SDL2_ttfLibrary}")
+find_library(SDL2_ttfLibraryDebug NAMES SDL2_ttf PATHS ${SDL_DebugLibraryDirectoryAbsolute})
+find_library(SDL2_ttfLibraryRelease NAMES SDL2_ttf PATHS ${SDL_ReleaseLibraryDirectoryAbsolute})
+list(APPEND SDL2Libraries ${SDL2_ttfLibraryDebug};${SDL2_ttfLibraryRelease})
+message("[${PROJECT_NAME}] - Found SDL2_ttf debug libs at path ${SDL2_ttfLibraryDebug}")
+message("[${PROJECT_NAME}] - Found SDL2_ttf release libs at path ${SDL2_ttfLibraryRelease}")
 
 # Find SDL_FontCache
 set(SDL_FontCacheDebugLibraryDirectoryAbsolute "${DebugLibraryDirectoryAbsolute}/SDL_FontCache")
 set(SDL_FontCacheReleaseLibraryDirectoryAbsolute "${ReleaseLibraryDirectoryAbsolute}/SDL_FontCache")
-
 find_library(SDL_FontCacheDebugLibrary NAMES SDL_FontCache PATHS ${SDL_FontCacheDebugLibraryDirectoryAbsolute})
 find_library(SDL_FontCacheReleaseLibrary NAMES SDL_FontCache PATHS ${SDL_FontCacheReleaseLibraryDirectoryAbsolute})
 message("[${PROJECT_NAME}] - Found SDL_FontCache debug libs at path ${SDL_FontCacheDebugLibrary}")
@@ -191,7 +192,6 @@ target_link_libraries(${PROJECT_NAME} optimized ${SDL2Libraries} optimized ${SDL
 
 # Add postbuild scripts that moves DLL files to the directory of the executable
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${ConfigurationBasedExternalPathAbsolute} "${OutputDirectoryAbsolute}/$<CONFIGURATION>")
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${SharedExternalsPathAbsolute} "${OutputDirectoryAbsolute}/$<CONFIGURATION>")
 
 # Add postbuild scripts
 # Move resources to the directory of the executable
