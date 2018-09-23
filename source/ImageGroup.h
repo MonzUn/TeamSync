@@ -18,15 +18,13 @@ public:
 	ImageGroup(ComponentID ID, int32_t posX, int32_t posY, int32_t width, int32_t height, const std::vector<Image*>& images, int32_t splitIndex = -1);
 	~ImageGroup();
 
-	void HandleInput(std::vector<ImageJob*>& imageJobs);
+	void Activate(PlayerID newOwnerID) override;
+	void Deactivate() override;
+
+	void HandleInput(std::vector<ImageJob*>& outJobs);
 
 	MEngine::TextureID GetImageTextureID(ComponentID ID) const;
 	MEngine::TextureID SetImageTextureID(ComponentID ID, MEngine::TextureID textureID); // Returns the ID of the previously used texture or the ID of the inputed texture on failure
-	MEngine::TextureID GetFullscreenTextureID() const;
-	MEngine::TextureID SetFullscreenTextureID(MEngine::TextureID textureID);
-
-	void Activate(PlayerID newOwnerID);
-	void Deactivate();
 
 	bool GetCycledScreenshotPrimed() const;
 	void SetCycledScreenshotPrimed(bool primed);
@@ -45,11 +43,8 @@ public:
 private:
 	void Construct(ComponentID ID, int32_t posX, int32_t posY, int32_t width, int32_t height, const std::vector<Image*>& images, int32_t splitIndex);
 	void UnloadDynamicImages();
-	void SetFullscreenMode(bool on);
-	void Reset();
+	void Reset() override;
 
-	bool m_Active = false;
-	PlayerID m_OwnerID = UNASSIGNED_PLAYER_ID;
 	int32_t m_SplitIndex = -1;
 
 	int32_t m_PositionX = -1;
@@ -58,8 +53,7 @@ private:
 	int32_t m_Height	= -1;
 
 	std::unordered_map<ComponentID, Image*> m_Images;
-	Image* m_FullScreenImage	= nullptr; // TODODB: Handling of these special images needs to be streamlined; maybe try to put them in the map with the others?
-	Image* m_ImageFrame			= nullptr;
+	Image* m_ImageFrame			= nullptr;// TODODB: Handling of these special images needs to be streamlined; maybe try to put them in the map with the others?
 	Image* m_PrimeImage			= nullptr;
 	Image* m_DefaultImage		= nullptr;
 	Image* m_StatusImage		= nullptr;

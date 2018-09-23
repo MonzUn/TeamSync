@@ -1,10 +1,14 @@
 #pragma once
 #include "MirageComponent.h"
+#include "MirageIDs.h"
 #include "MirageUtility.h"
 #include <MengineEntityManager.h>
 #include <MengineInternalComponents.h>
 #include <MUtilityBitset.h>
 #include <stdint.h>
+#include <vector>
+
+struct ImageJob;
 
 enum class ImageBehaviourMask : MUtility::BitSet
 {
@@ -17,9 +21,11 @@ CREATE_BITFLAG_OPERATOR_SIGNATURES(ImageBehaviourMask);
 class Image : public MirageComponent
 {
 public:
-	Image(ComponentID ID, int32_t posX, int32_t posY, int32_t posZ, int32_t width, int32_t height, bool isPartOfGroup, ImageBehaviourMask behaviour, int32_t clipPosX = -1, int32_t clipPosY = -1, int32_t clipWidth = -1, int32_t clipHeight = -1);
+	Image(ComponentID ID, int32_t posX, int32_t posY, int32_t posZ, int32_t width, int32_t height, ImageBehaviourMask behaviour, PlayerID ownerID = UNASSIGNED_PLAYER_ID, int32_t clipPosX = -1, int32_t clipPosY = -1, int32_t clipWidth = -1, int32_t clipHeight = -1);
 	Image(const Image& other);
 	~Image();
+
+	void HandleInput(std::vector<ImageJob*>& outJobs);
 
 	void UnloadImage();
 
@@ -34,7 +40,8 @@ public:
 	MirageRect GetClipRect() const;
 
 private:
-	void Construct(ComponentID ID, int32_t posX, int32_t posY, int32_t posZ, int32_t width, int32_t height, bool isPartOfGroup, ImageBehaviourMask behaviour, const MirageRect& clipRect);
+	void Construct(ComponentID ID, int32_t posX, int32_t posY, int32_t posZ, int32_t width, int32_t height, ImageBehaviourMask behaviour, PlayerID ownerID, const MirageRect& clipRect);
+	void Reset() override;
 
 	MEngine::EntityID	m_EntityID;
 	ImageBehaviourMask	m_BehviourMask;
@@ -45,6 +52,4 @@ private:
 	int32_t m_Width			= -1;
 	int32_t m_Height		= -1;
 	MirageRect m_ClipRect;
-
-	bool m_IsPartOfGroup = false; // TODODB: Use to check if the image should sync itself using an MKEY trigger or if this is done via a group
 };

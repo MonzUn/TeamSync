@@ -1,5 +1,7 @@
 #include "Image.h"
+#include "ImageJob.h"
 #include <MengineGraphics.h>
+#include <MengineUtility.h>
 #include <MUtilityMacros.h>
 #include <MUtilityLog.h>
 
@@ -10,16 +12,16 @@ using MEngine::TextureID;
 
 // ---------- PUBLIC ----------
 
-Image::Image(ComponentID ID, int32_t posX, int32_t posY, int32_t posZ, int32_t width, int32_t height, bool isPartOfGroup, ImageBehaviourMask behaviour, int32_t clipPosX, int32_t clipPosY, int32_t clipWidth, int32_t clipHeight)
+Image::Image(ComponentID ID, int32_t posX, int32_t posY, int32_t posZ, int32_t width, int32_t height, ImageBehaviourMask behaviour, PlayerID ownerID, int32_t clipPosX, int32_t clipPosY, int32_t clipWidth, int32_t clipHeight)
 	: MirageComponent(ComponentType::Image, ID)
 {
-	Construct(ID, posX, posY, posZ, width, height, isPartOfGroup, behaviour, MirageRect(clipPosX, clipPosY, clipWidth, clipHeight));
+	Construct(ID, posX, posY, posZ, width, height, behaviour, ownerID, MirageRect(clipPosX, clipPosY, clipWidth, clipHeight));
 }
 
 Image::Image(const Image& other)
 	: MirageComponent(ComponentType::Image, other.m_ID)
 {
-	Construct(other.m_ID, other.m_PosX, other.m_PosY, other.m_PosZ, other.m_Width, other.m_Height, other.m_IsPartOfGroup, other.m_BehviourMask, other.m_ClipRect);
+	Construct(other.m_ID, other.m_PosX, other.m_PosY, other.m_PosZ, other.m_Width, other.m_Height, other.m_BehviourMask, other.m_OwnerID, other.m_ClipRect);
 }
 
 Image::~Image()
@@ -27,9 +29,9 @@ Image::~Image()
 	MEngine::DestroyEntity(m_EntityID);
 }
 
-bool Image::HasBehaviour(ImageBehaviourMask behaviourMask)
+void Image::HandleInput(std::vector<ImageJob*>& outJobs)
 {
-	return (m_BehviourMask & behaviourMask) == behaviourMask;
+	// TODODB: Implement input system for mirage components
 }
 
 void Image::UnloadImage()
@@ -40,6 +42,11 @@ void Image::UnloadImage()
 		MEngine::UnloadTexture(ID);
 		SetTextureID(TextureID::Invalid());
 	}
+}
+
+bool Image::HasBehaviour(ImageBehaviourMask behaviourMask)
+{
+	return (m_BehviourMask & behaviourMask) == behaviourMask;
 }
 
 MEngine::TextureID Image::GetTextureID() const
@@ -73,15 +80,15 @@ MirageRect Image::GetClipRect() const
 
 // ---------- Private ----------
 
-void Image::Construct(ComponentID ID, int32_t posX, int32_t posY, int32_t posZ, int32_t width, int32_t height, bool isPartOfGroup, ImageBehaviourMask behaviour, const MirageRect& clipRect)
+void Image::Construct(ComponentID ID, int32_t posX, int32_t posY, int32_t posZ, int32_t width, int32_t height, ImageBehaviourMask behaviour, PlayerID ownerID, const MirageRect& clipRect)
 {
-	m_EntityID = MEngine::CreateEntity();
+	m_EntityID	= MEngine::CreateEntity();
+	m_OwnerID	= ownerID;
 	m_PosX		= posX;
 	m_PosY		= posY;
 	m_PosZ		= posZ;
 	m_Width		= width;
 	m_Height	= height;
-	m_IsPartOfGroup = isPartOfGroup;
 	m_BehviourMask	= behaviour;
 
 	if ((behaviour & ImageBehaviourMask::Clip) != 0)
@@ -96,4 +103,11 @@ void Image::Construct(ComponentID ID, int32_t posX, int32_t posY, int32_t posZ, 
 	posSizeComponent->PosZ = posZ;
 	posSizeComponent->Width = width;
 	posSizeComponent->Height = height;
+}
+
+void Image::Reset()
+{
+	MirageComponent::Reset();
+
+	UnloadImage();
 }

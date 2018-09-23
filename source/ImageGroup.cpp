@@ -27,15 +27,43 @@ ImageGroup::~ImageGroup()
 	for(auto& IDAndImage : m_Images)
 		delete IDAndImage.second;
 
-	m_FullScreenImage->UnloadImage();
-	delete m_FullScreenImage;
 	delete m_ImageFrame;
 	delete m_PrimeImage;
 	delete m_DefaultImage;
 	delete m_StatusImage;
 }
 
-void ImageGroup::HandleInput(std::vector<ImageJob*>& imageJobs)
+void ImageGroup::Activate(PlayerID newOwnerID)
+{
+	MirageComponent::Activate(newOwnerID);
+
+	// Activate all sub images
+	for (auto image : m_Images)
+	{
+		image.second->Activate(newOwnerID);
+	}
+
+	if (m_ImageFrame)
+		m_ImageFrame->SetRenderIgnore(false);
+
+	if (m_PrimeImage)
+		m_PrimeImage->SetRenderIgnore(false);
+
+	if (m_DefaultImage)
+		m_DefaultImage->SetRenderIgnore(false);
+
+	if (m_StatusImage)
+		m_StatusImage->SetRenderIgnore(false);
+}
+
+void ImageGroup::Deactivate()
+{
+	MirageComponent::Deactivate();
+
+	Reset();
+}
+
+void ImageGroup::HandleInput(std::vector<ImageJob*>& outJobs)
 {
 	// TODODB: Change static input keys for .mir defined ones
 
@@ -76,60 +104,14 @@ void ImageGroup::HandleInput(std::vector<ImageJob*>& imageJobs)
 		}
 	}
 
-	// Take direct screenshot
-	if (MEngine::KeyReleased(MKEY_GRAVE) && !MEngine::WindowHasFocus() && !m_AwaitingDelayedScreenshot)
-	{
-		ImageJob* screenshotJob = new ImageJob(ImageJobType::TakeScreenshot, m_OwnerID, m_ID, m_CycledScreenshotCounter);
-		imageJobs.push_back(screenshotJob);
-	}
-
 	// Handle delayed screenshot timer trigger
 	if (m_AwaitingDelayedScreenshot && std::chrono::high_resolution_clock::now() >= m_ScreenshotTime)
 	{
 		ImageJob* screenshotJob = new ImageJob(ImageJobType::TakeCycledScreenshot, m_OwnerID, m_ID, m_CycledScreenshotCounter);
-		imageJobs.push_back(screenshotJob);
+		outJobs.push_back(screenshotJob);
 
 		m_AwaitingDelayedScreenshot = false;
 	}
-}
-
-void ImageGroup::Activate(PlayerID newOwnerID)
-{
-	if (m_Active)
-	{
-		MLOG_WARNING("Attempted to activate already active ImageGroup; ID = " << m_ID, LOG_CATEGORY_IMAGE_GROUP);
-		return;
-	}
-
-	m_OwnerID = newOwnerID;
-
-	if(m_FullScreenImage)
-		m_FullScreenImage->SetRenderIgnore(false);
-
-	if(m_ImageFrame)
-		m_ImageFrame->SetRenderIgnore(false);
-
-	if(m_PrimeImage)
-		m_PrimeImage->SetRenderIgnore(false);
-
-	if(m_DefaultImage)
-		m_DefaultImage->SetRenderIgnore(false);
-
-	if(m_StatusImage)
-		m_StatusImage->SetRenderIgnore(false);
-
-	m_Active = true;
-}
-
-void ImageGroup::Deactivate()
-{
-	if (!m_Active)
-	{
-		MLOG_WARNING("Attempted to deactivate non active ImageGroup; ID = " << m_ID, LOG_CATEGORY_IMAGE_GROUP);
-		return;
-	}
-
-	Reset();
 }
 
 TextureID ImageGroup::GetImageTextureID(ComponentID ID) const
@@ -160,29 +142,6 @@ TextureID ImageGroup::SetImageTextureID(ComponentID ID, TextureID textureID)
 		toReturn = textureID;
 		MLOG_WARNING("Attempted to set texture of image with ID " << ID << " but no such image exists", LOG_CATEGORY_IMAGE_GROUP);
 	}
-
-	return toReturn;
-}
-
-MEngine::TextureID ImageGroup::GetFullscreenTextureID() const
-{
-	MEngine::TextureID toReturn = MEngine::TextureID::Invalid();
-	if(m_FullScreenImage)
-		toReturn = m_FullScreenImage->GetTextureID();
-
-	return toReturn;
-}
-
-TextureID ImageGroup::SetFullscreenTextureID(MEngine::TextureID textureID)
-{
-	TextureID toReturn = m_FullScreenImage->GetTextureID();
-	if (textureID.IsValid())
-	{
-		m_FullScreenImage->SetTextureID(textureID);
-		SetFullscreenMode(true);
-	}
-	else
-		SetFullscreenMode(false);
 
 	return toReturn;
 }
@@ -260,11 +219,9 @@ void ImageGroup::Construct(ComponentID ID, int32_t posX, int32_t posY, int32_t w
 		m_Images.emplace(image->GetID(), image);
 	}
 
-	m_FullScreenImage = new Image(-1, 0, 0, 0, m_Width, m_Height, false, ImageBehaviourMask::Synchronize);
-
 	TextureID primeImageID = MEngine::GetTextureFromPath(ResourcePaths::Images::PrimeIndicator);
 	TextureData primeImageData = MEngine::GetTextureData(primeImageID);
-	m_PrimeImage = new Image(-1, m_Width - primeImageData.Width, m_Height - primeImageData.Height, 1, primeImageData.Width, primeImageData.Height, false, ImageBehaviourMask::None);
+	m_PrimeImage = new Image(-1, m_Width - primeImageData.Width, m_Height - primeImageData.Height, 1, primeImageData.Width, primeImageData.Height, ImageBehaviourMask::None, m_OwnerID);
 	m_PrimeImage->SetTextureID(primeImageID);
 	Reset();
 }
@@ -275,29 +232,17 @@ void ImageGroup::UnloadDynamicImages()
 	{
 		IDAndImage.second->UnloadImage();
 	}
-	m_FullScreenImage->UnloadImage();
-}
-
-void ImageGroup::SetFullscreenMode(bool on)
-{
-	m_FullScreenImage->SetRenderIgnore(!on);
-	for (auto& IDAndImage : m_Images)
-	{
-		IDAndImage.second->SetRenderIgnore(on);
-	}
 }
 
 void ImageGroup::Reset()
 {
-	m_OwnerID = UNASSIGNED_PLAYER_ID;
+	MirageComponent::Reset();
+
 	m_CycledScreenshotCounter = 0;
 	m_AwaitingDelayedScreenshot = false;
 	m_CycledScreenshotPrimed = false;
 
 	UnloadDynamicImages();
-
-	if(m_FullScreenImage)
-		m_FullScreenImage->SetRenderIgnore(true);
 
 	if(m_ImageFrame)
 		m_ImageFrame->SetRenderIgnore(true);
@@ -310,6 +255,4 @@ void ImageGroup::Reset()
 
 	if(m_StatusImage)
 		m_StatusImage->SetRenderIgnore(true);
-
-	m_Active = false;
 }

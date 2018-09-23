@@ -550,7 +550,7 @@ Image* CreateImageComponent(const ImageDescription& imageData)
 				imageBehaviour |= ImageBehaviourMask::Synchronize;
 		}
 
-		toReturn = new Image(NextComponentID++, imageData.PosX, imageData.PosY, imageData.PosZ, imageData.Width, imageData.Height, imageData.IsPartOfGroup, imageBehaviour, imageData.ClipPosX, imageData.ClipPosY, imageData.Width, imageData.Height);
+		toReturn = new Image(NextComponentID++, imageData.PosX, imageData.PosY, imageData.PosZ, imageData.Width, imageData.Height, imageBehaviour, UNASSIGNED_PLAYER_ID, imageData.ClipPosX, imageData.ClipPosY, imageData.Width, imageData.Height);
 	}
 	else
 		MLOG_WARNING("Found image description lacking required fields; image will be skipped", LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);

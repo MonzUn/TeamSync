@@ -422,7 +422,6 @@ void ImageSynchronizerApp::HandleImageJobResults()
 				if (imageGroup->GetID() == finishedJob->ImageParentID)
 				{
 					foundRequestingComponent = true;
-					imageGroup->SetFullscreenTextureID(finishedJob->ResultTextureIDs[0]);
 					break;
 				}
 			}
@@ -493,12 +492,7 @@ void ImageSynchronizerApp::HandleImageJobResults()
 		case ImageJobType::CreateImageFromData:
 		{
 			if (m_Players[finishedJob->ImageOwnerPlayerID]->IsActive()) // Players may have been disconnected while the job was running
-			{
-				if(finishedJob->ImageIDs[0] != UNASSIGNED_MIRAGE_COMPONENT_ID) // TODODB: Remove this hack; -1 is interpreted as fullscreen; ImageGroup should instead look through the static images and see if any image fits the ID
 					m_ImageGroups[finishedJob->ImageOwnerPlayerID][finishedJob->ImageParentID]->SetImageTextureID(finishedJob->ImageIDs[0], finishedJob->ResultTextureIDs[0]);
-				else
-					m_ImageGroups[finishedJob->ImageOwnerPlayerID][finishedJob->ImageParentID]->SetFullscreenTextureID(finishedJob->ResultTextureIDs[0]);
-			}
 
 			free(finishedJob->Pixels);
 		} break;
@@ -649,40 +643,25 @@ void ImageSynchronizerApp::HandleIncomingNetworkCommunication()
 
 								for (const ImageGroup* imageGroup : m_ImageGroups[playerID])
 								{
-									MEngine::TextureID fullscreenTextureID = imageGroup->GetFullscreenTextureID();
-									if (fullscreenTextureID.IsValid())
+									std::vector<ComponentID> imageIDs;
+									imageGroup->GetImageIDs(imageIDs);
+									for (ComponentID imageID : imageIDs)
 									{
-										const TextureData& textureData = MEngine::GetTextureData(fullscreenTextureID);
-										if (textureData.Pixels != nullptr)
+										TextureID textureID = imageGroup->GetImageTextureID(imageID);
+										if (textureID.IsValid())
 										{
-											PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, imageGroup->GetID(), UNASSIGNED_MIRAGE_COMPONENT_ID, textureData);
-											Tubes::SendToConnection(&updateMessage, messageSenders[i]);
-											updateMessage.Destroy();
-										}
-										else
-											MLOG_WARNING("Failed to send fullscreen image state to newly connected client; could not get texture data from image; textureID = " << fullscreenTextureID, LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
-									}
-									else
-									{
-										std::vector<ComponentID> imageIDs;
-										imageGroup->GetImageIDs(imageIDs);
-										for (ComponentID imageID : imageIDs)
-										{
-											TextureID textureID = imageGroup->GetImageTextureID(imageID);
-											if (textureID.IsValid())
+											const TextureData& textureData = MEngine::GetTextureData(textureID);
+											if (textureData.Pixels != nullptr)
 											{
-												const TextureData& textureData = MEngine::GetTextureData(textureID);
-												if (textureData.Pixels != nullptr)
-												{
-													PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, imageGroup->GetID(), imageID, textureData);
-													Tubes::SendToConnection(&updateMessage, messageSenders[i]);
-													updateMessage.Destroy();
-												}
-												else
-													MLOG_WARNING("Failed to send image state to newly connected client; could not get texture data from image; ComponentID = " << imageID << "; textureID = " << textureID, LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
+												PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, imageGroup->GetID(), imageID, textureData);
+												Tubes::SendToConnection(&updateMessage, messageSenders[i]);
+												updateMessage.Destroy();
 											}
+											else
+												MLOG_WARNING("Failed to send image state to newly connected client; could not get texture data from image; ComponentID = " << imageID << "; textureID = " << textureID, LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
 										}
 									}
+										
 									SignalFlagMessage primeFlagMessage = SignalFlagMessage(MirageSignals::PRIME, imageGroup->GetCycledScreenshotPrimed(), playerID, imageGroup->GetID());
 									Tubes::SendToConnection(&primeFlagMessage, messageSenders[i]);
 									primeFlagMessage.Destroy();
