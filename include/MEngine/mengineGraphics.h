@@ -10,7 +10,7 @@ namespace MEngine
 	struct TextureData
 	{
 		TextureData() {}
-		TextureData(int32_t width, int32_t height, const void* pixels = nullptr, bool renderIgnore = false) : Width(width), Height(height), Pixels(pixels) {}
+		TextureData(int32_t width, int32_t height, const void* pixels = nullptr) : Width(width), Height(height), Pixels(pixels) {}
 
 		const void* Pixels			= nullptr;
 		int32_t		Width			= -1;
@@ -22,7 +22,6 @@ namespace MEngine
 
 	TextureID	CreateSubTextureFromTextureData(const TextureData& originalTexture, int32_t upperLeftOffsetX, int32_t upperLeftOffsetY, int32_t lowerRightOffsetX, int32_t lowerRightOffsetY, bool storeCopyInRAM = false);
 	TextureID	CreateTextureFromTextureData(const TextureData& textureData, bool storeCopyInRAM = false);
-	TextureID	CaptureScreenToTexture(bool storeCopyInRAM = false);
 
 	const TextureData GetTextureData(TextureID textureID);
 
