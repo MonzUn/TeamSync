@@ -1,11 +1,13 @@
 #include "Mirage.h"
 #include <MUtilityPlatformDefinitions.h>
+#include <stdint.h>
 
 #if PLATFORM == PLATFORM_WINDOWS
 #define _CRTDBG_MAP_ALLOC  
 #include <stdlib.h>  
 #include <crtdbg.h>  
 #include <MUtilityWindowsInclude.h>
+#include <time.h>
 #endif
 
 // --- Known memory leaks
@@ -31,8 +33,7 @@ int main(int argc, char* argv[])
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 	//_CrtSetBreakAlloc(2514);
 #endif
-
-	srand(static_cast<uint32_t>(time(NULL))); // TODODB: Replace when MEngine has a built in Randomizer
+	srand(static_cast<uint32_t>(time(nullptr))); // TODODB: Replace when MEngine has a built in Randomizer
 
 	Mirage mirage;
 
