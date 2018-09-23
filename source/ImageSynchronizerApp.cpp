@@ -3,16 +3,21 @@
 #include "ImageGroup.h"
 #include "MirageAppTypes.h"
 #include "MirageMessages.h"
+#include "MirageUtility.h"
 #include <MengineConfig.h>
 #include <MEngineConsole.h>
 #include <MEngineInput.h>
 #include <MEngineSystemManager.h>
 #include <MUtilityLog.h>
 #include <MUtilityString.h>
+#include <MUtilitySystem.h>
 #include <MUtilityThreading.h>
 #include <Tubes.h>
 
 #define LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP "SynchronizerApp"
+#define DELAYED_SCREENSHOT_WAIT_TIME_MILLISECONDS 150
+#define SCREENSHOT_SINGLE_ATTEMPT_TIMEOUT_MILLISECONDS 1000
+#define SCREENSHOT_ATTEMPT_TIMEOUT_MILLISECONDS 3000
 
 using namespace MEngine;
 
@@ -21,15 +26,25 @@ using namespace MEngine;
 ImageSynchronizerApp::ImageSynchronizerApp(const std::string& appName, const std::string& appVersion, const std::vector<MirageComponent*>& components)
 	: MirageApp(appName, appVersion, MirageAppType::ImageSynchronizer, components)
 {
+	std::vector<MirageRect> playerRects;
 	for (MirageComponent* component : components)
 	{
-		if (component->GetType() == ComponentType::ImageGroup) // TODODB: Also handle static iamges
+		switch (component->GetType())
 		{
-			m_ImageGroups[0].push_back(static_cast<ImageGroup*>(component));
-			for (int i = 1; i < Globals::MIRAGE_MAX_PLAYERS; ++i)
+			case ComponentType::Image: // TODODB: Handle static images 
 			{
-				m_ImageGroups[i].push_back(new ImageGroup(*static_cast<ImageGroup*>(component)));
-			}
+				delete component;
+			} break;
+
+			case ComponentType::ImageGroup: // TODODB: Handle imagegroups not tied to a specific player
+			{
+				ImageGroup* imageGroup = static_cast<ImageGroup*>(component);
+				m_ImageGroups[imageGroup->GetSplitIndex()].push_back(imageGroup);
+			} break;
+
+
+			default:
+				break;
 		}
 	}
 }
@@ -42,7 +57,7 @@ void ImageSynchronizerApp::Initialize()
 	m_RunImageJobThread = true;
 	m_ImageJobThread = std::thread(&ImageSynchronizerApp::ProcessImageJobs, this);
 
-	for (Player* player : m_Players)
+	for (Player*& player : m_Players)
 	{
 		player = new Player();
 	}
@@ -50,12 +65,14 @@ void ImageSynchronizerApp::Initialize()
 	if (GlobalsBlackboard::GetInstance()->IsHost)
 	{
 		m_LocalPlayerID = 0;
-		m_Players[m_LocalPlayerID]->Activate(m_LocalPlayerID, PlayerConnectionType::Local, TUBES_INVALID_CONNECTION_ID, GlobalsBlackboard::GetInstance()->LocalPlayerName);
+		ActivatePlayer(m_LocalPlayerID);
 		GlobalsBlackboard::GetInstance()->HostSettingsData.RequestsLogs = Config::GetBool("HostRequestsLogs", false);
 
 		if (GlobalsBlackboard::GetInstance()->HostSettingsData.RequestsLogs)
 			MLOG_INFO("Requesting log synchronization from clients", LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
 	}
+
+	m_ScreenCaptureInitialized = InitializeScreenCapture();
 
 	RegisterCommands();
 }
@@ -85,12 +102,25 @@ void ImageSynchronizerApp::Shutdown()
 	m_ImageJobResultQueue.Clear();
 
 	// Remove players
-	for (auto & Player : m_Players)
+	for (auto& Player : m_Players)
 	{
+		if(Player == nullptr)
+			continue;
+
 		if (Player->GetPlayerID() != m_LocalPlayerID && GlobalsBlackboard::GetInstance()->IsHost && GlobalsBlackboard::GetInstance()->HostSettingsData.RequestsLogs)
 			Player->FlushRemoteLog(); // TODODB: Make this trigger on client disconnection instead
-
+		
 		delete Player;
+	}
+
+	// Remove components
+	for (std::vector<ImageGroup*>& imageGroupList : m_ImageGroups)
+	{
+		for (ImageGroup*& imageGroup : imageGroupList)
+		{
+			delete imageGroup;
+			imageGroup = nullptr;
+		}
 	}
 
 	// Reset Globals blackboard
@@ -113,11 +143,217 @@ void ImageSynchronizerApp::UpdatePresentationLayer(float deltaTime)
 	RunDebugCode();
 #endif
 	HandleInput();
+	HandleComponents();
 	HandleImageJobResults();
 	HandleIncomingNetworkCommunication();
 }
 
 // ---------- PRIVATE ----------
+
+bool ImageSynchronizerApp::InitializeScreenCapture()
+{
+	HRESULT result = E_FAIL;
+
+	D3D_FEATURE_LEVEL featureLevels = D3D_FEATURE_LEVEL_11_0;
+	D3D_FEATURE_LEVEL featureLevel;
+	result = D3D11CreateDevice(
+		nullptr,
+		D3D_DRIVER_TYPE_HARDWARE,
+		nullptr,
+		0,
+		&featureLevels,
+		1,
+		D3D11_SDK_VERSION,
+		&m_Device,
+		&featureLevel,
+		&m_DeviceContext);
+	if (FAILED(result) || !m_Device)
+	{
+		MLOG_ERROR("Failed to create D3DDevice;\nError Code = " << MUtility::GetHResultErrorCodeString(result) << "\nError Description = " << MUtility::GetHResultErrorDescriptionString(result), LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
+		ShutdownScreenCapture();
+		return false;
+	}
+
+
+	// Get DXGI device
+	IDXGIDevice* dxgiDevice = nullptr;
+	HRESULT hr = m_Device->QueryInterface(__uuidof(IDXGIDevice), reinterpret_cast<void**>(&dxgiDevice));
+	if (FAILED(result))
+	{
+		MLOG_ERROR("Failed to get DXGI device;\nError Code = " << MUtility::GetHResultErrorCodeString(result) << "\nError Description = " << MUtility::GetHResultErrorDescriptionString(result), LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
+		ShutdownScreenCapture();
+		return false;
+	}
+
+	// Get DXGI adapter
+	IDXGIAdapter* dxgiAdapter = nullptr;
+	result = dxgiDevice->GetParent(__uuidof(IDXGIAdapter), reinterpret_cast<void**>(&dxgiAdapter));
+	dxgiDevice->Release();
+	dxgiDevice = nullptr;
+	if (FAILED(result))
+	{
+		MLOG_ERROR("Failed to get DXGI adapter;\nError Code = " << MUtility::GetHResultErrorCodeString(result) << "\nError Description = " << MUtility::GetHResultErrorDescriptionString(result), LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
+		ShutdownScreenCapture();
+		return false;
+	}
+
+	// Get output
+	UINT Output = 0; // TODODB: Make this selectable
+	IDXGIOutput* dxgiOutput = nullptr;
+	result = dxgiAdapter->EnumOutputs(Output, &dxgiOutput);
+	dxgiAdapter->Release();
+	dxgiAdapter = nullptr;
+	if (FAILED(result))
+	{
+		MLOG_ERROR("Failed to get DXGI output;\nError Code = " << MUtility::GetHResultErrorCodeString(result) << "\nError Description = " << MUtility::GetHResultErrorDescriptionString(result), LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
+		ShutdownScreenCapture();
+		return false;
+	}
+
+	IDXGIOutput1* dxgiOutput1;
+	result = dxgiOutput->QueryInterface(__uuidof(dxgiOutput), reinterpret_cast<void**>(&dxgiOutput1));
+	dxgiOutput->Release();
+	dxgiOutput = nullptr;
+	if (FAILED(result))
+	{
+		MLOG_ERROR("Failed to get DXGI output1;\nError Code = " << MUtility::GetHResultErrorCodeString(result) << "\nError Description = " << MUtility::GetHResultErrorDescriptionString(result), LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
+		ShutdownScreenCapture();
+		return false;
+	}
+
+	// Create desktop duplication
+	result = dxgiOutput1->DuplicateOutput(m_Device.Get(), &m_OutputDup);
+	dxgiOutput1->Release();
+	dxgiOutput1 = nullptr;
+	if (FAILED(result))
+	{
+		MLOG_ERROR("Failed to create output duplication;\nError Code = " << MUtility::GetHResultErrorCodeString(result) << "\nError Description = " << MUtility::GetHResultErrorDescriptionString(result), LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
+		ShutdownScreenCapture();
+		return false;
+	}
+
+	return true;
+}
+
+void ImageSynchronizerApp::ShutdownScreenCapture()
+{
+	if (m_OutputDup)
+	{
+		m_OutputDup->Release();
+		m_OutputDup = nullptr;
+	}
+
+	if (m_Device)
+	{
+		m_Device->Release();
+		m_Device = nullptr;
+	}
+}
+
+MEngine::TextureID ImageSynchronizerApp::CaptureScreen()
+{
+	if (!m_ScreenCaptureInitialized)
+	{
+		MLOG_WARNING("Attempted to capture screen without ScreenCapture being initialized", LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
+		return MEngine::TextureID::Invalid();
+	}
+
+	HRESULT result = E_FAIL;
+	DXGI_OUTDUPL_FRAME_INFO frameInfo;
+	memset(&frameInfo, 0, sizeof(DXGI_OUTDUPL_FRAME_INFO));
+	IDXGIResource* desktopResource = nullptr;
+	ID3D11Texture2D* copyTexture = nullptr;
+
+	int32_t attemptCounter = 0;
+	DWORD startTicks = GetTickCount();
+	do // Loop until we get a non empty frame
+	{
+		m_OutputDup->ReleaseFrame();
+		result = m_OutputDup->AcquireNextFrame(SCREENSHOT_SINGLE_ATTEMPT_TIMEOUT_MILLISECONDS, &frameInfo, &desktopResource);
+		if (FAILED(result))
+		{
+			if (result == DXGI_ERROR_ACCESS_LOST) // Access may be lost when changing from/to fullscreen mode(any application); when this happens we need to reacquire the outputdup
+			{
+				m_OutputDup->ReleaseFrame();
+				ShutdownScreenCapture();
+				m_ScreenCaptureInitialized = InitializeScreenCapture();
+				if (m_ScreenCaptureInitialized)
+				{
+					result = m_OutputDup->AcquireNextFrame(SCREENSHOT_SINGLE_ATTEMPT_TIMEOUT_MILLISECONDS, &frameInfo, &desktopResource);
+				}
+				else
+				{
+					MLOG_ERROR("Failed to reinitialize screen capture after access was lost", LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
+					return MEngine::TextureID::Invalid();
+				}
+			}
+
+			if (FAILED(result))
+			{
+				MLOG_ERROR("Failed to acquire next frame;\nError Code = " << MUtility::GetHResultErrorCodeString(result) << "\nError Description = " << MUtility::GetHResultErrorDescriptionString(result), LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP); // TODODB: Make a function for reporting hresult errors in this manner
+				return MEngine::TextureID::Invalid();
+			}
+		}
+		attemptCounter++;
+
+		if (GetTickCount() - startTicks > SCREENSHOT_ATTEMPT_TIMEOUT_MILLISECONDS)
+		{
+			MLOG_ERROR("Screencapture timed out after " << attemptCounter << " attempts", LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
+			return MEngine::TextureID::Invalid();
+		}
+
+	} while (frameInfo.TotalMetadataBufferSize <= 0 || frameInfo.LastPresentTime.QuadPart <= 0);
+
+	// Query for IDXGIResource interface
+	result = desktopResource->QueryInterface(__uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&copyTexture));
+	desktopResource->Release();
+	desktopResource = nullptr;
+	if (FAILED(result))
+	{
+		MLOG_ERROR("Failed to acquire texture from resource;\nError Code = " << MUtility::GetHResultErrorCodeString(result) << "\nError Description = " << MUtility::GetHResultErrorDescriptionString(result), LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
+		return MEngine::TextureID::Invalid();
+	}
+
+	// Create CPU access texture
+	D3D11_TEXTURE2D_DESC copyTextureDesc;
+	copyTexture->GetDesc(&copyTextureDesc);
+
+	D3D11_TEXTURE2D_DESC textureDesc;
+	textureDesc.Width = copyTextureDesc.Width;
+	textureDesc.Height = copyTextureDesc.Height;
+	textureDesc.Format = copyTextureDesc.Format;
+	textureDesc.ArraySize = copyTextureDesc.ArraySize;
+	textureDesc.BindFlags = 0;
+	textureDesc.MiscFlags = 0;
+	textureDesc.SampleDesc = copyTextureDesc.SampleDesc;
+	textureDesc.MipLevels = copyTextureDesc.MipLevels;
+	textureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_READ;
+	textureDesc.Usage = D3D11_USAGE::D3D11_USAGE_STAGING;
+
+	ID3D11Texture2D* stagingTexture = nullptr;
+	result = m_Device->CreateTexture2D(&textureDesc, nullptr, &stagingTexture);
+	if (FAILED(result) || stagingTexture == nullptr)
+	{
+		MLOG_ERROR("Failed to copy image data to access texture;\nError Code = " << MUtility::GetHResultErrorCodeString(result) << "\nError Description = " << MUtility::GetHResultErrorDescriptionString(result), LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
+		return MEngine::TextureID::Invalid();
+	}
+
+	// Copy the image data from VRAM to RAM and store it as a MEngineTexture
+	D3D11_MAPPED_SUBRESOURCE mappedResource;
+	m_DeviceContext->CopyResource(stagingTexture, copyTexture);
+	copyTexture->Release();
+	copyTexture = nullptr;
+
+	m_DeviceContext->Map(stagingTexture, 0, D3D11_MAP_READ, 0, &mappedResource);
+	MEngine::TextureData textureData = MEngine::TextureData(textureDesc.Width, textureDesc.Height, mappedResource.pData);
+	m_DeviceContext->Unmap(stagingTexture, 0);
+
+	stagingTexture->Release();
+	stagingTexture = nullptr;
+	m_OutputDup->ReleaseFrame();
+
+	return MEngine::CreateTextureFromTextureData(textureData, true);
+}
 
 PlayerID ImageSynchronizerApp::FindFreePlayerSlot() const
 {
@@ -134,7 +370,7 @@ void ImageSynchronizerApp::RemovePlayer(Player* player)
 {
 	for (ImageGroup* imageGroup : m_ImageGroups[player->GetPlayerID()])
 	{
-		imageGroup->SetActive(false);
+		imageGroup->Deactivate();
 	}
 
 	m_Players[player->GetPlayerID()]->Deactivate();
@@ -142,193 +378,33 @@ void ImageSynchronizerApp::RemovePlayer(Player* player)
 		m_LocalPlayerID = UNASSIGNED_PLAYER_ID;
 }
 
-void ImageSynchronizerApp::OnConnection(const Tubes::ConnectionAttemptResultData& connectionResult)
-{
-	switch (connectionResult.Result)
-	{
-	case Tubes::ConnectionAttemptResult::SUCCESS_INCOMING:
-	{
-		if (!GlobalsBlackboard::GetInstance()->IsHost)
-		{
-			MLOG_WARNING("Incominc connection received in client mode", LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
-			return;
-		}
-
-		RequestMessageMessage* requestMessage = new RequestMessageMessage(MirageMessages::PLAYER_INITIALIZE);
-		Tubes::SendToConnection(requestMessage, connectionResult.ID);
-		requestMessage->Destroy();
-	} break;
-
-	case Tubes::ConnectionAttemptResult::SUCCESS_OUTGOING:
-	{
-		MLOG_WARNING("An outgoing connection was made while in session mode", LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
-	} break;
-
-	case Tubes::ConnectionAttemptResult::FAILED_INTERNAL_ERROR:
-	case Tubes::ConnectionAttemptResult::FAILED_INVALID_IP:
-	case Tubes::ConnectionAttemptResult::FAILED_INVALID_PORT:
-	case Tubes::ConnectionAttemptResult::FAILED_TIMEOUT:
-	case Tubes::ConnectionAttemptResult::INVALID:
-	{
-		MLOG_WARNING("Received unexpected connection result", LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
-	} break;
-
-	default:
-		break;
-	}
-}
-
-void ImageSynchronizerApp::OnDisconnection(const Tubes::DisconnectionData& disconnectionData)
-{
-	Player* disconnectingPlayer = nullptr;
-	for (auto& Player : m_Players)
-	{
-		if (Player->IsActive() && Player->GetConnectionID() == disconnectionData.ID)
-		{
-			disconnectingPlayer = Player;
-			break;
-		}
-	}
-
-	if (disconnectingPlayer != nullptr)
-	{
-		if (GlobalsBlackboard::GetInstance()->IsHost)
-		{
-			PlayerDisconnectMessage disconnectMessage = PlayerDisconnectMessage(disconnectingPlayer->GetPlayerID());
-			Tubes::SendToAll(&disconnectMessage);
-			disconnectMessage.Destroy();
-
-			RemovePlayer(disconnectingPlayer);
-		}
-		else // Disconnected from host
-		{
-			for (auto& Player : m_Players)
-			{
-				if (Player->IsActive())
-					RemovePlayer(Player);
-			}
-			RequestGameModeChange(GlobalsBlackboard::GetInstance()->MainMenuGameModeID);
-		}
-	}
-}
-
-void ImageSynchronizerApp::ProcessImageJobs()
-{
-	m_ImageJobLock = std::unique_lock<std::mutex>(m_ImageJobLockMutex);
-
-	ImageJob* job = nullptr;
-	while (m_RunImageJobThread)
-	{
-		if (m_ImageJobQueue.Consume(job))
-		{
-			switch (job->JobType)
-			{
-			case ImageJobType::TakeScreenshot:
-			case ImageJobType::TakeCycledScreenshot:
-			{
-				job->ResultTextureID = MEngine::CaptureScreenToTexture(true);
-				m_ImageJobResultQueue.Produce(job);
-			} break;
-
-			case ImageJobType::CreateImageFromData:
-			{
-				job->ResultTextureID = MEngine::CreateTextureFromTextureData(MEngine::TextureData(job->ImageWidth, job->ImageHeight, job->Pixels), true);
-				m_ImageJobResultQueue.Produce(job);
-			} break;
-
-			case ImageJobType::SplitImage:
-			{// TODODB: Readd
-				//const int32_t(*cutPositionArray)[PlayerImageSlot::Count - 1][4] = nullptr;
-				//if (job->ImageWidth == 2560 && job->ImageHeight == 1440)
-					//cutPositionArray = &UILayout::CutPositions1440P; // TODODB: Use mir loaded cutpositions (Or switch to sending the cut images instead)
-				//else if (job->ImageWidth == 1920 && job->ImageHeight == 1080)
-					//cutPositionArray = &UILayout::CutPositions1080P;
-				//else
-					//MLOG_WARNING("Attempted to split image of unsupported size (" << job->ImageWidth << ", " << job->ImageHeight << ')', LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
-
-				//if (cutPositionArray != nullptr)
-					//job->ResultTextureID = MEngine::CreateSubTextureFromTextureData(MEngine::TextureData(job->ImageWidth, job->ImageHeight, job->Pixels), (*cutPositionArray)[job->ImageSlot][0], (*cutPositionArray)[job->ImageSlot][1], (*cutPositionArray)[job->ImageSlot][2], (*cutPositionArray)[job->ImageSlot][3], true);
-
-				//m_ImageJobResultQueue.Produce(job);
-			} break;
-
-			default:
-				break;
-			}
-		}
-		else
-			m_ImageJobLockCondition.wait(m_ImageJobLock);
-	}
-	m_ImageJobLock.unlock();
-}
-
 void ImageSynchronizerApp::HandleInput()
 {
-	// TODODB: Move to imagegroup
-	// Reset screenshot cycling
-	//if (MEngine::KeyReleased(MKEY_ANGLED_BRACKET) && m_LocalPlayerID != UNASSIGNED_PLAYER_ID)
-	//{
-	//	PrimeCycledScreenshotForPlayer(m_LocalPlayerID);
-	//
-	//	// If command key is held; prime all players
-	//	if (MEngine::KeyDown(MKEY_LEFT_ALT))
-	//	{
-	//		for (auto& Player : m_Players)
-	//		{
-	//			if (Player->IsActive())
-	//			{
-	//				SignalFlagMessage message = SignalFlagMessage(MirageSignals::PRIME, true, Player->GetPlayerID());
-	//				Tubes::SendToAll(&message);
-	//				message.Destroy();
-	//			}
-	//		}
-	//	}
-	//}
+	// Prime all imagegroups for all players
+	if (MEngine::KeyReleased(MKEY_ANGLED_BRACKET) && MEngine::KeyDown(MKEY_LEFT_ALT))
+	{
+		for (int i = 0; i < Globals::MIRAGE_MAX_PLAYERS; ++i)
+		{
+				PrimeCycledScreenshotForPlayer(i);
+		}
+	}
+}
 
-	// TODODB: Move to imagegroup
-	// Take delayed screenshot
-	//if ((MEngine::KeyReleased(MKEY_TAB) || MEngine::KeyReleased(MKEY_I)) && !MEngine::WindowHasFocus() && !MEngine::KeyDown(MKEY_LEFT_ALT) && !MEngine::KeyDown(MKEY_RIGHT_ALT) && m_LocalPlayerID != UNASSIGNED_PLAYER_ID)
-	//{
-	//	if (!m_AwaitingDelayedScreenshot)
-	//	{
-	//		if (m_DelayedScreenshotCounter % 2 == 0)
-	//		{
-	//			m_ScreenshotTime = std::chrono::high_resolution_clock::now() + std::chrono::milliseconds(DELAYED_SCREENSHOT_WAIT_TIME_MILLISECONDS);
-	//			m_AwaitingDelayedScreenshot = true;
-	//		}
-	//		++m_DelayedScreenshotCounter;
-	//
-	//		m_Players[m_LocalPlayerID]->SetCycledScreenshotPrimed(m_DelayedScreenshotCounter % 2 == 0);
-	//		SignalFlagMessage message = SignalFlagMessage(MirageSignals::PRIME, m_DelayedScreenshotCounter % 2 == 0, m_LocalPlayerID);
-	//		Tubes::SendToAll(&message);
-	//		message.Destroy();
-	//	}
-	//	else // Abort delayed screenshot
-	//	{
-	//		m_AwaitingDelayedScreenshot = false;
-	//		PrimeCycledScreenshotForPlayer(m_LocalPlayerID);
-	//	}
-	//}
+void ImageSynchronizerApp::HandleComponents()
+{
+	std::vector<ImageJob*> jobs;
 
-	// TODODB: Move to imagegroup
-	// Take direct screenshot
-	//if (MEngine::KeyReleased(MKEY_GRAVE) && !MEngine::WindowHasFocus() && m_LocalPlayerID != UNASSIGNED_PLAYER_ID && !m_AwaitingDelayedScreenshot)
-	//{
-	//	ImageJob* screenshotJob = new ImageJob(ImageJobType::TakeScreenshot, m_LocalPlayerID);
-	//	m_ImageJobQueue.Produce(screenshotJob);
-	//	m_ImageJobLockCondition.notify_one();
-	//}
+	for (ImageGroup* imageGroup : m_ImageGroups[m_LocalPlayerID])
+		imageGroup->HandleInput(jobs);
 
-	// TODODB: Move to imagegroup
-	// Handle delayed screenshot
-	//if (m_AwaitingDelayedScreenshot && std::chrono::high_resolution_clock::now() >= m_ScreenshotTime)
-	//{
-	//	ImageJob* screenshotJob = new ImageJob(ImageJobType::TakeCycledScreenshot, m_LocalPlayerID, m_DelayedScreenshotCounter);
-	//	m_ImageJobQueue.Produce(screenshotJob);
-	//	m_ImageJobLockCondition.notify_one();
-	//
-	//	m_AwaitingDelayedScreenshot = false;
-	//}
+	if (!jobs.empty())
+	{
+		for (ImageJob* job : jobs)
+		{
+			m_ImageJobQueue.Produce(job);
+		}
+		m_ImageJobLockCondition.notify_one();
+	}
 }
 
 void ImageSynchronizerApp::HandleImageJobResults()
@@ -343,23 +419,30 @@ void ImageSynchronizerApp::HandleImageJobResults()
 			bool foundRequestingComponent = false;
 			for (ImageGroup* imageGroup : m_ImageGroups[finishedJob->ImageOwnerPlayerID])
 			{
-				if (imageGroup->GetID() == finishedJob->RequestingComponentID)
+				if (imageGroup->GetID() == finishedJob->ImageParentID)
 				{
 					foundRequestingComponent = true;
+					imageGroup->SetFullscreenTextureID(finishedJob->ResultTextureIDs[0]);
 					break;
 				}
 			}
 
 			if (foundRequestingComponent)
 			{
-				PlayerUpdateMessage message = PlayerUpdateMessage(finishedJob->ImageOwnerPlayerID, finishedJob->RequestingComponentID, MEngine::GetTextureData(finishedJob->ResultTextureID));
-				Tubes::SendToAll(&message);
-				message.Destroy();
+				const MEngine::TextureData& textureData = MEngine::GetTextureData(finishedJob->ResultTextureIDs[0]);
+				if (textureData.Pixels != nullptr)
+				{
+					PlayerUpdateMessage message = PlayerUpdateMessage(finishedJob->ImageOwnerPlayerID, finishedJob->ImageParentID, finishedJob->ImageIDs[0], textureData );
+					Tubes::SendToAll(&message);
+					message.Destroy();
+				}
+				else
+					MLOG_WARNING("Screenshot failed; could not get texture data from screenshot texture; ID = " << finishedJob->ResultTextureIDs[0], LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
 			}
 			else
 			{
 				MLOG_WARNING("Screenshot failed; could not find component which initiated the screenshot request", LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
-				MEngine::UnloadTexture(finishedJob->ResultTextureID);
+				MEngine::UnloadTexture(finishedJob->ResultTextureIDs[0]);
 				if (finishedJob->Pixels)
 					free(finishedJob->Pixels);
 			}
@@ -367,43 +450,88 @@ void ImageSynchronizerApp::HandleImageJobResults()
 
 		case ImageJobType::TakeCycledScreenshot:
 		{
-			// TODODB: Check against relevant imagegroup
-			//if (m_DelayedScreenshotCounter == finishedJob->DelayedScreenShotCounter) // Discard the screenshot if the cycle was inversed again while the screenshot was being taken
+			bool succeeded = false;
+			for (ImageGroup* imageGroup : m_ImageGroups[finishedJob->ImageOwnerPlayerID])
 			{
-				//const MEngine::TextureData& textureData = MEngine::GetTextureData(finishedJob->ResultTextureID);
-				//for (int i = 0; i < PlayerImageSlot::Count - 1; ++i)
-				//{
-				//	void* pixelsCopy = malloc(textureData.Width * textureData.Height * MENGINE_BYTES_PER_PIXEL);
-				//	memcpy(pixelsCopy, textureData.Pixels, textureData.Width * textureData.Height * MENGINE_BYTES_PER_PIXEL); // Job will get destroyed; make a copy of the pixel data for the asynchronous job
-				//	ImageJob* splitJob = new ImageJob(ImageJobType::SplitImage, finishedJob->ImageOwnerPlayerID, static_cast<PlayerImageSlot::PlayerImageSlot>(i), textureData.Width, textureData.Height, pixelsCopy);
-				//	m_ImageJobQueue.Produce(splitJob);
-				//}
-				//MEngine::UnloadTexture(finishedJob->ResultTextureID);
-				//m_ImageJobLockCondition.notify_one();
+				if (imageGroup->GetID() == finishedJob->ImageParentID)
+				{
+					if (imageGroup->GetCycledSCreenshotCounter() == finishedJob->CycledScreenShotCounter) // Discard the screenshot if the cycle was inversed again while the screenshot was being taken
+					{
+						const MEngine::TextureData& textureData = MEngine::GetTextureData(finishedJob->ResultTextureIDs[0]);
+						if (textureData.Pixels != nullptr)
+						{
+							std::vector<ComponentID> imageIDs;
+							std::vector<MirageRect> clipRects;
+							imageGroup->GetClippingRects(clipRects, &imageIDs);
+
+							// Job will get destroyed; make a copy of the pixel data for the asynchronous job
+							void* pixelsCopy = malloc(textureData.Width * textureData.Height * MENGINE_BYTES_PER_PIXEL);
+							memcpy(pixelsCopy, textureData.Pixels, textureData.Width * textureData.Height * MENGINE_BYTES_PER_PIXEL);
+
+							ImageJob* splitJob = new ImageJob(ImageJobType::SplitImage, finishedJob->ImageOwnerPlayerID, finishedJob->ImageParentID, imageIDs, textureData.Width, textureData.Height, clipRects, pixelsCopy);
+							m_ImageJobQueue.Produce(splitJob);
+							
+							MEngine::UnloadTexture(finishedJob->ResultTextureIDs[0]);
+							m_ImageJobLockCondition.notify_one();
+						}
+						else
+							MLOG_WARNING("Screenshot failed; could not get texture data from screenshot texture; ID = " << finishedJob->ResultTextureIDs[0], LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
+
+						succeeded = true;
+						break;
+					}
+				}
 			}
-			//else // TOOODB: Don't forget to add back
-				//MEngine::UnloadTexture(finishedJob->ResultTextureID);
+
+			if (!succeeded)
+			{
+				MLOG_WARNING("Failed to find component requesting cycled screenshot", LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
+				MEngine::UnloadTexture(finishedJob->ResultTextureIDs[0]);
+			}	
 		} break;
 
 		case ImageJobType::CreateImageFromData:
-		{// TODODB: Readd
-			//if (m_Players[finishedJob->ImageOwnerPlayerID]->IsActive()) // Players may have been disconnected while the job was running
-				//m_Players[finishedJob->ImageOwnerPlayerID]->SetImageTextureID(finishedJob->ImageSlot, finishedJob->ResultTextureID);
+		{
+			if (m_Players[finishedJob->ImageOwnerPlayerID]->IsActive()) // Players may have been disconnected while the job was running
+			{
+				if(finishedJob->ImageIDs[0] != UNASSIGNED_MIRAGE_COMPONENT_ID) // TODODB: Remove this hack; -1 is interpreted as fullscreen; ImageGroup should instead look through the static images and see if any image fits the ID
+					m_ImageGroups[finishedJob->ImageOwnerPlayerID][finishedJob->ImageParentID]->SetImageTextureID(finishedJob->ImageIDs[0], finishedJob->ResultTextureIDs[0]);
+				else
+					m_ImageGroups[finishedJob->ImageOwnerPlayerID][finishedJob->ImageParentID]->SetFullscreenTextureID(finishedJob->ResultTextureIDs[0]);
+			}
 
 			free(finishedJob->Pixels);
 		} break;
 
 		case ImageJobType::SplitImage:
 		{
-			if (finishedJob->ResultTextureID.IsValid())
+			for (int i = 0; i < finishedJob->ResultTextureIDs.size(); ++i)
 			{
-				// TODODB: Use embedded component ID to figure out which component to update
-				//m_Players[finishedJob->ImageOwnerPlayerID]->SetImageTextureID(finishedJob->ImageSlot, finishedJob->ResultTextureID);
+				if (!finishedJob->ResultTextureIDs[i].IsValid())
+				{
+					MLOG_WARNING("Split screenshot failed; received invalid texture ID", LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
+					continue;
+				}
 
-				// TODODB: Change updatemessage to rely on component ID instead
-				//PlayerUpdateMessage message = PlayerUpdateMessage(finishedJob->ImageOwnerPlayerID, finishedJob->ImageSlot, MEngine::GetTextureData(finishedJob->ResultTextureID));
-				//Tubes::SendToAll(&message);
-				//message.Destroy();
+				for (ImageGroup* imageGroup : m_ImageGroups[finishedJob->ImageOwnerPlayerID])
+				{
+					if (imageGroup->GetID() == finishedJob->ImageParentID)
+					{
+						imageGroup->SetImageTextureID(finishedJob->ImageIDs[i], finishedJob->ResultTextureIDs[i]);
+						break;
+					}
+				}
+
+				const MEngine::TextureData& textureData = MEngine::GetTextureData(finishedJob->ResultTextureIDs[i]);
+				if (textureData.Pixels == nullptr)
+				{
+					MLOG_WARNING("Split screenshot failed; could not get texture data from screenshot texture; ID = " << finishedJob->ResultTextureIDs[i], LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
+					continue;
+				}	
+
+				PlayerUpdateMessage message = PlayerUpdateMessage(finishedJob->ImageOwnerPlayerID, finishedJob->ImageParentID, finishedJob->ImageIDs[i], textureData); // TODODB: Handle communicating the new textures as a single message instead
+				Tubes::SendToAll(&message);
+				message.Destroy();
 			}
 			free(finishedJob->Pixels);
 		} break;
@@ -518,30 +646,47 @@ void ImageSynchronizerApp::HandleIncomingNetworkCommunication()
 								PlayerInitializeMessage idMessage = PlayerInitializeMessage(playerID, connectionType, m_Players[playerID]->GetName());
 								Tubes::SendToConnection(&idMessage, messageSenders[i]);
 								idMessage.Destroy();
-								// TODODB: Readd
-								//if (m_Players[playerID]->GetImageTextureID(PlayerImageSlot::Fullscreen).IsValid())
-								//{
-								//	PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, PlayerImageSlot::Fullscreen, MEngine::GetTextureData(m_Players[playerID]->GetImageTextureID(PlayerImageSlot::Fullscreen)));
-								//	Tubes::SendToConnection(&updateMessage, messageSenders[i]);
-								//	updateMessage.Destroy();
-								//}
-								//else
-								//{
-								//	for (int k = 0; k < PlayerImageSlot::Count - 1; ++k)
-								//	{
-								//		TextureID textureID = m_Players[playerID]->GetImageTextureID(static_cast<PlayerImageSlot::PlayerImageSlot>(k));
-								//		if (textureID.IsValid())
-								//		{
-								//			PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, static_cast<PlayerImageSlot::PlayerImageSlot>(k), MEngine::GetTextureData(textureID));
-								//			Tubes::SendToConnection(&updateMessage, messageSenders[i]);
-								//			updateMessage.Destroy();
-								//		}
-								//	}
-								//}
 
-								//SignalFlagMessage primeFlagMessage = SignalFlagMessage(MirageSignals::PRIME, m_Players[playerID]->GetCycledScreenshotPrimed(), playerID);
-								//Tubes::SendToConnection(&primeFlagMessage, messageSenders[i]);
-								//primeFlagMessage.Destroy();
+								for (const ImageGroup* imageGroup : m_ImageGroups[playerID])
+								{
+									MEngine::TextureID fullscreenTextureID = imageGroup->GetFullscreenTextureID();
+									if (fullscreenTextureID.IsValid())
+									{
+										const TextureData& textureData = MEngine::GetTextureData(fullscreenTextureID);
+										if (textureData.Pixels != nullptr)
+										{
+											PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, imageGroup->GetID(), UNASSIGNED_MIRAGE_COMPONENT_ID, textureData);
+											Tubes::SendToConnection(&updateMessage, messageSenders[i]);
+											updateMessage.Destroy();
+										}
+										else
+											MLOG_WARNING("Failed to send fullscreen image state to newly connected client; could not get texture data from image; textureID = " << fullscreenTextureID, LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
+									}
+									else
+									{
+										std::vector<ComponentID> imageIDs;
+										imageGroup->GetImageIDs(imageIDs);
+										for (ComponentID imageID : imageIDs)
+										{
+											TextureID textureID = imageGroup->GetImageTextureID(imageID);
+											if (textureID.IsValid())
+											{
+												const TextureData& textureData = MEngine::GetTextureData(textureID);
+												if (textureData.Pixels != nullptr)
+												{
+													PlayerUpdateMessage updateMessage = PlayerUpdateMessage(playerID, imageGroup->GetID(), imageID, textureData);
+													Tubes::SendToConnection(&updateMessage, messageSenders[i]);
+													updateMessage.Destroy();
+												}
+												else
+													MLOG_WARNING("Failed to send image state to newly connected client; could not get texture data from image; ComponentID = " << imageID << "; textureID = " << textureID, LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
+											}
+										}
+									}
+									SignalFlagMessage primeFlagMessage = SignalFlagMessage(MirageSignals::PRIME, imageGroup->GetCycledScreenshotPrimed(), playerID, imageGroup->GetID());
+									Tubes::SendToConnection(&primeFlagMessage, messageSenders[i]);
+									primeFlagMessage.Destroy();
+								}
 							}
 						}
 					}
@@ -599,8 +744,8 @@ void ImageSynchronizerApp::HandleIncomingNetworkCommunication()
 
 			void* pixelsCopy = malloc(playerUpdateMessage->ImageByteSize);
 			memcpy(pixelsCopy, playerUpdateMessage->Pixels, playerUpdateMessage->ImageByteSize); // Message will get destroyed; make a copy of the pixel data for the asynchronous job
-			//ImageJob* imageFromDataJob = new ImageJob(ImageJobType::CreateImageFromData, playerUpdateMessage->PlayerID, static_cast<PlayerImageSlot::PlayerImageSlot>(playerUpdateMessage->ImageSlot), playerUpdateMessage->Width, playerUpdateMessage->Height, pixelsCopy); // TODODB: Readd
-			//m_ImageJobQueue.Produce(imageFromDataJob);
+			ImageJob* imageFromDataJob = new ImageJob(ImageJobType::CreateImageFromData, playerUpdateMessage->PlayerID, playerUpdateMessage->ImageParentID, std::vector<ComponentID>(playerUpdateMessage->ImageID), playerUpdateMessage->Width, playerUpdateMessage->Height, pixelsCopy); // TODODB: Get rid of the vector creation for ComponentID
+			m_ImageJobQueue.Produce(imageFromDataJob);
 			m_ImageJobLockCondition.notify_one();
 		} break;
 
@@ -663,12 +808,55 @@ void ImageSynchronizerApp::HandleIncomingNetworkCommunication()
 	}
 }
 
+void ImageSynchronizerApp::ProcessImageJobs()
+{
+	m_ImageJobLock = std::unique_lock<std::mutex>(m_ImageJobLockMutex);
+
+	ImageJob* job = nullptr;
+	while (m_RunImageJobThread)
+	{
+		if (m_ImageJobQueue.Consume(job))
+		{
+			switch (job->JobType)
+			{
+			case ImageJobType::TakeScreenshot:
+			case ImageJobType::TakeCycledScreenshot:
+			{
+				job->ResultTextureIDs.emplace_back(CaptureScreen());
+				m_ImageJobResultQueue.Produce(job);
+			} break;
+
+			case ImageJobType::CreateImageFromData:
+			{
+				job->ResultTextureIDs.emplace_back(MEngine::CreateTextureFromTextureData(MEngine::TextureData(job->ImageWidth, job->ImageHeight, job->Pixels), true));
+				m_ImageJobResultQueue.Produce(job);
+			} break;
+
+			case ImageJobType::SplitImage:
+			{
+				for (auto& clipRect : job->ClipRects)
+				{
+					job->ResultTextureIDs.emplace_back(MEngine::CreateSubTextureFromTextureData(MEngine::TextureData(job->ImageWidth, job->ImageHeight, job->Pixels), clipRect.PosX, clipRect.PosY, clipRect.Width, clipRect.Height, true));
+				}
+				m_ImageJobResultQueue.Produce(job);
+			} break;
+
+			default:
+				break;
+			}
+		}
+		else
+			m_ImageJobLockCondition.wait(m_ImageJobLock);
+	}
+	m_ImageJobLock.unlock();
+}
+
 void ImageSynchronizerApp::RegisterCommands()
 {
 	// TODODB: Add using statement for placeholders
-	MEngine::RegisterGameModeCommand(GlobalsBlackboard::GetInstance()->MultiplayerGameModeID, "prime", std::bind(&ImageSynchronizerApp::ExecutePrimeCycledScreenshotCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), "Primes the screenshot cycle of one or all players\nParam 1(optional): Player ID - The player for which to prime the cycle (All player's cycles will be primed if this paramter is not supplied)");
-	MEngine::RegisterGameModeCommand(GlobalsBlackboard::GetInstance()->MultiplayerGameModeID, "disconnect", std::bind(&ImageSynchronizerApp::ExecuteDisconnectCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), "Disconnects one or all players\nParam 1(optional): Player ID - The player to disconnect. Disconnecting oneself as host will terminate the hosted session (The local player will be disconnected if this parameter is not supplied.)");
-	MEngine::RegisterGameModeCommand(GlobalsBlackboard::GetInstance()->MultiplayerGameModeID, "connectioninfo", std::bind(&ImageSynchronizerApp::ExecuteConnectionInfoCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), "Outputs information about the directly connected clients");
+	MEngine::RegisterGameModeCommand(GlobalsBlackboard::GetInstance()->InAppGameModeID, "prime", std::bind(&ImageSynchronizerApp::ExecutePrimeCycledScreenshotCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), "Primes the screenshot cycle of one or all players\nParam 1(optional): Player ID - The player for which to prime the cycle (All player's cycles will be primed if this paramter is not supplied)");
+	MEngine::RegisterGameModeCommand(GlobalsBlackboard::GetInstance()->InAppGameModeID, "disconnect", std::bind(&ImageSynchronizerApp::ExecuteDisconnectCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), "Disconnects one or all players\nParam 1(optional): Player ID - The player to disconnect. Disconnecting oneself as host will terminate the hosted session (The local player will be disconnected if this parameter is not supplied.)");
+	MEngine::RegisterGameModeCommand(GlobalsBlackboard::GetInstance()->InAppGameModeID, "connectioninfo", std::bind(&ImageSynchronizerApp::ExecuteConnectionInfoCommand, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), "Outputs information about the directly connected clients");
 }
 
 bool ImageSynchronizerApp::ExecutePrimeCycledScreenshotCommand(const std::string* parameters, int32_t parameterCount, std::string* outResponse)
@@ -839,6 +1027,29 @@ bool ImageSynchronizerApp::ExecuteConnectionInfoCommand(const std::string* param
 	return result;
 }
 
+void ImageSynchronizerApp::ActivatePlayer(PlayerID ID)
+{
+	m_Players[ID]->Activate(ID, PlayerConnectionType::Local, TUBES_INVALID_CONNECTION_ID, GlobalsBlackboard::GetInstance()->LocalPlayerName);
+	for (ImageGroup* imageGroup : m_ImageGroups[ID])
+	{
+		imageGroup->Activate(ID);
+	}
+}
+
+void ImageSynchronizerApp::PrimeCycledScreenshotForPlayer(PlayerID playerID)
+{
+	if (m_Players[playerID]->IsActive())
+	{
+		for (auto& imageGroup : m_ImageGroups[playerID])
+		{
+			imageGroup->SetCycledScreenshotPrimed(true);
+			SignalFlagMessage message = SignalFlagMessage(MirageSignals::PRIME, true, playerID, imageGroup->GetID());
+			Tubes::SendToAll(&message);
+			message.Destroy();
+		}
+	}
+}
+
 bool ImageSynchronizerApp::DisconnectPlayer(PlayerID playerID)
 {
 	bool result = false;
@@ -880,16 +1091,72 @@ void ImageSynchronizerApp::StopHosting()
 	RequestGameModeChange(GlobalsBlackboard::GetInstance()->MainMenuGameModeID);
 }
 
-void ImageSynchronizerApp::PrimeCycledScreenshotForPlayer(PlayerID playerID)
+void ImageSynchronizerApp::OnConnection(const Tubes::ConnectionAttemptResultData& connectionResult)
 {
-	if (playerID == m_LocalPlayerID) // TODODB: Test if this still works as intended for remote players
+	switch (connectionResult.Result)
 	{
-		for (auto& imageGroup : m_ImageGroups[playerID])
+	case Tubes::ConnectionAttemptResult::SUCCESS_INCOMING:
+	{
+		if (!GlobalsBlackboard::GetInstance()->IsHost)
 		{
-			imageGroup->SetCycledScreenshotPrimed(true);
-			SignalFlagMessage message = SignalFlagMessage(MirageSignals::PRIME, true, playerID, imageGroup->GetID());
-			Tubes::SendToAll(&message);
-			message.Destroy();
+			MLOG_WARNING("Incominc connection received in client mode", LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
+			return;
+		}
+
+		RequestMessageMessage* requestMessage = new RequestMessageMessage(MirageMessages::PLAYER_INITIALIZE);
+		Tubes::SendToConnection(requestMessage, connectionResult.ID);
+		requestMessage->Destroy();
+	} break;
+
+	case Tubes::ConnectionAttemptResult::SUCCESS_OUTGOING:
+	{
+		MLOG_WARNING("An outgoing connection was made while in session mode", LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
+	} break;
+
+	case Tubes::ConnectionAttemptResult::FAILED_INTERNAL_ERROR:
+	case Tubes::ConnectionAttemptResult::FAILED_INVALID_IP:
+	case Tubes::ConnectionAttemptResult::FAILED_INVALID_PORT:
+	case Tubes::ConnectionAttemptResult::FAILED_TIMEOUT:
+	case Tubes::ConnectionAttemptResult::INVALID:
+	{
+		MLOG_WARNING("Received unexpected connection result", LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
+	} break;
+
+	default:
+		break;
+	}
+}
+
+void ImageSynchronizerApp::OnDisconnection(const Tubes::DisconnectionData& disconnectionData)
+{
+	Player* disconnectingPlayer = nullptr;
+	for (auto& Player : m_Players)
+	{
+		if (Player->IsActive() && Player->GetConnectionID() == disconnectionData.ID)
+		{
+			disconnectingPlayer = Player;
+			break;
+		}
+	}
+
+	if (disconnectingPlayer != nullptr)
+	{
+		if (GlobalsBlackboard::GetInstance()->IsHost)
+		{
+			PlayerDisconnectMessage disconnectMessage = PlayerDisconnectMessage(disconnectingPlayer->GetPlayerID());
+			Tubes::SendToAll(&disconnectMessage);
+			disconnectMessage.Destroy();
+
+			RemovePlayer(disconnectingPlayer);
+		}
+		else // Disconnected from host
+		{
+			for (auto& Player : m_Players)
+			{
+				if (Player->IsActive())
+					RemovePlayer(Player);
+			}
+			RequestGameModeChange(GlobalsBlackboard::GetInstance()->MainMenuGameModeID);
 		}
 	}
 }
@@ -898,12 +1165,11 @@ void ImageSynchronizerApp::PrimeCycledScreenshotForPlayer(PlayerID playerID)
 void ImageSynchronizerApp::RunDebugCode()
 {
 	bool ContinuousScreenshots = false;
-	// TODODB: Readd
+
 	// Continuously request new cycled screenshots 
-	//if (ContinuousScreenshots && !m_AwaitingDelayedScreenshot && m_LocalPlayerID != UNASSIGNED_PLAYER_ID) // TODODB: Update relevant imagegroups
+	if (ContinuousScreenshots && m_LocalPlayerID != UNASSIGNED_PLAYER_ID)
 	{
-		//m_ScreenshotTime = std::chrono::high_resolution_clock::now() + std::chrono::milliseconds(1000);
-		//m_AwaitingDelayedScreenshot = true;
+		m_ImageGroups[m_LocalPlayerID][0]->TriggerCycledScreenshot();
 	}
 }
 #endif

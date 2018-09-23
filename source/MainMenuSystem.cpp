@@ -1,5 +1,7 @@
 #include "MainMenuSystem.h"
 #include "GlobalsBlackboard.h"
+#include "MirageApp.h"
+#include "MirParser.h"
 #include "PlayerNames.h"
 #include "ResourcePaths.h"
 #include "UILayout.h"
@@ -369,7 +371,20 @@ void MainMenuSystem::OnConnection(const Tubes::ConnectionAttemptResultData& conn
 
 void MainMenuSystem::StartMPGameMode()
 {
+	int32_t priority = 200;
+	for (int i = 0; i < GlobalsBlackboard::GetInstance()->SelectedMirageAppCount; ++i) // TODODB: Read meta data and file path of all selected apps and have it ready here so it can be used when creating the app objects
+	{
+		// TODODB: Replace test code with actual data from the UI and files
+		MirageApp* app = nullptr;
+		MirParser::ParseMirFile("resources/mirages/ImageSynchronizer.mir", MirParser::ParseMode::Full, app);
+		GlobalsBlackboard::GetInstance()->MirageApps.push_back(app);
+		MEngine::SystemID systemID = MEngine::RegisterSystem(app);
+		GlobalsBlackboard::GetInstance()->MirageAppIDs.push_back(systemID);
+		MEngine::AddSystemToGameMode(GlobalsBlackboard::GetInstance()->InAppGameModeID, systemID, priority);
+		priority += 10;
+	}
+
 	GlobalsBlackboard::GetInstance()->LocalPlayerName = *static_cast<const TextComponent*>(MEngine::GetComponent(m_PlayerNameInputTextBoxID, TextComponent::GetComponentMask()))->Text;
 	MEngine::Config::SetString("PlayerName", GlobalsBlackboard::GetInstance()->LocalPlayerName);
-	MEngine::RequestGameModeChange(GlobalsBlackboard::GetInstance()->MultiplayerGameModeID);
+	MEngine::RequestGameModeChange(GlobalsBlackboard::GetInstance()->InAppGameModeID);
 }

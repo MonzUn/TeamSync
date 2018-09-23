@@ -1,10 +1,8 @@
 #pragma once
+#include "MirageIDs.h"
 #include <MEngineEntityManager.h>
 #include <MEngineInternalComponents.h>
 #include <TubesTypes.h>
-
-#define UNASSIGNED_PLAYER_ID -1
-typedef int32_t PlayerID;
 
 namespace PlayerConnectionType
 {

@@ -1,5 +1,6 @@
 #pragma once
 #include "MirageAppTypes.h"
+#include "MirComponentDescriptions.h"
 #include <string>
 #include <vector>
 
@@ -10,15 +11,24 @@ namespace MirParser
 {
 	struct MirMetaData
 	{
-		std::string		Name;
-		std::string		Version;
-		MirageAppType	Type = MirageAppType::Invalid;
+		std::string	Name;
+		std::string	Version;
+		MirageAppType Type = MirageAppType::Invalid;
 	};
 
 	struct MirData
 	{
+		MirData() = default;
+		~MirData()
+		{
+			for(ComponentDescription* componentDesc : ComponentDescriptions)
+			{
+				delete componentDesc;
+			}
+		}
+
 		MirMetaData MetaData;
-		std::vector<MirageComponent*> Components;
+		std::vector<ComponentDescription*> ComponentDescriptions;
 	};
 
 	enum class ParseMode
@@ -39,5 +49,5 @@ namespace MirParser
 		Fail_Unknown,
 	};
 
-	ParseResult ParseMirFile(const std::string& relativeFilePath, ParseMode parseMode, MirageApp* outResultApp);
+	ParseResult ParseMirFile(const std::string& relativeFilePath, ParseMode parseMode, MirageApp*& outResultApp);
 };

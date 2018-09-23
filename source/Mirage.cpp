@@ -27,10 +27,6 @@
 using namespace MEngine::PredefinedColors;
 using MEngine::InitFlags;
 
-std::vector<MirageApp*> m_MirageApps;
-
-void Shutdown();
-
 // ---------- PUBLIC ----------
 
 bool Mirage::Initialize()
@@ -50,7 +46,7 @@ bool Mirage::Initialize()
 		return false;
 	}
 
-	if (!MEngine::CreateWindow(windowTitle.c_str(), 0, 0, UILayout::APPLICATION_WINDOW_WIDTH, UILayout::APPLICATION_WINDOW_HEIGHT))
+	if (!MEngine::CreateWindow_(windowTitle.c_str(), 0, 0, UILayout::APPLICATION_WINDOW_WIDTH, UILayout::APPLICATION_WINDOW_HEIGHT))
 	{
 		MLOG_ERROR("Failed to create MEngine window", LOG_CATEGORY_MIRAGE);
 		MUtilityLog::Shutdown();
@@ -75,15 +71,7 @@ bool Mirage::Initialize()
 	MEngine::SetFocusRequired(false);
 	MEngine::InitializeConsole(GlobalsBlackboard::GetInstance()->ConsoleInputFontID, GlobalsBlackboard::GetInstance()->ConsoleOutputFontID);
 
-	// Systems
-	for (int i = 0; i < GlobalsBlackboard::GetInstance()->SelectedMirageAppCount; ++i) // TODODB: Read meta data and file path of all selected apps and have it ready here so it can be used when creating the app objects
-	{
-		// TODODB: Replace test code with actual data from the UI and files
-		MirageApp* app = nullptr; // TODODB: Should the parser maybe create the MirageApp instance as well?
-		MirParser::ParseMirFile("resources/mirages/ImageSynchronizer.mir", MirParser::ParseMode::Full, app);
-		//m_MirageApps.push_back(new ImageSynchronizerApp("ImageSynchronizer", "1.0", MirageAppType::ImageSynchronizer));
-	}
-
+	// Static systems
 	GlobalsBlackboard::GetInstance()->MainMenuSystemID	= MEngine::RegisterSystem(new MainMenuSystem());
 	GlobalsBlackboard::GetInstance()->AboutMenuSystemID = MEngine::RegisterSystem(new AboutSystem());
 	GlobalsBlackboard::GetInstance()->LogSyncSystemID	= MEngine::RegisterSystem(new LogSyncSystem());
@@ -94,9 +82,8 @@ bool Mirage::Initialize()
 	MEngine::AddSystemToGameMode(GlobalsBlackboard::GetInstance()->MainMenuGameModeID, GlobalsBlackboard::GetInstance()->AboutMenuSystemID, 101);
 	MEngine::AddSystemToGameMode(GlobalsBlackboard::GetInstance()->MainMenuGameModeID, GlobalsBlackboard::GetInstance()->LogSyncSystemID, 300);
 
-	GlobalsBlackboard::GetInstance()->MultiplayerGameModeID = MEngine::CreateGameMode();
-	MEngine::AddSystemToGameMode(GlobalsBlackboard::GetInstance()->MultiplayerGameModeID, GlobalsBlackboard::GetInstance()->TeamSystemID, 100);
-	MEngine::AddSystemToGameMode(GlobalsBlackboard::GetInstance()->MultiplayerGameModeID, GlobalsBlackboard::GetInstance()->LogSyncSystemID, 300);
+	GlobalsBlackboard::GetInstance()->InAppGameModeID = MEngine::CreateGameMode();
+	MEngine::AddSystemToGameMode(GlobalsBlackboard::GetInstance()->InAppGameModeID, GlobalsBlackboard::GetInstance()->LogSyncSystemID, 300);
 
 	MEngine::RequestGameModeChange(GlobalsBlackboard::GetInstance()->MainMenuGameModeID);
 
@@ -112,23 +99,10 @@ void Mirage::Run()
 		MEngine::Render();
 	}
 
-	Shutdown();
-
 	MEngine::Shutdown();
 	Tubes::Shutdown();
 	
 	GlobalsBlackboard::Destroy();
 
 	MUtilityLog::Shutdown();
-}
-
-// ---------- LOCAL ----------
-
-void Shutdown()
-{
-	for (int i = 0; i < m_MirageApps.size(); ++i)
-	{
-	 	delete m_MirageApps[i];
-	}
-	m_MirageApps.clear();
 }

@@ -13,18 +13,33 @@ using MEngine::TextureID;
 Image::Image(ComponentID ID, int32_t posX, int32_t posY, int32_t posZ, int32_t width, int32_t height, bool isPartOfGroup, ImageBehaviourMask behaviour, int32_t clipPosX, int32_t clipPosY, int32_t clipWidth, int32_t clipHeight)
 	: MirageComponent(ComponentType::Image, ID)
 {
-	Construct(ID, posX, posY, posZ, width, height, isPartOfGroup, behaviour, clipPosX, clipPosY, clipWidth, clipHeight);
+	Construct(ID, posX, posY, posZ, width, height, isPartOfGroup, behaviour, MirageRect(clipPosX, clipPosY, clipWidth, clipHeight));
 }
 
 Image::Image(const Image& other)
 	: MirageComponent(ComponentType::Image, other.m_ID)
 {
-	Construct(other.m_ID, other.m_PosX, other.m_PosY, other.m_PosZ, other.m_Width, other.m_Height, other.m_IsPartOfGroup, other.m_BehviourMask, other.m_ClipPosX, other.m_ClipPosY, other.m_ClipWidth, other.m_ClipHeight);
+	Construct(other.m_ID, other.m_PosX, other.m_PosY, other.m_PosZ, other.m_Width, other.m_Height, other.m_IsPartOfGroup, other.m_BehviourMask, other.m_ClipRect);
 }
 
 Image::~Image()
 {
 	MEngine::DestroyEntity(m_EntityID);
+}
+
+bool Image::HasBehaviour(ImageBehaviourMask behaviourMask)
+{
+	return (m_BehviourMask & behaviourMask) == behaviourMask;
+}
+
+void Image::UnloadImage()
+{
+	TextureID ID = GetTextureID();
+	if (ID.IsValid())
+	{
+		MEngine::UnloadTexture(ID);
+		SetTextureID(TextureID::Invalid());
+	}
 }
 
 MEngine::TextureID Image::GetTextureID() const
@@ -51,23 +66,19 @@ void Image::SetRenderIgnore(bool shouldIgnore)
 	textureComponent->RenderIgnore = shouldIgnore;
 }
 
-void Image::UnloadImage()
+MirageRect Image::GetClipRect() const
 {
-	TextureID ID = GetTextureID();
-	if (ID.IsValid())
-	{
-		MEngine::UnloadTexture(ID);
-		SetTextureID(TextureID::Invalid());
-	}
+	return m_ClipRect;
 }
 
 // ---------- Private ----------
 
-void Image::Construct(ComponentID ID, int32_t posX, int32_t posY, int32_t posZ, int32_t width, int32_t height, bool isPartOfGroup, ImageBehaviourMask behaviour, int32_t clipPosX, int32_t clipPosY, int32_t clipWidth, int32_t clipHeight)
+void Image::Construct(ComponentID ID, int32_t posX, int32_t posY, int32_t posZ, int32_t width, int32_t height, bool isPartOfGroup, ImageBehaviourMask behaviour, const MirageRect& clipRect)
 {
 	m_EntityID = MEngine::CreateEntity();
 	m_PosX		= posX;
 	m_PosY		= posY;
+	m_PosZ		= posZ;
 	m_Width		= width;
 	m_Height	= height;
 	m_IsPartOfGroup = isPartOfGroup;
@@ -75,10 +86,7 @@ void Image::Construct(ComponentID ID, int32_t posX, int32_t posY, int32_t posZ, 
 
 	if ((behaviour & ImageBehaviourMask::Clip) != 0)
 	{
-		m_ClipPosX		= clipPosX;
-		m_ClipPosY		= clipPosY;
-		m_ClipWidth		= clipWidth;
-		m_ClipHeight	= clipHeight;
+		m_ClipRect = clipRect;
 	}
 
 	MEngine::AddComponentsToEntity(m_EntityID, MEngine::PosSizeComponent::GetComponentMask() | MEngine::TextureRenderingComponent::GetComponentMask());

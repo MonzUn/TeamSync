@@ -4,6 +4,7 @@
 #include "ImageSynchronizerApp.h"
 #include "MirageApp.h"
 #include "MirageComponent.h"
+#include <MengineGraphics.h>
 #include <MengineInput.h>
 #include <MengineUtility.h>
 #include <MUtilityFile.h>
@@ -44,42 +45,6 @@ enum class ComponentField
 
 	Count,
 	Invalid
-};
-
-struct ImageData
-{
-	int32_t PosX		= -1;
-	int32_t PosY		= -1;
-	int32_t PosZ		= -1;
-	int32_t Width		= -1;
-	int32_t Height		= -1;
-	int32_t ClipPosX	= -1;
-	int32_t ClipPosY	= -1;
-	int32_t ClipWidth	= -1;
-	int32_t ClipHeight	= -1;
-	std::string ResourcePath;
-	MENGINE_KEY SyncTriggerKey = MKEY_INVALID;
-	bool IsPartOfGroup = false;
-
-	bool IsValid() const { return PosX >= 0 && PosY >= 0 && PosZ >= 0 && Width > 0 && Height > 0; }
-};
-
-struct ImageGroupData
-{
-	~ImageGroupData()
-	{
-		for (int i = 0; i < Images.size(); ++i)
-		{
-			delete Images[i];
-		}
-	}
-
-	int32_t PosX	= -1;
-	int32_t PosY	= -1;
-	int32_t Width	= -1;
-	int32_t Height	= -1;
-	MENGINE_KEY SyncTriggerKey = MKEY_INVALID;
-	std::vector<Image*> Images;
 };
 
 constexpr char*	NAME_KEY	= "name";
@@ -126,18 +91,18 @@ void ResetGlobalParsingVariables()
 }
 
 ParseResult ParseMetaData(MirMetaData& outData);
-ParseResult ParseImage(ImageData& imageData);
-ParseResult ParseImageGroup(ImageGroupData& imageGroupData);
-
-Image* CreateImageComponent(const ImageData& imageData);
-ImageGroup* CreateImageGroupComponent(const ImageGroupData& imageGroupData);
-
+ParseResult ParseImage(ImageDescription& imageData);
+ParseResult ParseImageGroup(ImageGroupDescription& imageGroupData);
+Image* CreateImageComponent(const ImageDescription& imageData);
+ImageGroup* CreateImageGroupComponent(const ImageGroupDescription& imageGroupData);
+void CreateComponentsForApp(MirageAppType appType, const std::vector<ComponentDescription*>& componentDescriptions, std::vector<MirageComponent*>& outComponents);
+void CalculateSplitRects(int32_t maxSubRects, const MirageRect& fullRect, std::vector<MirageRect>& outRects);
 std::string FieldTypeToString(ComponentField appType);
 ComponentField StringToFieldType(std::string str);
 
 // ---------- INTERFACE ----------
 
-ParseResult MirParser::ParseMirFile(const std::string& relativeFilePath, ParseMode parseMode, MirageApp* outResultApp) // TODODB: Document after the code has been cleaned up
+ParseResult MirParser::ParseMirFile(const std::string& relativeFilePath, ParseMode parseMode, MirageApp*& outResultApp) // TODODB: Document after the code has been cleaned up
 {
 	ParseResult toReturn = ParseResult::Fail_Unknown;
 	MirData parsedData;
@@ -158,8 +123,8 @@ ParseResult MirParser::ParseMirFile(const std::string& relativeFilePath, ParseMo
 
 	bool hasReadAllMetaData		= false;
 	bool shouldAbort			= false;
-	ImageData imageData;
-	ImageGroupData imageGroupData;
+	ImageDescription imageData;
+	ImageGroupDescription imageGroupData;
 	ComponentType currentComponentType = ComponentType::Invalid;
 	while (stringStream.good() && !shouldAbort)
 	{
@@ -220,11 +185,9 @@ ParseResult MirParser::ParseMirFile(const std::string& relativeFilePath, ParseMo
 				{
 					if (LowerCaseLine[0] == '}')
 					{
-						Image* image = CreateImageComponent(imageData);
-						if (image != nullptr)
-							imageGroupData.Images.push_back(image);
+						parsedData.ComponentDescriptions.push_back(new ImageDescription(imageData));
 
-						imageData = ImageData();
+						imageData = ImageDescription();
 						currentComponentType = ComponentType::Invalid;
 						--ParseDepth;
 					}
@@ -238,20 +201,9 @@ ParseResult MirParser::ParseMirFile(const std::string& relativeFilePath, ParseMo
 				{
 					if (LowerCaseLine[0] == '}' && ParseDepth == 1) // TODODB: Rework parsedepth to work with relative levels
 					{
-						ImageGroup* imageGroup = CreateImageGroupComponent(imageGroupData);
-						if (imageGroup != nullptr)
-						{
-							parsedData.Components.push_back(imageGroup);
-						}
-						else
-						{
-							for(int i = 0; i < imageGroupData.Images.size(); ++i)
-							{
-								delete imageGroupData.Images[i];
-							}
-						}
-
-						imageGroupData = ImageGroupData();
+						parsedData.ComponentDescriptions.push_back(new ImageGroupDescription(imageGroupData));
+						
+						imageGroupData = ImageGroupDescription();
 						currentComponentType = ComponentType::Invalid;
 						--ParseDepth;
 					}
@@ -278,17 +230,13 @@ ParseResult MirParser::ParseMirFile(const std::string& relativeFilePath, ParseMo
 
 	if (!shouldAbort)
 	{
-		toReturn = ParseResult::Success;
-		MLOG_INFO("Mirage \"" << parsedData.MetaData.Name << "\" has been loaded", LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
-	}
-
-	if (toReturn == ParseResult::Success)
-	{
 		switch (parsedData.MetaData.Type)
 		{
 			case MirageAppType::ImageSynchronizer:
 			{
-				outResultApp = new ImageSynchronizerApp(parsedData.MetaData.Name, parsedData.MetaData.Version, parsedData.Components);
+				std::vector<MirageComponent*> components;
+				CreateComponentsForApp(MirageAppType::ImageSynchronizer,parsedData.ComponentDescriptions, components);
+				outResultApp = new ImageSynchronizerApp(parsedData.MetaData.Name, parsedData.MetaData.Version, components);
 			} break;
 
 			case MirageAppType::Count:
@@ -299,14 +247,9 @@ ParseResult MirParser::ParseMirFile(const std::string& relativeFilePath, ParseMo
 				toReturn = ParseResult::Fail_InternalError;
 			} break;	
 		}
-	}
-	
-	if(toReturn != ParseResult::Success)
-	{
-		for (int i = 0; i < parsedData.Components.size(); ++i)
-		{
-			delete parsedData.Components[i];
-		}
+
+		toReturn = ParseResult::Success;
+		MLOG_INFO("Mirage \"" << parsedData.MetaData.Name << "\" has been loaded", LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
 	}
 
 	return toReturn;
@@ -371,7 +314,7 @@ ParseResult ParseMetaData(MirMetaData& outData)
 	return toReturn;
 }
 
-ParseResult ParseImage(ImageData& imageData)
+ParseResult ParseImage(ImageDescription& imageData)
 {
 	ParseResult toReturn = ParseResult::Success;
 
@@ -455,16 +398,16 @@ ParseResult ParseImage(ImageData& imageData)
 	return toReturn;
 }
 
-ParseResult ParseImageGroup(ImageGroupData& imageGroupData)
+ParseResult ParseImageGroup(ImageGroupDescription& imageGroupData)
 {
 	ParseResult toReturn = ParseResult::Success;
 
-	static ImageData imageData;
+	static ImageDescription imageData;
 	static ComponentType subcomponentType = ComponentType::Invalid;
 
 	auto ResetStatics = [&]()
 	{
-		imageData = ImageData();
+		imageData = ImageDescription();
 		imageData.IsPartOfGroup = true;
 		subcomponentType = ComponentType::Invalid;
 	};
@@ -538,10 +481,7 @@ ParseResult ParseImageGroup(ImageGroupData& imageGroupData)
 			{
 				case ComponentType::Image:
 				{
-					Image* image = CreateImageComponent(imageData);
-					if (image != nullptr)
-						imageGroupData.Images.push_back(image);
-
+					imageGroupData.ImageDataList.push_back(imageData);
 					ResetStatics();
 				} break;
 
@@ -588,7 +528,7 @@ ParseResult ParseImageGroup(ImageGroupData& imageGroupData)
 	return toReturn;
 }
 
-Image* CreateImageComponent(const ImageData& imageData)
+Image* CreateImageComponent(const ImageDescription& imageData)
 {
 	Image* toReturn = nullptr;
 	if (imageData.IsValid())
@@ -606,7 +546,7 @@ Image* CreateImageComponent(const ImageData& imageData)
 		if (useClipping)
 		{
 			imageBehaviour |= ImageBehaviourMask::Clip;
-			if(imageData.SyncTriggerKey != MKEY_INVALID) // If the image is part of a group this field is used to indicate if the parent is synchronized or not
+			if (imageData.SyncTriggerKey != MKEY_INVALID) // If the image is part of a group this field is used to indicate if the parent is synchronized or not
 				imageBehaviour |= ImageBehaviourMask::Synchronize;
 		}
 
@@ -618,15 +558,96 @@ Image* CreateImageComponent(const ImageData& imageData)
 	return toReturn;
 }
 
-ImageGroup* CreateImageGroupComponent(const ImageGroupData& imageGroupData)
+ImageGroup* CreateImageGroupComponent(const ImageGroupDescription& imageGroupData)
 {
 	ImageGroup* toReturn = nullptr;
-	if (imageGroupData.PosX >= 0 && imageGroupData.PosY >= 0 && imageGroupData.Width > 0 && imageGroupData.Height > 0 && !imageGroupData.Images.empty())
-		toReturn = new ImageGroup(NextComponentID++, imageGroupData.PosX, imageGroupData.PosY, imageGroupData.Width, imageGroupData.Height, imageGroupData.Images);
+	if (imageGroupData.PosX >= 0 && imageGroupData.PosY >= 0 && imageGroupData.Width > 0 && imageGroupData.Height > 0 && !imageGroupData.ImageDataList.empty())
+	{
+		std::vector<Image*> imageComponents;
+		for (const ImageDescription& imageData : imageGroupData.ImageDataList)
+		{
+			imageComponents.push_back(CreateImageComponent(imageData));
+		}
+		toReturn = new ImageGroup(NextComponentID++, imageGroupData.PosX, imageGroupData.PosY, imageGroupData.Width, imageGroupData.Height, imageComponents, imageGroupData.SplitIndex);
+	}
 	else
 		MLOG_WARNING("Found ImageGroup description lacking required fields; ImageGroup will be skipped", LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
 
 	return toReturn;
+}
+
+void CreateComponentsForApp(MirageAppType appType, const std::vector<ComponentDescription*>& componentDescriptions, std::vector<MirageComponent*>& outComponents)
+{
+	switch (appType)
+	{
+	case MirageAppType::ImageSynchronizer:
+	{
+		for (ComponentDescription* componentDesc : componentDescriptions)
+		{
+			switch (componentDesc->Type)
+			{
+			case ComponentType::Image:
+			{
+				Image* image = CreateImageComponent(*static_cast<ImageDescription*>(componentDesc));
+				if (image != nullptr)
+					outComponents.push_back(image);
+			} break;
+
+			case ComponentType::ImageGroup:
+			{
+				// TODODB: Add max players to mir app description
+				const int32_t maxPlayers = 4;
+				// TODODB: Add bool to signal if the ImageGroup should be split on players or not
+				ImageGroupDescription* imageGroupDesc = static_cast<ImageGroupDescription*>(componentDesc);
+				std::vector<MirageRect> rects;
+				CalculateSplitRects(maxPlayers, MirageRect(imageGroupDesc->PosX, imageGroupDesc->PosY, imageGroupDesc->Width, imageGroupDesc->Height), rects);
+				ImageGroupDescription descriptionCopy = *imageGroupDesc;
+				for (int i = 0; i < rects.size(); ++i)
+				{
+					descriptionCopy.SplitIndex = i;
+					descriptionCopy.PosX = rects[i].PosX;
+					descriptionCopy.PosY = rects[i].PosY;
+					descriptionCopy.Width = rects[i].Width;
+					descriptionCopy.Height = rects[i].Height;
+					ImageGroup* imageGroup = CreateImageGroupComponent(descriptionCopy);
+					if(imageGroup != nullptr)
+						outComponents.push_back(imageGroup);
+				}
+			} break;
+
+			case ComponentType::Count:
+			case ComponentType::Invalid:
+			default:
+			{
+				MLOG_ERROR("Encountered invalid or unexpected componentType; type = " << static_cast<int32_t>(componentDesc->Type), LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
+			} break;
+			}
+		}
+	} break;
+
+	case MirageAppType::Count:
+	case MirageAppType::Invalid:
+	default:
+	{
+		MLOG_ERROR("Encountered invalid or unexpected appType; type = " << static_cast<int32_t>(appType), LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
+	} break;
+	}
+}
+
+void CalculateSplitRects(int32_t maxSubRects, const MirageRect& fullRect, std::vector<MirageRect>& outRects)
+{
+	int32_t nrOfSplitsX = static_cast<int32_t>(std::ceil(std::sqrt(maxSubRects)));
+	int32_t nrOfSplitsY = static_cast<int32_t>(std::ceil(maxSubRects / static_cast<float>(nrOfSplitsX)));
+
+	MirageRect rect;
+	rect.Width = fullRect.Width / nrOfSplitsX;
+	rect.Height = fullRect.Height / nrOfSplitsY;
+	for (int i = 0; i < maxSubRects; ++i)
+	{
+		rect.PosX = fullRect.PosX + ((i % nrOfSplitsX) * fullRect.Width);
+		rect.PosY = fullRect.PosY + ((i / nrOfSplitsX) * fullRect.Height);
+		outRects.push_back(rect);
+	}
 }
 
 std::string FieldTypeToString(ComponentField fieldType)

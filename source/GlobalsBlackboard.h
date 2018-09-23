@@ -4,6 +4,9 @@
 #include <TubesTypes.h>
 #include <stdint.h>
 #include <string.h>
+#include <vector>
+
+class MirageApp;
 
 // TODODB: Add check on connection for version compatibility
 namespace Globals
@@ -37,12 +40,11 @@ public:
 
 	// GameModes
 	MEngine::GameModeID	MainMenuGameModeID;
-	MEngine::GameModeID	MultiplayerGameModeID;
+	MEngine::GameModeID	InAppGameModeID;
 
 	// Systems
 	MEngine::SystemID MainMenuSystemID;
 	MEngine::SystemID AboutMenuSystemID;
-	MEngine::SystemID TeamSystemID;
 	MEngine::SystemID LogSyncSystemID;
 
 	// Fonts
@@ -54,4 +56,8 @@ public:
 	MEngine::FontID	InputTextBoxFontID;
 	MEngine::FontID	DescriptionFontID;
 	MEngine::FontID	AboutFontID;
+
+	// Apps
+	std::vector<MirageApp*> MirageApps;
+	std::vector<MEngine::SystemID> MirageAppIDs;
 };

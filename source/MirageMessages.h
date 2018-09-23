@@ -79,12 +79,12 @@ struct PlayerInitializeMessage : MirageMessage
 
 struct PlayerUpdateMessage : MirageMessage
 {
-	PlayerUpdateMessage(int32_t playerID, int32_t componentID, int32_t width, int32_t height, void* pixels) : MirageMessage(MirageMessages::PLAYER_UPDATE), PlayerID(playerID), ComponentID(componentID), Width(width), Height(height), Pixels(pixels)
+	PlayerUpdateMessage(int32_t playerID, int32_t imageParentID, int32_t imageID, int32_t width, int32_t height, void* pixels) : MirageMessage(MirageMessages::PLAYER_UPDATE), PlayerID(playerID), ImageParentID(imageParentID), ImageID(imageID), Width(width), Height(height), Pixels(pixels)
 	{
 		ImageByteSize = Width * Height * MENGINE_BYTES_PER_PIXEL; // * 4 bytes per pixel due to RGBA format
 	}
 
-	PlayerUpdateMessage(int32_t playerID, int32_t componentID, const MEngine::TextureData& textureData) : MirageMessage(MirageMessages::PLAYER_UPDATE), PlayerID(playerID), ComponentID(componentID)
+	PlayerUpdateMessage(int32_t playerID, int32_t ImageParentID, int32_t imageID, const MEngine::TextureData& textureData) : MirageMessage(MirageMessages::PLAYER_UPDATE), PlayerID(playerID), ImageParentID(ImageParentID), ImageID(imageID)
 	{
 		Width = textureData.Width;
 		Height = textureData.Height;
@@ -99,7 +99,8 @@ struct PlayerUpdateMessage : MirageMessage
 	}
 
 	int32_t PlayerID;
-	int32_t ComponentID;
+	int32_t ImageParentID;
+	int32_t ImageID;
 	int32_t Width;
 	int32_t Height;
 	int32_t ImageByteSize;

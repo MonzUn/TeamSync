@@ -1,4 +1,3 @@
-# Test meta data full line comment
 Name = ImageSynchronizer # Max 30 characters
 Version = 1.0
 Type = ImageSynchronizer
@@ -7,42 +6,133 @@ ImageGroup
 {
 	PosX = 0
 	PosY = 0
-	Width = 100
-	Height = 100
+	Width = 1920
+	Height = 1000
 
-	Image # Test body comment
+	Image # Inventory item list 1
 	{
-		PosX = 10
-		PosY = 10
-		PosZ = 1
-		Width = 30
-		Height = 30
-		ClipPosX = 0
-		ClipPosY = 0
-		ClipWidth = 100
-		ClipHeight = 100
+		PosX = 0
+		PosY = 0
+		PosZ = 5
+		Width = 77
+		Height = 408
+		ClipPosX = 365
+		ClipPosY = 140
+		ClipWidth = 58
+		ClipHeight = 401
 	}
 
-	Image
+	Image # Inventory item counter 1
 	{
-		PosX = 100
-		PosY = 100
-		PosZ = 1
-		Width = 30
-		Height = 30
-		ClipPosX = 500
-		ClipPosY = 500
-		ClipWidth = 100
-		ClipHeight = 100
+		PosX = 78
+		PosY = 0
+		PosZ = 5
+		Width = 43
+		Height = 408
+		ClipPosX = 548
+		ClipPosY = 140			
+		ClipWidth = 37
+		ClipHeight = 401
+	}
+
+	Image # Inventory item list 2
+	{
+		PosX = 126
+		PosY = 0
+		PosZ = 5
+		Width = 77
+		Height = 408
+		ClipPosX = 365
+		ClipPosY = 541
+		ClipWidth = 58
+		ClipHeight = 401
+	}
+
+	Image # Inventory item counter 2
+	{
+		PosX = 204
+		PosY = 0
+		PosZ = 5
+		Width = 43
+		Height = 408
+		ClipPosX = 548
+		ClipPosY = 541
+		ClipWidth = 37
+		ClipHeight = 401
+	}
+
+	Image # Head slot
+	{
+		PosX = 380
+		PosY = 65
+		PosZ = 5
+		Width = 85
+		Height = 80
+		ClipPosX = 569
+		ClipPosY = 175
+		ClipWidth = 60
+		ClipHeight = 60
+	}
+
+	Image # Backpack slot
+	{
+		PosX = 380
+		PosY = 155
+		PosZ = 5
+		Width = 85
+		Height = 80
+		ClipPosX = 569
+		ClipPosY = 372
+		ClipWidth = 60
+		ClipHeight = 60
+	}
+
+	Image # Body slot
+	{
+		PosX = 380
+		PosY = 245
+		PosZ = 5
+		Width = 85
+		Height = 80
+		ClipPosX = 569
+		ClipPosY = 439
+		ClipWidth = 60
+		ClipHeight = 60
+	}
+
+	Image # Backpack status indicator
+	{
+		PosX = 350
+		PosY = 0
+		PosZ = 5
+		Width = 470
+		Height = 265
+		ClipPosX = 630
+		ClipPosY = 372
+		ClipWidth = 7
+		ClipHeight = 191
+	}
+
+	Image # Weapon slots
+	{
+		PosX = 475
+		PosY = 0
+		PosZ = 5
+		Width = 470
+		Height = 485
+		ClipPosX = 1311
+		ClipPosY = 140
+		ClipWidth = 480
+		ClipHeight = 820
 	}
 }
 
-Image
-{
-	PosX = 100
-	PosY = 100
-	PosZ = 1
-	Width = 30
-	Height = 30
-	Resource = Check.png
-}
+#Image
+#{
+#	PosX = 500
+#	PosY = 500
+#	PosZ = 1
+#	Width = 150
+#	Height = 150
+#	Resource = Check.png
+#}

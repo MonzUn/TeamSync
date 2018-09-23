@@ -1,6 +1,4 @@
 #pragma once
-#include <atomic>
-#include <thread>
 
 class Mirage
 {

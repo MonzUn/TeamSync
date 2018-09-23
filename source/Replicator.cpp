@@ -74,7 +74,8 @@ Byte* Replicator::SerializeMessage(const Message* message, MessageSize* outMessa
 		{
 			const PlayerUpdateMessage* playerUpdateMessage = static_cast<const PlayerUpdateMessage*>(message);
 			WriteInt32(playerUpdateMessage->PlayerID);
-			WriteInt32(playerUpdateMessage->ComponentID);
+			WriteInt32(playerUpdateMessage->ImageParentID);
+			WriteInt32(playerUpdateMessage->ImageID);
 			WriteInt32(playerUpdateMessage->Width);
 			WriteInt32(playerUpdateMessage->Height);
 			WriteInt32(playerUpdateMessage->ImageByteSize);
@@ -184,16 +185,17 @@ Message* Replicator::DeserializeMessage(const Byte* const buffer)
 
 		case PLAYER_UPDATE:
 		{
-			int32_t playerID, imageSlot, width, height, imageByteSize;
+			int32_t playerID, imageParentID, imageID, width, height, imageByteSize;
 			ReadInt32(playerID);
-			ReadInt32(imageSlot);
+			ReadInt32(imageParentID);
+			ReadInt32(imageID);
 			ReadInt32(width);
 			ReadInt32(height);
 			ReadInt32(imageByteSize);
 			void* pixels = malloc(imageByteSize);
 			CopyAndIncrementSource(pixels, m_ReadingWalker, imageByteSize);
 
-			deserializedMessage = new PlayerUpdateMessage(playerID, imageSlot, width, height, pixels);
+			deserializedMessage = new PlayerUpdateMessage(playerID, imageParentID, imageID, width, height, pixels);
 		} break;
 
 		case PLAYER_DISCONNECT:
@@ -282,6 +284,7 @@ int32_t Replicator::CalculateMessageSize(const Message& message) const
 		case PLAYER_UPDATE:
 		{
 			const PlayerUpdateMessage* playerUpdateMessage = static_cast<const PlayerUpdateMessage*>(&message);
+			messageSize += INT_32_SIZE;
 			messageSize += INT_32_SIZE;
 			messageSize += INT_32_SIZE;
 			messageSize += INT_32_SIZE;
