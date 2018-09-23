@@ -1,4 +1,5 @@
 #include "ImageGroup.h"
+#include "ResourcePaths.h"
 #include <MengineGraphics.h>
 
 #define LOG_CATEGORY_IMAGE_GROUP "ImageGroup"

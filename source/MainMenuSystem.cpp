@@ -1,6 +1,7 @@
 #include "MainMenuSystem.h"
 #include "GlobalsBlackboard.h"
 #include "PlayerNames.h"
+#include "ResourcePaths.h"
 #include "UILayout.h"
 #include <MEngineColor.h>
 #include <MEngineConfig.h>
@@ -33,8 +34,8 @@ using MEngine::TextComponent;
 
 void MainMenuSystem::Initialize()
 {
-	TextureID ButtonTextureID = MEngine::GetTextureFromPath("resources/graphics/Button.png");
-	TextureID BrowserButtonTextureID = MEngine::GetTextureFromPath("resources/graphics/InternetButton.png");
+	TextureID ButtonTextureID = MEngine::GetTextureFromPath(ResourcePaths::Images::BasicButton);
+	TextureID BrowserButtonTextureID = MEngine::GetTextureFromPath(ResourcePaths::Images::BrowserButton);
 
 	m_HostButtonID				= MEngine::CreateButton(HOST_BUTTON_POS_X, HOST_BUTTON_POS_Y, MAIN_MENU_BIG_BUTTON_WIDTH, MAIN_MENU_BIG_BUTTON_HEIGHT, std::bind(&MainMenuSystem::Host, this), MENGINE_DEFAULT_UI_BUTTON_DEPTH, ButtonTextureID, GlobalsBlackboard::GetInstance()->ButtonFontID, "Host");
 	m_ConnectButtonID			= MEngine::CreateButton(CONNECT_BUTTON_POS_X, CONNECT_BUTTON_POS_Y, MAIN_MENU_BIG_BUTTON_WIDTH, MAIN_MENU_BIG_BUTTON_HEIGHT, std::bind(&MainMenuSystem::Connect, this), MENGINE_DEFAULT_UI_BUTTON_DEPTH, ButtonTextureID, GlobalsBlackboard::GetInstance()->ButtonFontID, "Connect");
