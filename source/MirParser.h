@@ -16,7 +16,7 @@ namespace MirParser
 		MirageAppType Type = MirageAppType::Invalid;
 	};
 
-	struct MirData
+	struct MirData // TODODB: Does this need to be exposed?
 	{
 		MirData() = default;
 		~MirData()

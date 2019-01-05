@@ -53,7 +53,7 @@ private:
 	int32_t m_Height	= -1;
 
 	std::unordered_map<ComponentID, Image*> m_Images;
-	Image* m_ImageFrame			= nullptr;// TODODB: Handling of these special images needs to be streamlined; maybe try to put them in the map with the others?
+	Image* m_ImageFrame			= nullptr; // TODODB: Handling of these special images needs to be streamlined; maybe try to put them in the map with the others?
 	Image* m_PrimeImage			= nullptr;
 	Image* m_DefaultImage		= nullptr;
 	Image* m_StatusImage		= nullptr;

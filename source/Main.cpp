@@ -20,8 +20,7 @@
 
 // Project to do list
 // TODODB: Make the application UI scalable
-// TODODB: Make clipping and destination rects customizable from file
-// TODODB: Make clipping/destination rect setups selectable from main menu
+// TODODB: Make Mir files selectable from the main menu
 // TODODB: Remove window border and make it possible to move the app between screens via UI/Console
 #if PLATFORM == PLATFORM_WINDOWS
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
@@ -31,7 +30,7 @@ int main(int argc, char* argv[])
 {
 #ifdef WINDOWS_DEBUG
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-	//_CrtSetBreakAlloc(2514);
+	//_CrtSetBreakAlloc(0);
 #endif
 	srand(static_cast<uint32_t>(time(nullptr))); // TODODB: Replace when MEngine has a built in Randomizer
 
