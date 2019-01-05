@@ -145,9 +145,12 @@ void ImageSynchronizerApp::UpdatePresentationLayer(float deltaTime)
 #if COMPILE_MODE == COMPILE_MODE_DEBUG
 	RunDebugCode();
 #endif
-	HandleInput();
-	HandleComponents();
-	HandleImageJobResults();
+	if (m_LocalPlayerID != UNASSIGNED_PLAYER_ID)
+	{
+		HandleInput();
+		HandleComponents();
+		HandleImageJobResults();
+	}
 	HandleIncomingNetworkCommunication();
 }
 
