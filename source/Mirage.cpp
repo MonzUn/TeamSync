@@ -3,7 +3,6 @@
 #include "GlobalsBlackboard.h"
 #include "LogSyncSystem.h"
 #include "MainMenuSystem.h"
-#include "MirParser.h"
 #include "ImageSynchronizerApp.h"
 #include "Replicator.h"
 #include "UILayout.h"
