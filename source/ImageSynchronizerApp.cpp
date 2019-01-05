@@ -39,9 +39,12 @@ ImageSynchronizerApp::ImageSynchronizerApp(const std::string& appName, const std
 			case ComponentType::ImageGroup: // TODODB: Handle imagegroups not tied to a specific player
 			{
 				ImageGroup* imageGroup = static_cast<ImageGroup*>(component);
-				m_ImageGroups[imageGroup->GetSplitIndex()].push_back(imageGroup);
-			} break;
 
+				if(imageGroup->GetSplitIndex() != -1)
+					m_ImageGroups[imageGroup->GetSplitIndex()].push_back(imageGroup); // TODODB: Support non synchronized components by placing them in the component list of the local player (Id is not available here so they might have to be stored separately until it is known)
+				else
+					m_ImageGroups[0].push_back(imageGroup); // TODODB: Remove when local unsynchronized components are supported
+			} break;
 
 			default:
 				break;

@@ -16,6 +16,7 @@
 #include <MUtilityString.h>
 #include <MUtilitySystem.h>
 #include <Tubes.h>
+#include <cassert>
 #include <iostream>
 #include <stdlib.h>
 
@@ -330,12 +331,13 @@ void MainMenuSystem::OnConnection(const Tubes::ConnectionAttemptResultData& conn
 	{
 		case Tubes::ConnectionAttemptResult::SUCCESS_OUTGOING:
 		{
-			MEngine::Config::SetString("DefaultConnectionIP", Tubes::GetAddressOfConnection(connectionResult.ID));
-			MEngine::Config::SetInt("DefaultConnectionPort", Tubes::GetPortOfConnection(connectionResult.ID));
+			if (StartMPGameMode()) // TODODB: Remake this so that the file is parsed before connecting or so the slaves get the files from the master
+			{
+				MEngine::Config::SetString("DefaultConnectionIP", Tubes::GetAddressOfConnection(connectionResult.ID));
+				MEngine::Config::SetInt("DefaultConnectionPort", Tubes::GetPortOfConnection(connectionResult.ID));
 
-			GlobalsBlackboard::GetInstance()->ConnectionID = connectionResult.ID;
-
-			StartMPGameMode();
+				GlobalsBlackboard::GetInstance()->ConnectionID = connectionResult.ID;
+			}
 		} break;
 
 		case Tubes::ConnectionAttemptResult::FAILED_TIMEOUT:
@@ -369,22 +371,40 @@ void MainMenuSystem::OnConnection(const Tubes::ConnectionAttemptResultData& conn
 	}
 }
 
-void MainMenuSystem::StartMPGameMode()
+bool MainMenuSystem::StartMPGameMode()
 {
+	bool toReturn = false;
+
 	int32_t priority = 200;
+	std::vector<MirageApp*> apps;
 	for (int i = 0; i < GlobalsBlackboard::GetInstance()->SelectedMirageAppCount; ++i) // TODODB: Read meta data and file path of all selected apps and have it ready here so it can be used when creating the app objects
 	{
 		// TODODB: Replace test code with actual data from the UI and files
 		MirageApp* app = nullptr;
 		MirParser::ParseMirFile("resources/mirages/ImageSynchronizer.mir", MirParser::ParseMode::Full, app);
-		GlobalsBlackboard::GetInstance()->MirageApps.push_back(app);
-		MEngine::SystemID systemID = MEngine::RegisterSystem(app);
-		GlobalsBlackboard::GetInstance()->MirageAppIDs.push_back(systemID);
-		MEngine::AddSystemToGameMode(GlobalsBlackboard::GetInstance()->InAppGameModeID, systemID, priority);
-		priority += 10;
+		if (app != nullptr)
+		{
+			apps.push_back(app);
+		}
 	}
 
-	GlobalsBlackboard::GetInstance()->LocalPlayerName = *static_cast<const TextComponent*>(MEngine::GetComponent(m_PlayerNameInputTextBoxID, TextComponent::GetComponentMask()))->Text;
-	MEngine::Config::SetString("PlayerName", GlobalsBlackboard::GetInstance()->LocalPlayerName);
-	MEngine::RequestGameModeChange(GlobalsBlackboard::GetInstance()->InAppGameModeID);
+	if(!apps.empty())
+	{
+		for (MirageApp* app : apps)
+		{
+			GlobalsBlackboard::GetInstance()->MirageApps.push_back(app);
+			MEngine::SystemID systemID = MEngine::RegisterSystem(app);
+			GlobalsBlackboard::GetInstance()->MirageAppIDs.push_back(systemID);
+			MEngine::AddSystemToGameMode(GlobalsBlackboard::GetInstance()->InAppGameModeID, systemID, priority);
+			priority += 10;
+		}
+
+		GlobalsBlackboard::GetInstance()->LocalPlayerName = *static_cast<const TextComponent*>(MEngine::GetComponent(m_PlayerNameInputTextBoxID, TextComponent::GetComponentMask()))->Text;
+		MEngine::Config::SetString("PlayerName", GlobalsBlackboard::GetInstance()->LocalPlayerName);
+		MEngine::RequestGameModeChange(GlobalsBlackboard::GetInstance()->InAppGameModeID);
+
+		toReturn = true;
+	}
+
+	return toReturn;
 }

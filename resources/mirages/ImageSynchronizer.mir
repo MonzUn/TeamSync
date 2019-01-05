@@ -2,137 +2,136 @@ Name = ImageSynchronizer # Max 30 characters
 Version = 1.0
 Type = ImageSynchronizer
 
-ImageGroup
+Region
 {
 	PosX = 0
 	PosY = 0
 	Width = 1920
 	Height = 1000
+	ShouldSplit = true
 
-	Image # Inventory item list 1
+	ImageGroup
 	{
 		PosX = 0
 		PosY = 0
-		PosZ = 5
-		Width = 77
-		Height = 408
-		ClipPosX = 365
-		ClipPosY = 140
-		ClipWidth = 58
-		ClipHeight = 401
-	}
-
-	Image # Inventory item counter 1
-	{
-		PosX = 78
-		PosY = 0
-		PosZ = 5
-		Width = 43
-		Height = 408
-		ClipPosX = 548
-		ClipPosY = 140			
-		ClipWidth = 37
-		ClipHeight = 401
-	}
-
-	Image # Inventory item list 2
-	{
-		PosX = 126
-		PosY = 0
-		PosZ = 5
-		Width = 77
-		Height = 408
-		ClipPosX = 365
-		ClipPosY = 541
-		ClipWidth = 58
-		ClipHeight = 401
-	}
-
-	Image # Inventory item counter 2
-	{
-		PosX = 204
-		PosY = 0
-		PosZ = 5
-		Width = 43
-		Height = 408
-		ClipPosX = 548
-		ClipPosY = 541
-		ClipWidth = 37
-		ClipHeight = 401
-	}
-
-	Image # Head slot
-	{
-		PosX = 380
-		PosY = 65
-		PosZ = 5
-		Width = 85
-		Height = 80
-		ClipPosX = 569
-		ClipPosY = 175
-		ClipWidth = 60
-		ClipHeight = 60
-	}
-
-	Image # Backpack slot
-	{
-		PosX = 380
-		PosY = 155
-		PosZ = 5
-		Width = 85
-		Height = 80
-		ClipPosX = 569
-		ClipPosY = 372
-		ClipWidth = 60
-		ClipHeight = 60
-	}
-
-	Image # Body slot
-	{
-		PosX = 380
-		PosY = 245
-		PosZ = 5
-		Width = 85
-		Height = 80
-		ClipPosX = 569
-		ClipPosY = 439
-		ClipWidth = 60
-		ClipHeight = 60
-	}
-
-	Image # Backpack status indicator
-	{
-		PosX = 350
-		PosY = 0
-		PosZ = 5
-		Width = 470
-		Height = 265
-		ClipPosX = 630
-		ClipPosY = 372
-		ClipWidth = 7
-		ClipHeight = 191
-	}
-
-	Image # Weapon slots
-	{
-		PosX = 475
-		PosY = 0
-		PosZ = 5
-		Width = 470
-		Height = 485
-		ClipPosX = 1311
-		ClipPosY = 140
-		ClipWidth = 480
-		ClipHeight = 820
+		Width = 1920
+		Height = 1000
+	
+		Image # Inventory item list 1
+		{
+			PosX = 0
+			PosY = 10
+			PosZ = 5
+			Width = 145
+			Height = 980
+			ClipPosX = 365
+			ClipPosY = 135
+			ClipWidth = 58
+			ClipHeight = 401
+		}
+	
+		Image # Inventory item counter 1
+		{
+			PosX = 148
+			PosY = 10
+			PosZ = 5
+			Width = 92
+			Height = 980
+			ClipPosX = 548
+			ClipPosY = 135		
+			ClipWidth = 37
+			ClipHeight = 401
+		}
+	
+		Image # Inventory item list 2
+		{
+			PosX = 244
+			PosY = 10
+			PosZ = 5
+			Width = 145
+			Height = 980
+			ClipPosX = 365
+			ClipPosY = 536
+			ClipWidth = 58
+			ClipHeight = 401
+		}
+	
+		Image # Inventory item counter 2
+		{
+			PosX = 392
+			PosY = 10
+			PosZ = 5
+			Width = 92
+			Height = 980
+			ClipPosX = 548
+			ClipPosY = 536
+			ClipWidth = 37
+			ClipHeight = 401
+		}
+	
+		Image # Head slot
+		{
+			PosX = 1005
+			PosY = 135
+			PosZ = 5
+			Width = 240
+			Height = 240
+			ClipPosX = 659
+			ClipPosY = 170
+			ClipWidth = 60
+			ClipHeight = 60
+		}
+	
+		Image # Backpack slot
+		{
+			PosX = 1005
+			PosY = 385
+			PosZ = 5
+			Width = 240
+			Height = 240
+			ClipPosX = 659
+			ClipPosY = 367
+			ClipWidth = 60
+			ClipHeight = 60
+		}
+	
+		Image # Body slot
+		{
+			PosX = 1005
+			PosY = 630
+			PosZ = 5
+			Width = 240
+			Height = 240
+			ClipPosX = 659
+			ClipPosY = 434
+			ClipWidth = 60
+			ClipHeight = 60
+		}
+	
+		Image # Backpack status indicator
+		{
+			PosX = 980
+			PosY = 135
+			PosZ = 5
+			Width = 14
+			Height = 735
+			ClipPosX = 630
+			ClipPosY = 367
+			ClipWidth = 7
+			ClipHeight = 191
+		}
+	
+		Image # Weapon slots
+		{
+			PosX = 1250
+			PosY = 10
+			PosZ = 5
+			Width = 660
+			Height = 980
+			ClipPosX = 1311
+			ClipPosY = 135
+			ClipWidth = 480
+			ClipHeight = 820
+		}
 	}
 }
-
-#Image
-#{
-#	PosX = 500
-#	PosY = 500
-#	PosZ = 1
-#	Width = 150
-#	Height = 150
-#	Resource = Check.png
-#}

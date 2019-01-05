@@ -13,7 +13,7 @@ namespace MEngine
 		virtual void Destroy() = 0;
 	};
 
-	template <class Derived> // Inherit this type for component definitions; Example: class UsefullComponent : public ComponentBase<UsefullComponent>
+	template <class Derived> // Inherit this type for component definitions; Example: class UsefulComponent : public ComponentBase<UsefulComponent>
 	class ComponentBase : public Component
 	{
 	public:

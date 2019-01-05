@@ -19,6 +19,9 @@ struct ImageJob // TODODB: Clean up the constructor chaos (using polymorphism?)
 {
 	ImageJob() : JobType(ImageJobType::None) {};
 
+	ImageJob(ImageJobType jobType, PlayerID imageOwnerID, ComponentID requestingComponentID) :
+		JobType(jobType), ImageOwnerPlayerID(imageOwnerID), ImageParentID(requestingComponentID) {}
+
 	ImageJob(ImageJobType jobType, PlayerID imageOwnerID, ComponentID requestingComponentID, int64_t delayedScreenshotCounter) :
 		JobType(jobType), ImageOwnerPlayerID(imageOwnerID), ImageParentID(requestingComponentID), CycledScreenShotCounter(delayedScreenshotCounter) {}
 

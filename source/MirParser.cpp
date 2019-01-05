@@ -4,19 +4,22 @@
 #include "ImageSynchronizerApp.h"
 #include "MirageApp.h"
 #include "MirageComponent.h"
-#include <MengineGraphics.h>
-#include <MengineInput.h>
-#include <MengineUtility.h>
 #include <MUtilityFile.h>
 #include <MUtilityIDBank.h>
 #include <MUtilityLog.h>
 #include <MUtilityString.h>
+#include <MengineGraphics.h>
+#include <MengineInput.h>
+#include <MengineUtility.h>
 #include <algorithm>
+#include <map>
+#include <new>
+#include <queue>
 #include <sstream>
+#include <stdint.h>
 
 #define LOG_CATEGORY_IMAGE_MIR_FILE_PARSER "MirParser"
-
-constexpr int32_t PARSE_DEPTH_BASE = 0;
+#define INVALID_PARENT -1
 
 using namespace MirParser;
 
@@ -40,6 +43,7 @@ enum class ComponentField
 	ClipPosY,
 	ClipWidth,
 	ClipHeight,
+	ShouldSplit, // TODODB: See if we can use some kind of bitflag here instead
 	Resource,
 	SyncTrigger,
 
@@ -65,52 +69,58 @@ const char ComponentFieldNamesList[COMPONENT_FIELD_NAMES_COUNT][COMPONENT_FIELD_
 	"ClipPosY",
 	"ClipWidth",
 	"ClipHeight",
+	"ShouldSplit",
 	"Resource",
 };
 
-namespace // Global parsing variables
+struct ParseContext
 {
-	ComponentID NextComponentID;
-	int32_t LineCount;
-	int32_t ParseDepth;
-
-	// TODODB: Consider rewriting the parser using multiple stringstreams and passing them to the local functions instead of going line by line (would declutter the static variable handling)
+	ComponentID NextComponentID = 0;
+	uint32_t LineCount = 0;
 	std::string FullLine;
 	std::string	TrueCaseLine;
 	std::string	LowerCaseLine;
-}
+};
 
-void ResetGlobalParsingVariables()
+struct ComponentDescriptionNode
 {
-	NextComponentID = 0;
-	LineCount		= 0;
-	ParseDepth		= PARSE_DEPTH_BASE;
-	FullLine		= "";
-	TrueCaseLine	= "";
-	LowerCaseLine	= "";
-}
+	ComponentDescription* Component = nullptr;
+	ComponentDescriptionNode* Next = nullptr;
+	ComponentDescriptionNode* Prev = nullptr;
+};
 
-ParseResult ParseMetaData(MirMetaData& outData);
-ParseResult ParseImage(ImageDescription& imageData);
-ParseResult ParseImageGroup(ImageGroupDescription& imageGroupData);
-Image* CreateImageComponent(const ImageDescription& imageData);
-ImageGroup* CreateImageGroupComponent(const ImageGroupDescription& imageGroupData);
-void CreateComponentsForApp(MirageAppType appType, const std::vector<ComponentDescription*>& componentDescriptions, std::vector<MirageComponent*>& outComponents);
-void CalculateSplitRects(int32_t maxSubRects, const MirageRect& fullRect, std::vector<MirageRect>& outRects);
+ParseResult ParseMetaData(MirMetaData& outData, const ParseContext& context);
+ParseResult ParseRegion(RegionDescription& regionData, const ParseContext& context);
+ParseResult ParseImage(ImageDescription& imageData, const ParseContext& context);
+ParseResult ParseImageGroup(ImageGroupDescription& imageGroupData, const ParseContext& context);
+
+Image*		CreateImageComponent(const ImageDescription& imageData, ParseContext& context);
+ImageGroup* CreateImageGroupComponent(const ImageGroupDescription& imageGroupData, ParseContext& context);
+
+void HandleComponentInteractions(MirageAppType appType, std::vector<ComponentDescription*>& componentDescriptions);
+void CreateComponentsForApp(MirageAppType appType, std::vector<ComponentDescription*>& componentDescriptions, std::vector<MirageComponent*>& outComponents, ParseContext& context);
+
+void CalculateSplitRects(int32_t maxSubRects, const MirageRect& fullRect, std::vector<MirageRect>& outRects, int32_t& outSplitsCountX, int32_t& outSplitsCountY);
+void CreateComponentDescription(ComponentDescription*& componentDesc, ComponentType type);
+
+void LogComponentError(const std::string& message, const ComponentDescription& componentDescription, const ParseContext& context);
+
 std::string FieldTypeToString(ComponentField appType);
 ComponentField StringToFieldType(std::string str);
+
+bool ComponentDescriptionsSortingEvaluator(const ComponentDescription* lhs, const ComponentDescription* rhs);
 
 // ---------- INTERFACE ----------
 
 ParseResult MirParser::ParseMirFile(const std::string& relativeFilePath, ParseMode parseMode, MirageApp*& outResultApp) // TODODB: Document after the code has been cleaned up
 {
-	ParseResult toReturn = ParseResult::Fail_Unknown;
-	MirData parsedData;
-	ResetGlobalParsingVariables();
+	MirData parseData;
+	ParseContext parseContext;
+	ParseResult parseResult = ParseResult::Fail_Unknown;
 
 	if (outResultApp != nullptr)
 	{
-		MLOG_WARNING("Out parameter for parse result was not a nullptr; pointer wil be overwritten", LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
+		MLOG_WARNING("Out parameter for parse result was not a nullptr\nPointer wil be overwritten", LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
 		outResultApp = nullptr;
 	}
 
@@ -121,15 +131,18 @@ ParseResult MirParser::ParseMirFile(const std::string& relativeFilePath, ParseMo
 	std::stringstream stringStream;
 	stringStream << MUtility::GetFileContentAsString(absolutePath);
 
-	bool hasReadAllMetaData		= false;
-	bool shouldAbort			= false;
-	ImageDescription imageData;
-	ImageGroupDescription imageGroupData;
-	ComponentType currentComponentType = ComponentType::Invalid;
+	bool hasReadAllMetaData	= false;
+	bool shouldAbort		= false;
+	ComponentDescriptionNode* currentComponent = nullptr; // TODODB: Rename to currentNode
+	ComponentType nextComponentType = ComponentType::Invalid;
+
+	std::string& FullLine = parseContext.FullLine;
+	std::string& TrueCaseLine = parseContext.TrueCaseLine;
+	std::string& LowerCaseLine = parseContext.LowerCaseLine;
 	while (stringStream.good() && !shouldAbort)
 	{
 		getline(stringStream, FullLine);
-		++LineCount;
+		++parseContext.LineCount;
 
 		if (FullLine.empty())
 			continue;
@@ -150,20 +163,20 @@ ParseResult MirParser::ParseMirFile(const std::string& relativeFilePath, ParseMo
 
 		if (!hasReadAllMetaData)
 		{
-			ParseResult result = ParseMetaData(parsedData.MetaData);
+			ParseResult result = ParseMetaData(parseData.MetaData, parseContext);
 			if (result != ParseResult::Success)
 			{
 				shouldAbort = true;
-				toReturn = result;
+				parseResult = result;
 				continue;
 			}
 
-			if (!parsedData.MetaData.Name.empty() && !parsedData.MetaData.Version.empty() && parsedData.MetaData.Type != MirageAppType::Invalid)
+			if (!parseData.MetaData.Name.empty() && !parseData.MetaData.Version.empty() && parseData.MetaData.Type != MirageAppType::Invalid)
 			{
 				hasReadAllMetaData = true;
 				if (parseMode == ParseMode::MetaDataOnly)
 				{
-					toReturn = ParseResult::Success;
+					parseResult = ParseResult::Success;
 					shouldAbort = true; // We're done
 				}
 			}
@@ -171,57 +184,88 @@ ParseResult MirParser::ParseMirFile(const std::string& relativeFilePath, ParseMo
 			{
 				if (LowerCaseLine[0] == '{')
 				{
-					toReturn = ParseResult::Fail_MetaDataIncomplete;
-					MLOG_ERROR("Found line beginning with \"{\" while parsing meta data; meta data is incomplete and parsing will be terminated; mirage will not be loaded; line(" << LineCount << ") = " << FullLine, LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
+					parseResult = ParseResult::Fail_MetaDataIncomplete;
+					MLOG_ERROR("Found line beginning with \"{\" while parsing meta data\nMeta data is incomplete and parsing will be terminated\nMirage will not be loaded\nLine number = " << parseContext.LineCount << "\nLine = " << FullLine, LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
 					break;
 				}
 			}
 		}
 		else // Read mirage content
 		{
-			switch (currentComponentType)
+			if (currentComponent == nullptr && nextComponentType == ComponentType::Invalid && (LowerCaseLine[0] == '{' || LowerCaseLine[0] == '}'))
 			{
-				case ComponentType::Image:
+				MLOG_WARNING("Found line beginning with \"" << LowerCaseLine[0] << "\"\nExpected a component type\nLine number = " << parseContext.LineCount << "\nLine = " << FullLine, LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
+				continue;
+			}
+			
+			ComponentType currentLineType = ComponentTypeNames::StringToType(LowerCaseLine); // Find out if it's time to switch component type and in that case; which type of component comes next
+			if (currentLineType != ComponentType::Invalid)
+			{
+				nextComponentType = currentLineType;
+				continue;
+			}
+			
+			if (LowerCaseLine[0] == '{') // Handle start of new component
+			{
+				ComponentDescriptionNode* newComponent = new ComponentDescriptionNode();
+				CreateComponentDescription(newComponent->Component, nextComponentType);
+				nextComponentType = ComponentType::Invalid;
+				if (currentComponent == nullptr) // We are at the outermost level
 				{
-					if (LowerCaseLine[0] == '}')
-					{
-						parsedData.ComponentDescriptions.push_back(new ImageDescription(imageData));
-
-						imageData = ImageDescription();
-						currentComponentType = ComponentType::Invalid;
-						--ParseDepth;
-					}
-					else
-					{
-						toReturn = ParseImage(imageData);
-					}
-				} break;
-
-				case ComponentType::ImageGroup:
+					currentComponent = newComponent;
+				}
+				else
 				{
-					if (LowerCaseLine[0] == '}' && ParseDepth == 1) // TODODB: Rework parsedepth to work with relative levels
-					{
-						parsedData.ComponentDescriptions.push_back(new ImageGroupDescription(imageGroupData));
-						
-						imageGroupData = ImageGroupDescription();
-						currentComponentType = ComponentType::Invalid;
-						--ParseDepth;
-					}
-					else
-					{
-						toReturn = ParseImageGroup(imageGroupData);
-					}
-				} break;
+					ComponentDescriptionNode* oldComponent = currentComponent;
+					currentComponent = newComponent;
 
-				case ComponentType::Invalid:
+					oldComponent->Next = newComponent;
+					newComponent->Prev = oldComponent;
+					newComponent->Component->Parent = oldComponent->Component;
+				}
+			}
+			else if (LowerCaseLine[0] == '}') // Handle end of current component
+			{
+				parseData.ComponentDescriptions.push_back(currentComponent->Component);
+
+				if (currentComponent->Prev == nullptr) // We are at the outermost level
 				{
-					// Find out which type of component comes next
-					currentComponentType = ComponentTypeNames::StringToType(LowerCaseLine);
-					if (currentComponentType == ComponentType::Invalid)
+					delete currentComponent;
+					currentComponent = nullptr;
+				}
+				else
+				{
+					ComponentDescriptionNode* oldComponent = currentComponent;
+					currentComponent = currentComponent->Prev;
+
+					currentComponent->Next = nullptr;
+					delete oldComponent;
+				}
+			}
+			else // Handle component content
+			{
+				switch (currentComponent->Component->Type)
+				{
+					case ComponentType::Region:
 					{
-						MLOG_ERROR("Expected component type name; mirage will not be loaded; line(" << LineCount << ") = " << FullLine, LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
-						shouldAbort = true;
-						toReturn = ParseResult::Fail_ParseError;
+						parseResult = ParseRegion(*static_cast<RegionDescription*>(currentComponent->Component), parseContext);
+					} break;
+
+					case ComponentType::Image:
+					{
+						parseResult = ParseImage(*static_cast<ImageDescription*>(currentComponent->Component), parseContext);
+					} break;
+
+					case ComponentType::ImageGroup:
+					{
+						parseResult = ParseImageGroup(*static_cast<ImageGroupDescription*>(currentComponent->Component), parseContext);
+					} break;
+
+					case ComponentType::Count:
+					case ComponentType::Invalid:
+					default:
+					{
+						MLOG_WARNING("Attempted to parse unknown or invalid component type\nType = " << ComponentTypeNames::TypeToString(currentComponent->Component->Type), LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
 					}
 				}
 			}
@@ -230,55 +274,58 @@ ParseResult MirParser::ParseMirFile(const std::string& relativeFilePath, ParseMo
 
 	if (!shouldAbort)
 	{
-		switch (parsedData.MetaData.Type)
+		switch (parseData.MetaData.Type)
 		{
 			case MirageAppType::ImageSynchronizer:
 			{
+				std::sort(parseData.ComponentDescriptions.begin(), parseData.ComponentDescriptions.end(), ComponentDescriptionsSortingEvaluator);
+				HandleComponentInteractions(MirageAppType::ImageSynchronizer, parseData.ComponentDescriptions);
+
 				std::vector<MirageComponent*> components;
-				CreateComponentsForApp(MirageAppType::ImageSynchronizer,parsedData.ComponentDescriptions, components);
-				outResultApp = new ImageSynchronizerApp(parsedData.MetaData.Name, parsedData.MetaData.Version, components);
+				CreateComponentsForApp(MirageAppType::ImageSynchronizer ,parseData.ComponentDescriptions, components, parseContext);
+				outResultApp = new ImageSynchronizerApp(parseData.MetaData.Name, parseData.MetaData.Version, components);
 			} break;
 
 			case MirageAppType::Count:
 			case MirageAppType::Invalid:
 			default:
 			{
-				MLOG_ERROR("Parsing finished successfully but mirage type was never deduced; mirage will not be loaded", LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
-				toReturn = ParseResult::Fail_InternalError;
+				MLOG_ERROR("Mirage parsing finished successfully but mirage type was never deduced\nMirage will not be loaded", LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
+				parseResult = ParseResult::Fail_InternalError;
 			} break;	
 		}
 
-		toReturn = ParseResult::Success;
-		MLOG_INFO("Mirage \"" << parsedData.MetaData.Name << "\" has been loaded", LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
+		parseResult = ParseResult::Success;
+		MLOG_INFO("Mirage \"" << parseData.MetaData.Name << "\" has been loaded", LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
 	}
 
-	return toReturn;
+	return parseResult;
 }
 
 // ---------- LOCAL ----------
 
-ParseResult ParseMetaData(MirMetaData& outData) 
+ParseResult ParseMetaData(MirMetaData& outData, const ParseContext& context)
 {
 	ParseResult toReturn = ParseResult::Success;
 
 	// Verify (or update) meta data
 	MetaDataLine currentMetaDataLine = MetaDataLine::None;
-	if (LowerCaseLine.compare(0, strlen(NAME_KEY), NAME_KEY) == 0)
+	if (context.LowerCaseLine.compare(0, strlen(NAME_KEY), NAME_KEY) == 0)
 		currentMetaDataLine = MetaDataLine::Name;
-	else if (LowerCaseLine.compare(0, strlen(VERSION_KEY), VERSION_KEY) == 0)
+	else if (context.LowerCaseLine.compare(0, strlen(VERSION_KEY), VERSION_KEY) == 0)
 		currentMetaDataLine = MetaDataLine::Version;
-	else if (LowerCaseLine.compare(0, strlen(TYPE_KEY), TYPE_KEY) == 0)
+	else if (context.LowerCaseLine.compare(0, strlen(TYPE_KEY), TYPE_KEY) == 0)
 		currentMetaDataLine = MetaDataLine::Type;
 	else
 	{
-		MLOG_ERROR("Read meta data line did not contain any meta data entry; line = \"" << TrueCaseLine << "\"", LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
+		MLOG_ERROR("Read meta data line did not contain any meta data entry\nMirage will not be loaded\nLine = \"" << context.TrueCaseLine << "\"", LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
 		toReturn = ParseResult::Fail_ParseError;
 	}
 
 	if (toReturn == ParseResult::Success)
 	{
-		int32_t valueStartIndex = static_cast<int32_t>(TrueCaseLine.find_first_of('=') + 1);
-		std::string value = TrueCaseLine.substr(valueStartIndex);
+		int32_t valueStartIndex = static_cast<int32_t>(context.TrueCaseLine.find_first_of('=') + 1);
+		std::string value = context.TrueCaseLine.substr(valueStartIndex);
 
 		switch (currentMetaDataLine)
 		{
@@ -297,7 +344,7 @@ ParseResult ParseMetaData(MirMetaData& outData)
 				MirageAppType type = AppTypeNames::StringToType(value);
 				if (type == MirageAppType::Invalid)
 				{
-					MLOG_ERROR("Failed to read type; mirage will not be loaded; line = \"" << TrueCaseLine << "\"", LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
+					MLOG_ERROR("Failed to read Mirage type\nMirage will not be loaded\nLine = \"" << context.TrueCaseLine << "\"", LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
 					toReturn = ParseResult::Fail_ParseError;
 					break;
 				}
@@ -314,21 +361,66 @@ ParseResult ParseMetaData(MirMetaData& outData)
 	return toReturn;
 }
 
-ParseResult ParseImage(ImageDescription& imageData)
+ParseResult ParseRegion(RegionDescription& regionData, const ParseContext& context)
+{
+	ParseResult toReturn = ParseResult::Success;
+	int32_t dividerPos = static_cast<int32_t>(context.LowerCaseLine.find_first_of('='));
+	if (dividerPos != -1)
+	{
+		ComponentField field = StringToFieldType(context.LowerCaseLine.substr(0, dividerPos));
+		std::string value = context.LowerCaseLine.substr(dividerPos + 1);
+		switch (field)
+		{
+			case ComponentField::PosX:
+			{
+				regionData.PosX = MUtility::StringToInt(value);
+			} break;
+
+			case ComponentField::PosY:
+			{
+				regionData.PosY = MUtility::StringToInt(value);
+			} break;
+
+			case ComponentField::Width:
+			{ 
+				regionData.Width = MUtility::StringToInt(value);
+			} break;
+
+			case ComponentField::Height:
+			{
+				regionData.Height = MUtility::StringToInt(value);
+			} break;
+
+			case ComponentField::ShouldSplit:
+			{
+				regionData.ShouldSplit = MUtility::StringToBool(value);
+			} break;
+
+			default:
+			{
+				LogComponentError("Encountered unexpected or unreadable field type while parsing component data; mirage will not be loaded; field = " + FieldTypeToString(field), regionData, context);
+				toReturn = ParseResult::Fail_ParseError;
+			} break;
+		}
+	}
+	else
+	{
+		LogComponentError("Encountered unexpected tokens while parsing component data; mirage will not be loaded", regionData, context);
+		toReturn = ParseResult::Fail_ParseError;
+	}
+
+	return toReturn;
+}
+
+ParseResult ParseImage(ImageDescription& imageData, const ParseContext& context)
 {
 	ParseResult toReturn = ParseResult::Success;
 
-	if (LowerCaseLine[0] == '{')
-	{
-		++ParseDepth;
-		return ParseResult::Success;
-	}
-
-	int32_t dividerPos = static_cast<int32_t>(LowerCaseLine.find_first_of('='));
+	int32_t dividerPos = static_cast<int32_t>(context.LowerCaseLine.find_first_of('='));
 	if (dividerPos != -1)
 	{
-		ComponentField field = StringToFieldType(LowerCaseLine.substr(0, dividerPos));
-		std::string value = LowerCaseLine.substr(dividerPos + 1);
+		ComponentField field = StringToFieldType(context.LowerCaseLine.substr(0, dividerPos));
+		std::string value = context.LowerCaseLine.substr(dividerPos + 1);
 		switch (field)
 		{
 			case ComponentField::PosX:
@@ -378,157 +470,77 @@ ParseResult ParseImage(ImageDescription& imageData)
 
 			case ComponentField::Resource:
 			{
-				imageData.ResourcePath = value;
+				*imageData.ResourcePath = value;
 			} break;
 
 			case ComponentField::Count:
 			default:
 			{
-				MLOG_ERROR("Found unexpected or unreadable field type while parsing image component data; mirage will not be loaded; field = " << FieldTypeToString(field) << "line(" << LineCount << " = " << FullLine, LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
+				LogComponentError("Encountered unexpected or unreadable field type while parsing component data; mirage will not be loaded; field = " + FieldTypeToString(field), imageData, context);
 				toReturn = ParseResult::Fail_ParseError;
 			} break;
 		}
 	}
 	else
 	{
-		MLOG_ERROR("Found unexpected line while parsing image component; mirage will not be loaded; line(" << LineCount << ") = " << FullLine, LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
+		LogComponentError("Encountered unexpected tokens while parsing component data; mirage will not be loaded", imageData, context);
 		toReturn = ParseResult::Fail_ParseError;
 	}
 
 	return toReturn;
 }
 
-ParseResult ParseImageGroup(ImageGroupDescription& imageGroupData)
+ParseResult ParseImageGroup(ImageGroupDescription& imageGroupData, const ParseContext& context)
 {
 	ParseResult toReturn = ParseResult::Success;
 
-	static ImageDescription imageData;
-	static ComponentType subcomponentType = ComponentType::Invalid;
-
-	auto ResetStatics = [&]()
+	int32_t dividerPos = static_cast<int32_t>(context.LowerCaseLine.find_first_of('='));
+	if (dividerPos != -1)
 	{
-		imageData = ImageDescription();
-		imageData.IsPartOfGroup = true;
-		subcomponentType = ComponentType::Invalid;
-	};
-
-	// If it's the first line; only do parsing preparations
-	if (subcomponentType == ComponentType::Invalid && LowerCaseLine[0] == '{')
-	{
-		ResetStatics();
-		++ParseDepth;
-		return ParseResult::Success;
-	}
-
-	if (subcomponentType == ComponentType::Invalid)
-	{
-		int32_t dividerPos = static_cast<int32_t>(LowerCaseLine.find_first_of('='));
-		if (dividerPos != -1)
+		ComponentField field = StringToFieldType(context.LowerCaseLine.substr(0, dividerPos));
+		std::string value = context.LowerCaseLine.substr(dividerPos + 1);
+		switch (field)
 		{
-			ComponentField field = StringToFieldType(LowerCaseLine.substr(0, dividerPos));
-			std::string value = LowerCaseLine.substr(dividerPos + 1);
-			switch (field)
+			case ComponentField::PosX:
 			{
-				case ComponentField::PosX:
-				{
-					imageGroupData.PosX = MUtility::StringToInt(value);
-				} break;
+				imageGroupData.PosX = MUtility::StringToInt(value);
+			} break;
 
-				case ComponentField::PosY:
-				{
-					imageGroupData.PosY = MUtility::StringToInt(value);
-				} break;
+			case ComponentField::PosY:
+			{
+				imageGroupData.PosY = MUtility::StringToInt(value);
+			} break;
 
-				case ComponentField::Width:
-				{
-					imageGroupData.Width = MUtility::StringToInt(value);
-				} break;
+			case ComponentField::Width:
+			{
+				imageGroupData.Width = MUtility::StringToInt(value);
+			} break;
 
-				case ComponentField::Height:
-				{
-					imageGroupData.Height = MUtility::StringToInt(value);
-				} break;
+			case ComponentField::Height:
+			{
+				imageGroupData.Height = MUtility::StringToInt(value);
+			} break;
 
-				case ComponentField::SyncTrigger: // TODODB: Convert string to MKEY
-					break;
+			case ComponentField::SyncTrigger: // TODODB: Convert string to MKEY
+				break;
 
-				case ComponentField::PosZ:
-				case ComponentField::ClipPosX:
-				case ComponentField::ClipPosY:
-				case ComponentField::ClipWidth:
-				case ComponentField::ClipHeight:
-				case ComponentField::Resource:
-				case ComponentField::Count:
-				default:
-				{
-					MLOG_ERROR("Found unexpected or unreadable field type while parsing imageGroup component data; mirage will not be loaded; field = " << FieldTypeToString(field) << "line(" << LineCount << ") = " << FullLine, LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
-					toReturn = ParseResult::Fail_ParseError;
-				} break;
-			}
-		}
-		else
-		{
-			ComponentType readComponentType = ComponentTypeNames::StringToType(LowerCaseLine);
-			if (readComponentType != ComponentType::Invalid)
-				subcomponentType = readComponentType;
+			default:
+			{
+				LogComponentError("Encountered unexpected or unreadable field type while parsing component data; mirage will not be loaded; field = " + FieldTypeToString(field), imageGroupData, context);
+				toReturn = ParseResult::Fail_ParseError;
+			} break;
 		}
 	}
 	else
 	{
-		if (LowerCaseLine[0] == '}') // End of subcomponent
-		{
-			switch (subcomponentType)
-			{
-				case ComponentType::Image:
-				{
-					imageGroupData.ImageDataList.push_back(imageData);
-					ResetStatics();
-				} break;
-
-				case ComponentType::ImageGroup:
-				case ComponentType::Count:
-				case ComponentType::Invalid:
-				{
-					MLOG_ERROR("Parsing of subcomponent completed but component type(" << static_cast<int32_t>(subcomponentType) << ") is not a valid subcomponent for an ImageGroup; mirage will not be loaded", LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
-					toReturn = ParseResult::Fail_InternalError;
-					ResetStatics();
-				} break;
-				default:
-					break;
-			}
-			subcomponentType = ComponentType::Invalid;
-			--ParseDepth;
-		}
-		else
-		{
-			switch (subcomponentType)
-			{
-				case ComponentType::Image:
-				{
-					toReturn = ParseImage(imageData);
-				} break;
-
-				case ComponentType::ImageGroup:
-				case ComponentType::Count:
-				case ComponentType::Invalid:
-				{
-					MLOG_ERROR("Attempted to parse unsupported sub component type; type = " << static_cast<int32_t>(subcomponentType) << "; mirage will not be loaded; line(" << LineCount << ") = " << FullLine, LOG_CATEGORY_IMAGE_MIR_FILE_PARSER); // TODODB: Use string output for type (do this for all occurances in logs)
-					toReturn = ParseResult::Fail_ParseError;
-					ResetStatics();
-				}	break;
-				default:
-					break;
-			}
-		}
+		LogComponentError("Encountered unexpected tokens while parsing component data; mirage will not be loaded", imageGroupData, context);
+		toReturn = ParseResult::Fail_ParseError;
 	}
-
-	if(toReturn != ParseResult::Success)
-		ResetStatics();
 
 	return toReturn;
 }
 
-Image* CreateImageComponent(const ImageDescription& imageData)
+Image* CreateImageComponent(const ImageDescription& imageData, ParseContext& context)
 {
 	Image* toReturn = nullptr;
 	if (imageData.IsValid())
@@ -550,7 +562,7 @@ Image* CreateImageComponent(const ImageDescription& imageData)
 				imageBehaviour |= ImageBehaviourMask::Synchronize;
 		}
 
-		toReturn = new Image(NextComponentID++, imageData.PosX, imageData.PosY, imageData.PosZ, imageData.Width, imageData.Height, imageBehaviour, UNASSIGNED_PLAYER_ID, imageData.ClipPosX, imageData.ClipPosY, imageData.Width, imageData.Height);
+		toReturn = new Image(context.NextComponentID++, imageData.PosX, imageData.PosY, imageData.PosZ, imageData.Width, imageData.Height, imageBehaviour, UNASSIGNED_PLAYER_ID, imageData.ClipPosX, imageData.ClipPosY, imageData.ClipWidth, imageData.ClipHeight);
 	}
 	else
 		MLOG_WARNING("Found image description lacking required fields; image will be skipped", LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
@@ -558,17 +570,17 @@ Image* CreateImageComponent(const ImageDescription& imageData)
 	return toReturn;
 }
 
-ImageGroup* CreateImageGroupComponent(const ImageGroupDescription& imageGroupData)
+ImageGroup* CreateImageGroupComponent(const ImageGroupDescription& imageGroupData, ParseContext& context)
 {
 	ImageGroup* toReturn = nullptr;
-	if (imageGroupData.PosX >= 0 && imageGroupData.PosY >= 0 && imageGroupData.Width > 0 && imageGroupData.Height > 0 && !imageGroupData.ImageDataList.empty())
+	if (imageGroupData.PosX >= 0 && imageGroupData.PosY >= 0 && imageGroupData.Width > 0 && imageGroupData.Height > 0 && !imageGroupData.SubImageList->empty())
 	{
 		std::vector<Image*> imageComponents;
-		for (const ImageDescription& imageData : imageGroupData.ImageDataList)
+		for (ImageDescription* imageData : *imageGroupData.SubImageList)
 		{
-			imageComponents.push_back(CreateImageComponent(imageData));
+			imageComponents.push_back(CreateImageComponent(*imageData, context));
 		}
-		toReturn = new ImageGroup(NextComponentID++, imageGroupData.PosX, imageGroupData.PosY, imageGroupData.Width, imageGroupData.Height, imageComponents, imageGroupData.SplitIndex);
+		toReturn = new ImageGroup(context.NextComponentID++, imageGroupData.PosX, imageGroupData.PosY, imageGroupData.Width, imageGroupData.Height, imageComponents, imageGroupData.SplitIndex);
 	}
 	else
 		MLOG_WARNING("Found ImageGroup description lacking required fields; ImageGroup will be skipped", LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
@@ -576,78 +588,312 @@ ImageGroup* CreateImageGroupComponent(const ImageGroupDescription& imageGroupDat
 	return toReturn;
 }
 
-void CreateComponentsForApp(MirageAppType appType, const std::vector<ComponentDescription*>& componentDescriptions, std::vector<MirageComponent*>& outComponents)
+void HandleComponentInteractions(MirageAppType appType, std::vector<ComponentDescription*>& componentDescriptions)
 {
 	switch (appType)
 	{
-	case MirageAppType::ImageSynchronizer:
-	{
-		for (ComponentDescription* componentDesc : componentDescriptions)
+		case MirageAppType::ImageSynchronizer:
 		{
-			switch (componentDesc->Type)
+			std::vector<RegionDescription*> regionList;
+			for (int i = 0; i < componentDescriptions.size(); ++i)
 			{
-			case ComponentType::Image:
-			{
-				Image* image = CreateImageComponent(*static_cast<ImageDescription*>(componentDesc));
-				if (image != nullptr)
-					outComponents.push_back(image);
-			} break;
+				ComponentDescription* componentDesc = componentDescriptions[i];
 
-			case ComponentType::ImageGroup:
-			{
-				// TODODB: Add max players to mir app description
-				const int32_t maxPlayers = 4;
-				// TODODB: Add bool to signal if the ImageGroup should be split on players or not
-				ImageGroupDescription* imageGroupDesc = static_cast<ImageGroupDescription*>(componentDesc);
-				std::vector<MirageRect> rects;
-				CalculateSplitRects(maxPlayers, MirageRect(imageGroupDesc->PosX, imageGroupDesc->PosY, imageGroupDesc->Width, imageGroupDesc->Height), rects);
-				ImageGroupDescription descriptionCopy = *imageGroupDesc;
-				for (int i = 0; i < rects.size(); ++i)
+				// Make all positions relative to the parent's position
+				if (componentDesc->IsUIComponentDescription)
 				{
-					descriptionCopy.SplitIndex = i;
-					descriptionCopy.PosX = rects[i].PosX;
-					descriptionCopy.PosY = rects[i].PosY;
-					descriptionCopy.Width = rects[i].Width;
-					descriptionCopy.Height = rects[i].Height;
-					ImageGroup* imageGroup = CreateImageGroupComponent(descriptionCopy);
-					if(imageGroup != nullptr)
-						outComponents.push_back(imageGroup);
+					UIComponentDescription* uiComponentDesc = static_cast<UIComponentDescription*>(componentDesc);
+					if (!uiComponentDesc->IsValid())
+					{
+						MLOG_WARNING("Found UI component description lacking one or more required fields; type = \"" << ComponentTypeNames::TypeToString(uiComponentDesc->Type) << "\"", LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
+						componentDescriptions.erase(componentDescriptions.begin() + i--);
+						continue;
+					}
+
+					if (componentDesc->Parent != nullptr)
+					{
+						UIComponentDescription* uiParentComponentDesc = static_cast<UIComponentDescription*>(componentDesc->Parent);
+						uiComponentDesc->PosX += uiParentComponentDesc->PosX;
+						uiComponentDesc->PosY += uiParentComponentDesc->PosY;
+					}
 				}
-			} break;
 
-			case ComponentType::Count:
-			case ComponentType::Invalid:
-			default:
-			{
-				MLOG_ERROR("Encountered invalid or unexpected componentType; type = " << static_cast<int32_t>(componentDesc->Type), LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
-			} break;
+				switch (componentDesc->Type)
+				{
+					case ComponentType::Region:
+					{
+						RegionDescription* regionDesc = static_cast<RegionDescription*>(componentDesc);
+						if (regionDesc->ShouldSplit)
+						{
+							if (componentDesc->Parent != nullptr)
+								MLOG_WARNING("Found splitting region with parent; regions that split are not allowed to have parents", LOG_CATEGORY_IMAGE_MIR_FILE_PARSER); // TODODB: See if splitting regions can be allowed parents
+
+							regionList.push_back(regionDesc);
+							componentDescriptions.erase(componentDescriptions.begin() + i);
+							--i;
+						}
+					} break;
+
+					case ComponentType::Image:
+					{
+						ImageDescription* imageDesc = static_cast<ImageDescription*>(componentDesc);
+						ComponentDescription* parent = imageDesc->Parent;
+
+						if (parent != nullptr)
+						{
+							switch (parent->Type)
+							{
+								case ComponentType::ImageGroup:
+								{
+									static_cast<ImageGroupDescription*>(parent)->SubImageList->push_back(imageDesc);
+									componentDescriptions.erase(componentDescriptions.begin() + i--); // The image is now a part of the parent image group
+								} break;
+
+								case ComponentType::Region:
+								{
+									static_cast<RegionDescription*>(parent)->Children->push_back(componentDesc);
+								} break;
+
+								case ComponentType::Image:
+								case ComponentType::Count:
+								case ComponentType::Invalid:
+								default:
+								{
+									MLOG_WARNING("Unexpected parent component type \"" << ComponentTypeNames::TypeToString(parent->Type) << "\" found for \"" << ComponentTypeNames::TypeToString(componentDesc->Type) << "\" component", LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
+								} break;
+							}
+						}
+					} break;
+
+					case ComponentType::ImageGroup:
+					{
+						ImageGroupDescription* imageGroupDesc = static_cast<ImageGroupDescription*>(componentDesc);
+						ComponentDescription* parent = imageGroupDesc->Parent;
+
+						if (parent != nullptr)
+						{
+							switch (parent->Type)
+							{
+								case ComponentType::Region:
+								{
+									static_cast<RegionDescription*>(parent)->Children->push_back(componentDesc);
+								} break;
+
+								case ComponentType::Image:
+								case ComponentType::ImageGroup:
+								case ComponentType::Count:
+								case ComponentType::Invalid:
+								default:
+								{
+									MLOG_WARNING("Unexpected parent component type \"" << ComponentTypeNames::TypeToString(parent->Type) << "\" found for \"" << ComponentTypeNames::TypeToString(componentDesc->Type) << "\" component", LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
+								} break;
+							}
+						}
+					} break;
+
+					case ComponentType::Count:
+					case ComponentType::Invalid:
+					default:
+					{
+						MLOG_ERROR("Encountered invalid or unexpected componentType; type = " << ComponentTypeNames::TypeToString(componentDesc->Type), LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
+					} break;
+				}
 			}
-		}
-	} break;
 
-	case MirageAppType::Count:
-	case MirageAppType::Invalid:
-	default:
-	{
-		MLOG_ERROR("Encountered invalid or unexpected appType; type = " << static_cast<int32_t>(appType), LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
-	} break;
+			// Handle copying and displacement caused by region components
+			for (RegionDescription* regionDesc : regionList)
+			{
+				if (regionDesc->Children->empty())
+				{
+					MLOG_WARNING("Found region component without any legitimate child components", LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
+					continue;
+				}
+
+				const int32_t maxPlayers = 4; // TODODB: Add max players to mir app description
+				CalculateSplitRects(maxPlayers, MirageRect(regionDesc->PosX, regionDesc->PosY, regionDesc->Width, regionDesc->Height), *regionDesc->SplitRects, regionDesc->SplitsCountX, regionDesc->SplitsCountY);
+
+				for (ComponentDescription* child : *regionDesc->Children)
+				{
+					child->Parent = nullptr; // Region will be destroyed after this so detach it from the component description
+
+					const std::vector<MirageRect>& rects = *regionDesc->SplitRects;
+					switch (child->Type)
+					{
+						case ComponentType::Image:
+						{
+							ImageDescription* imageDesc = static_cast<ImageDescription*>(child);
+							imageDesc->PosX		= rects[0].PosX + imageDesc->PosX / regionDesc->SplitsCountX;
+							imageDesc->PosY		= rects[0].PosY + imageDesc->PosY / regionDesc->SplitsCountY;
+							imageDesc->Width	= rects[0].Width + imageDesc->Width / regionDesc->SplitsCountX;
+							imageDesc->Height	= rects[0].Height + imageDesc->Height / regionDesc->SplitsCountY;
+
+							for (int i = 1; i < rects.size(); ++i)
+							{
+								ImageDescription* copy = new ImageDescription(*imageDesc);
+								copy->PosX = rects[i].PosX + copy->PosX / regionDesc->SplitsCountX;
+								copy->PosY = rects[i].PosY + copy->PosY / regionDesc->SplitsCountY;
+								copy->Width = rects[i].Width + copy->Width / regionDesc->SplitsCountX;
+								copy->Height = rects[i].Height + copy->Height / regionDesc->SplitsCountY;
+								componentDescriptions.push_back(copy);
+							}
+						} break;
+
+						case ComponentType::ImageGroup:
+						{
+							ImageGroupDescription* imageGroupDesc = static_cast<ImageGroupDescription*>(child);
+
+							for (int i = 1; i < rects.size(); ++i)
+							{
+								ImageGroupDescription* groupCopy = new ImageGroupDescription(*imageGroupDesc);
+								for (ImageDescription*& subImageDesc : *groupCopy->SubImageList)
+								{
+									subImageDesc->PosX = rects[i].PosX + (subImageDesc->PosX - groupCopy->PosX) / regionDesc->SplitsCountX;
+									subImageDesc->PosY = rects[i].PosY + (subImageDesc->PosY - groupCopy->PosY) / regionDesc->SplitsCountY;
+									subImageDesc->Width = rects[i].Width + (subImageDesc->Width - groupCopy->Width) / regionDesc->SplitsCountX;
+									subImageDesc->Height = rects[i].Height + (subImageDesc->Height - groupCopy->Height) / regionDesc->SplitsCountY;
+								}
+								groupCopy->PosX = rects[i].PosX + groupCopy->PosX / regionDesc->SplitsCountX;
+								groupCopy->PosY = rects[i].PosY + groupCopy->PosY / regionDesc->SplitsCountY;
+								groupCopy->Width = rects[i].Width + groupCopy->Width / regionDesc->SplitsCountX;
+								groupCopy->Height = rects[i].Height + groupCopy->Height / regionDesc->SplitsCountY;
+								groupCopy->SplitIndex = i;
+							
+								componentDescriptions.push_back(groupCopy);
+							}
+
+							for (ImageDescription* imageDesc : *imageGroupDesc->SubImageList)
+							{
+								imageDesc->PosX = rects[0].PosX + (imageDesc->PosX - imageGroupDesc->PosX) / regionDesc->SplitsCountX;
+								imageDesc->PosY = rects[0].PosY + (imageDesc->PosY - imageGroupDesc->PosY) / regionDesc->SplitsCountY;
+								imageDesc->Width = rects[0].Width + (imageDesc->Width - imageGroupDesc->Width) / regionDesc->SplitsCountX;
+								imageDesc->Height = rects[0].Height + (imageDesc->Height - imageGroupDesc->Height) / regionDesc->SplitsCountY;
+							}
+							imageGroupDesc->PosX = rects[0].PosX + imageGroupDesc->PosX / regionDesc->SplitsCountX;
+							imageGroupDesc->PosY = rects[0].PosY + imageGroupDesc->PosY / regionDesc->SplitsCountY;
+							imageGroupDesc->Width = rects[0].Width + imageGroupDesc->Width / regionDesc->SplitsCountX;
+							imageGroupDesc->Height = rects[0].Height + imageGroupDesc->Height / regionDesc->SplitsCountY;
+							imageGroupDesc->SplitIndex = 0;
+
+						} break;
+
+						case ComponentType::Region: // TODODB: Allow non splitting child regions
+						case ComponentType::Count:
+						case ComponentType::Invalid:
+						default:
+						{
+							MLOG_WARNING("Unexpected region child component type found; type = \"" << ComponentTypeNames::TypeToString(child->Type) << "\"", LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
+						} break;
+					}
+					delete regionDesc;
+					regionDesc = nullptr;
+				}
+			}
+		} break;
+
+		case MirageAppType::Count:
+		case MirageAppType::Invalid:
+		default:
+		{
+			MLOG_ERROR("Encountered invalid or unexpected appType; type = " << AppTypeNames::TypeToString(appType), LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
+		} break;
 	}
 }
 
-void CalculateSplitRects(int32_t maxSubRects, const MirageRect& fullRect, std::vector<MirageRect>& outRects)
+void CreateComponentsForApp(MirageAppType appType, std::vector<ComponentDescription*>& componentDescriptions, std::vector<MirageComponent*>& outComponents, ParseContext& context) // TODODB: Handle parents
 {
-	int32_t nrOfSplitsX = static_cast<int32_t>(std::ceil(std::sqrt(maxSubRects)));
-	int32_t nrOfSplitsY = static_cast<int32_t>(std::ceil(maxSubRects / static_cast<float>(nrOfSplitsX)));
+	switch (appType)
+	{
+		case MirageAppType::ImageSynchronizer:
+		{
+			for(ComponentDescription* componentDesc : componentDescriptions)
+			{
+				switch (componentDesc->Type)
+				{
+					case ComponentType::Image:
+					{
+						Image* image = CreateImageComponent(*static_cast<ImageDescription*>(componentDesc), context);
+						if (image != nullptr)
+							outComponents.push_back(image);
+					} break;
+
+					case ComponentType::ImageGroup:
+					{
+						ImageGroup* imageGroup = CreateImageGroupComponent(*static_cast<ImageGroupDescription*>(componentDesc), context);
+						if (imageGroup != nullptr)
+							outComponents.push_back(imageGroup);
+					} break;
+
+					case ComponentType::Region:
+					case ComponentType::Count:
+					case ComponentType::Invalid:
+					default:
+					{
+						MLOG_ERROR("Encountered invalid or unexpected componentType; type = " << ComponentTypeNames::TypeToString(componentDesc->Type), LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
+					} break;
+				}
+			}
+		} break;
+
+		case MirageAppType::Count:
+		case MirageAppType::Invalid:
+		default:
+		{
+			MLOG_ERROR("Encountered invalid or unexpected appType; type = " << AppTypeNames::TypeToString(appType), LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
+		} break;
+	}
+}
+
+void CalculateSplitRects(int32_t maxSubRects, const MirageRect& fullRect, std::vector<MirageRect>& outRects, int32_t& outSplitsCountX, int32_t& outSplitsCountY)
+{
+	outSplitsCountX = static_cast<int32_t>(std::ceil(std::sqrt(maxSubRects)));
+	outSplitsCountY = static_cast<int32_t>(std::ceil(maxSubRects / static_cast<float>(outSplitsCountX)));
 
 	MirageRect rect;
-	rect.Width = fullRect.Width / nrOfSplitsX;
-	rect.Height = fullRect.Height / nrOfSplitsY;
+	rect.Width = fullRect.Width / outSplitsCountX;
+	rect.Height = fullRect.Height / outSplitsCountY;
 	for (int i = 0; i < maxSubRects; ++i)
 	{
-		rect.PosX = fullRect.PosX + ((i % nrOfSplitsX) * fullRect.Width);
-		rect.PosY = fullRect.PosY + ((i / nrOfSplitsX) * fullRect.Height);
+		rect.PosX = fullRect.PosX + ((i % outSplitsCountX) * (fullRect.Width / outSplitsCountX));
+		rect.PosY = fullRect.PosY + ((i / outSplitsCountX) * (fullRect.Height / outSplitsCountY));
 		outRects.push_back(rect);
 	}
+}
+
+void CreateComponentDescription(ComponentDescription*& componentDesc, ComponentType type)
+{
+	switch (type)
+	{
+		case ComponentType::Region:
+		{
+			componentDesc = new RegionDescription();
+		} break;
+
+		case ComponentType::Image:
+		{		
+			componentDesc = new ImageDescription();
+		} break;
+
+		case ComponentType::ImageGroup:
+		{
+			componentDesc = new ImageGroupDescription();
+		} break;
+
+		case ComponentType::Count:
+		case ComponentType::Invalid:
+		default:
+		{
+			MLOG_WARNING("Failed to create component of type " << ComponentTypeNames::TypeToString(type) << " no handling logic exists", LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
+		} break;
+	}
+}
+
+void LogComponentError(const std::string& message, const ComponentDescription& componentDescription, const ParseContext& context)
+{
+	MLOG_ERROR(message
+		<< "\nParse info:\nLine number = " << context.LineCount
+		<< "\nLine = " << context.TrueCaseLine
+		<< "Component info:\nType = " << ComponentTypeNames::TypeToString(componentDescription.Type)
+		<< "\nParent type = " << (componentDescription.Parent == nullptr ? "NULL" : ComponentTypeNames::TypeToString(componentDescription.Parent->Type)), LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
 }
 
 std::string FieldTypeToString(ComponentField fieldType)
@@ -670,4 +916,23 @@ ComponentField StringToFieldType(std::string str)
 		}
 	}
 	return toReturn;
+}
+
+bool ComponentDescriptionsSortingEvaluator(const ComponentDescription* lhs, const ComponentDescription* rhs)
+{ 
+	int32_t lhsParseDepth = 0;
+	while (lhs->Parent != nullptr)
+	{
+		lhs = lhs->Parent;
+		++lhsParseDepth;
+	}
+
+	int32_t rhsParseDepth = 0;
+	while (rhs->Parent != nullptr)
+	{
+		rhs = rhs->Parent;
+		++rhsParseDepth;
+	}
+
+	return lhsParseDepth > rhsParseDepth;
 }

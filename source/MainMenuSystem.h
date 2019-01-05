@@ -30,7 +30,7 @@ private:
 
 	void OnConnection(const Tubes::ConnectionAttemptResultData& connectionResult);
 
-	void StartMPGameMode();
+	bool StartMPGameMode();
 
 	MEngine::EntityID m_HostButtonID;
 	MEngine::EntityID m_ConnectButtonID;

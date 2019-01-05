@@ -21,6 +21,7 @@ namespace AppTypeNames
 
 enum class ComponentType
 {
+	Region,
 	Image,
 	ImageGroup,
 

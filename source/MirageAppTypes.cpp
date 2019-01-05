@@ -9,7 +9,14 @@ namespace AppTypeNames
 		"ImageSynchronizer",
 	};
 
-	std::string TypeToString(MirageAppType appType) { return AppNamesList[static_cast<int32_t>(appType)]; }
+	std::string TypeToString(MirageAppType appType)
+	{
+		if (static_cast<int32_t>(appType) < APP_NAMES_COUNT)
+			return AppNamesList[static_cast<int32_t>(appType)];
+		else
+			return "Unknown";
+	}
+
 	MirageAppType StringToType(std::string str) // TODODB: Make a generic version fo these functions using enum indices instead of actual enum types
 	{
 		MirageAppType toReturn = MirageAppType::Invalid;
@@ -32,11 +39,19 @@ namespace ComponentTypeNames
 {
 	const char ComponentNamesList[COMPONENT_NAMES_COUNT][COMPONENT_NAMES_MAX_LENGTH] =
 	{
+		"Region",
 		"Image",
 		"ImageGroup",
 	};
 
-	std::string TypeToString(ComponentType componentType) { return ComponentNamesList[static_cast<int32_t>(componentType)]; }
+	std::string TypeToString(ComponentType componentType)
+	{
+		if (static_cast<int32_t>(componentType) < COMPONENT_NAMES_COUNT)
+			return ComponentNamesList[static_cast<int32_t>(componentType)];
+		else
+			return "Unknown";
+	}
+
 	ComponentType StringToType(std::string str)
 	{
 		ComponentType toReturn = ComponentType::Invalid;
