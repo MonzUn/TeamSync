@@ -155,11 +155,11 @@ Message* Replicator::DeserializeMessage(const Byte* const buffer)
 			uint32_t signal;
 			bool flag;
 			int32_t playerID;
-			int32_t data;
+			SignalFlagMessage::Data data;
 			ReadUint32(signal);
 			ReadBool(flag);
 			ReadInt32(playerID);
-			ReadInt32(data);
+			ReadMemory(&data, sizeof(SignalFlagMessage::Data));
 
 			deserializedMessage = new SignalFlagMessage(static_cast<MirageSignals::Signal>(signal), flag, playerID, data);
 		} break;
@@ -265,6 +265,7 @@ int32_t Replicator::CalculateMessageSize(const Message& message) const
 			messageSize += INT_32_SIZE;
 			messageSize += BOOL_SIZE;
 			messageSize += INT_32_SIZE;
+			messageSize += sizeof(SignalFlagMessage::Data);
 		} break;
 
 		case REQUEST_MESSAGE:

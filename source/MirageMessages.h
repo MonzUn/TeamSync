@@ -47,6 +47,9 @@ struct SignalFlagMessage : MirageMessage
 		memcpy(&IDData, &IDInfo, sizeof(Data));
 	}
 
+	SignalFlagMessage(MirageSignals::Signal signal, bool flag, int32_t playerID, Data IDInfo) : MirageMessage(MirageMessages::SIGNAL_FLAG), Signal(signal), Flag(flag), PlayerID(playerID), IDData(IDInfo)
+	{ }
+
 	MirageSignals::Signal Signal;
 	bool Flag;
 	int32_t PlayerID;
