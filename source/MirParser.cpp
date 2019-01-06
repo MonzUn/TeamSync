@@ -784,9 +784,9 @@ void HandleComponentInteractions(MirageAppType appType, std::vector<ComponentDes
 							MLOG_WARNING("Unexpected region child component type found; type = \"" << ComponentTypeNames::TypeToString(child->Type) << "\"", LOG_CATEGORY_IMAGE_MIR_FILE_PARSER);
 						} break;
 					}
-					delete regionDesc;
-					regionDesc = nullptr;
 				}
+				delete regionDesc;
+				regionDesc = nullptr;
 			}
 		} break;
 
