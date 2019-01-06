@@ -68,7 +68,7 @@ void ImageSynchronizerApp::Initialize()
 	if (GlobalsBlackboard::GetInstance()->IsHost)
 	{
 		m_LocalPlayerID = 0;
-		ActivatePlayer(m_LocalPlayerID);
+		ActivatePlayer(m_LocalPlayerID, PlayerConnectionType::Local, TUBES_INVALID_CONNECTION_ID, GlobalsBlackboard::GetInstance()->LocalPlayerName);
 		GlobalsBlackboard::GetInstance()->HostSettingsData.RequestsLogs = Config::GetBool("HostRequestsLogs", false);
 
 		if (GlobalsBlackboard::GetInstance()->HostSettingsData.RequestsLogs)
@@ -374,12 +374,7 @@ PlayerID ImageSynchronizerApp::FindFreePlayerSlot() const
 
 void ImageSynchronizerApp::RemovePlayer(Player* player)
 {
-	for (ImageGroup* imageGroup : m_ImageGroups[player->GetPlayerID()])
-	{
-		imageGroup->Deactivate();
-	}
-
-	m_Players[player->GetPlayerID()]->Deactivate();
+	DeactivatePlayer(player->GetPlayerID());
 	if (player->GetPlayerID() == m_LocalPlayerID)
 		m_LocalPlayerID = UNASSIGNED_PLAYER_ID;
 }
@@ -624,7 +619,7 @@ void ImageSynchronizerApp::HandleIncomingNetworkCommunication()
 				PlayerID newPlayerID = FindFreePlayerSlot();
 				if (newPlayerID >= 0)
 				{
-					m_Players[newPlayerID]->Activate(newPlayerID, PlayerConnectionType::Direct, messageSenders[i], *playerInitMessage->PlayerName);
+					ActivatePlayer(newPlayerID, PlayerConnectionType::Direct, messageSenders[i], *playerInitMessage->PlayerName);
 
 					// Send the new player ID to all clients
 					PlayerInitializeMessage relayedInitMessage = PlayerInitializeMessage(newPlayerID, PlayerConnectionType::Local, m_Players[newPlayerID]->GetName());
@@ -711,7 +706,7 @@ void ImageSynchronizerApp::HandleIncomingNetworkCommunication()
 
 				if (!m_Players[playerID]->IsActive())
 				{
-					m_Players[playerID]->Activate(playerID, connectionType, connectionID, playerName);
+					ActivatePlayer(playerID, connectionType, connectionID, playerName);
 					MLOG_INFO("Host informs of new player\nName = \"" << m_Players[playerID]->GetName() << "\"\nPlayerID = " << playerID << "\nConnectionID = " << m_Players[playerID]->GetConnectionID() << "\nConnectionType = " << m_Players[playerID]->GetConnectionType(), LOG_CATEGORY_IMAGE_SYNCHRONIZER_APP);
 				}
 				else
@@ -1012,12 +1007,21 @@ bool ImageSynchronizerApp::ExecuteConnectionInfoCommand(const std::string* param
 	return result;
 }
 
-void ImageSynchronizerApp::ActivatePlayer(PlayerID ID)
+void ImageSynchronizerApp::ActivatePlayer(PlayerID playerID, PlayerConnectionType::PlayerConnectionType connectionType, Tubes::ConnectionID coonectionID, const std::string& playerName)
 {
-	m_Players[ID]->Activate(ID, PlayerConnectionType::Local, TUBES_INVALID_CONNECTION_ID, GlobalsBlackboard::GetInstance()->LocalPlayerName);
-	for (ImageGroup* imageGroup : m_ImageGroups[ID])
+	m_Players[playerID]->Activate(playerID, connectionType, coonectionID, playerName);
+	for (ImageGroup* imageGroup : m_ImageGroups[playerID])
 	{
-		imageGroup->Activate(ID);
+		imageGroup->Activate(playerID);
+	}
+}
+
+void ImageSynchronizerApp::DeactivatePlayer(PlayerID playerID)
+{
+	m_Players[playerID]->Deactivate();
+	for (ImageGroup* imageGroup : m_ImageGroups[playerID])
+	{
+		imageGroup->Deactivate();
 	}
 }
 

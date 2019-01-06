@@ -53,7 +53,8 @@ private:
 	bool ExecuteDisconnectCommand(const std::string* parameters, int32_t parameterCount, std::string* outResponse);
 	bool ExecuteConnectionInfoCommand(const std::string* parameters, int32_t parameterCount, std::string* outResponse);
 
-	void ActivatePlayer(PlayerID ID);
+	void ActivatePlayer(PlayerID playerID, PlayerConnectionType::PlayerConnectionType connectionType, Tubes::ConnectionID connectionID, const std::string& playerName);
+	void DeactivatePlayer(PlayerID playerID);
 	void PrimeCycledScreenshotForPlayer(PlayerID playerID);
 	bool DisconnectPlayer(PlayerID playerID);
 	void DisconnectAll();
