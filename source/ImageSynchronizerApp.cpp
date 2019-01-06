@@ -497,7 +497,10 @@ void ImageSynchronizerApp::HandleImageJobResults()
 				for (ImageGroup* imageGroup : m_ImageGroups[finishedJob->ImageOwnerPlayerID])
 				{
 					if (imageGroup->GetID() == finishedJob->ImageParentID)
+					{
+						MEngine::UnloadTexture(imageGroup->GetImageTextureID(finishedJob->ImageIDs[0]));
 						imageGroup->SetImageTextureID(finishedJob->ImageIDs[0], finishedJob->ResultTextureIDs[0]);
+					}
 				}
 			}
 
@@ -518,6 +521,7 @@ void ImageSynchronizerApp::HandleImageJobResults()
 				{
 					if (imageGroup->GetID() == finishedJob->ImageParentID)
 					{
+						MEngine::UnloadTexture(imageGroup->GetImageTextureID(finishedJob->ImageIDs[i]));
 						imageGroup->SetImageTextureID(finishedJob->ImageIDs[i], finishedJob->ResultTextureIDs[i]);
 						break;
 					}
