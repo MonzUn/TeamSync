@@ -730,7 +730,7 @@ void ImageSynchronizerApp::HandleIncomingNetworkCommunication()
 
 			void* pixelsCopy = malloc(playerUpdateMessage->ImageByteSize);
 			memcpy(pixelsCopy, playerUpdateMessage->Pixels, playerUpdateMessage->ImageByteSize); // Message will get destroyed; make a copy of the pixel data for the asynchronous job
-			ImageJob* imageFromDataJob = new ImageJob(ImageJobType::CreateImageFromData, playerUpdateMessage->PlayerID, playerUpdateMessage->ImageParentID, std::vector<ComponentID>(playerUpdateMessage->ImageID), playerUpdateMessage->Width, playerUpdateMessage->Height, pixelsCopy); // TODODB: Get rid of the vector creation for ComponentID
+			ImageJob* imageFromDataJob = new ImageJob(ImageJobType::CreateImageFromData, playerUpdateMessage->PlayerID, playerUpdateMessage->ImageParentID, {playerUpdateMessage->ImageID}, playerUpdateMessage->Width, playerUpdateMessage->Height, pixelsCopy); // TODODB: Get rid of the vector creation for ComponentID
 			m_ImageJobQueue.Produce(imageFromDataJob);
 			m_ImageJobLockCondition.notify_one();
 		} break;
