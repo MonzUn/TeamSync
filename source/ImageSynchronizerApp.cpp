@@ -493,7 +493,13 @@ void ImageSynchronizerApp::HandleImageJobResults()
 		case ImageJobType::CreateImageFromData:
 		{
 			if (m_Players[finishedJob->ImageOwnerPlayerID]->IsActive()) // Players may have been disconnected while the job was running
-					m_ImageGroups[finishedJob->ImageOwnerPlayerID][finishedJob->ImageParentID]->SetImageTextureID(finishedJob->ImageIDs[0], finishedJob->ResultTextureIDs[0]);
+			{
+				for (ImageGroup* imageGroup : m_ImageGroups[finishedJob->ImageOwnerPlayerID])
+				{
+					if (imageGroup->GetID() == finishedJob->ImageParentID)
+						imageGroup->SetImageTextureID(finishedJob->ImageIDs[0], finishedJob->ResultTextureIDs[0]);
+				}
+			}
 
 			free(finishedJob->Pixels);
 		} break;
